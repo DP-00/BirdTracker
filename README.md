@@ -1,6 +1,27 @@
-# ArcGIS Maps SDK for JavaScript template
+# BirdTracker
 
-## Prerequisites
+## About
+Master Thesis project
+
+## Updates
+---
+### Week 11&12
+
+#### 🚀 New Features
+- Basic scene
+- Map components (search, basemap, light, measurements, bookmarks, elevation pro)
+- Template UI
+  
+#### 🛠 Improvements
+- none
+
+#### 🐛 Bug Fixes
+- none
+---
+
+## ArcGIS Maps SDK for JavaScript template
+
+### Prerequisites
 
 - Node.js 20.0+
 
@@ -9,25 +30,21 @@ The template comes set up with Prettier for formatting. Take a look at their [ed
 ## Run project locally
 
 To start:
-
 ```
 npm install
 npm run dev
 ```
-
 Then open your browser at http://localhost:3000/
 
-## Create productive build
+### Create productive build
 
 ```
 npm run build
 ```
-
-The `dist` folder then contains all the files for the web app, also served at `https://arnofiva.github.io/arcgis-core-template`.
-
+The `dist` folder then contains all the files for the web app.
 In order to use the `gh-pages` approach, see the following instructions. Make sure you remove an existing `dist` folder if it has been created from a previous build.
 
-## Licensing
+### Licensing
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
