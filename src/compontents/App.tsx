@@ -1,4 +1,10 @@
 import {
+  createGeneralizedLineLayer,
+  createLineLayer,
+  processCSV,
+} from "../utils";
+
+import {
   property,
   subclass,
 } from "@arcgis/core/core/accessorSupport/decorators";
@@ -23,9 +29,6 @@ import AppStore from "../stores/AppStore";
 import { Widget } from "./Widget";
 
 import "@arcgis/core/geometry/operators/generalizeOperator";
-import Polyline from "@arcgis/core/geometry/Polyline";
-import Graphic from "@arcgis/core/Graphic";
-import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 import "@esri/calcite-components/dist/components/calcite-action";
 import "@esri/calcite-components/dist/components/calcite-action-group";
 import "@esri/calcite-components/dist/components/calcite-action-pad";
@@ -63,7 +66,7 @@ class App extends Widget<AppProperties> {
       const csvInput = document.getElementById("csv-input");
       const columnPanel = document.getElementById("column-assignment");
       const buttonSave = document.getElementById("save-button");
-      const dialog = document.getElementById("example-dialog");
+      const dialog = document.getElementById("loading-dialog");
       const alert = document.getElementById("loading-error");
       let columnNames = {
         birdid: document.getElementById("id-select"),
@@ -99,6 +102,7 @@ class App extends Widget<AppProperties> {
       let dataParsed;
       let headers;
       let dataProcessed;
+      let statJSON = {};
 
       csvInput?.addEventListener("change", async (event) => {
         const file = event.target.files[0];
@@ -180,11 +184,11 @@ class App extends Widget<AppProperties> {
           fileSize = 8;
         }
 
-        dataProcessed = processCSV(dataParsed, columnNames);
+        [dataProcessed, statJSON] = processCSV(dataParsed, columnNames);
 
         console.log("Parsed CSV Data:", dataProcessed);
         console.log(
-          `Data: ${dataParsed.length} points, ${fileSize} MB, ${((performance.now() - startTime) / 1000).toFixed(2)} s`,
+          `Data: ${Object.keys(dataProcessed).length} tracks, ${dataParsed.length} points, ${fileSize} MB, ${((performance.now() - startTime) / 1000).toFixed(2)} s`,
         );
 
         if (dataProcessed.length === 0) {
@@ -215,239 +219,6 @@ class App extends Widget<AppProperties> {
         }
       });
     });
-
-    function processCSV(lines, columnNames) {
-      const getColumnValue = (key) => {
-        const column = columnNames[key];
-        return typeof column === "string" ? column : column?.value;
-      };
-
-      let headers = lines[0]
-        .split(",")
-        .map((h) => h.trim().replace(/^"(.*)"$/, "$1"));
-
-      lines.pop(); // Remove the last line
-
-      const groupedByBird = {};
-
-      lines.slice(1).map((line) => {
-        const values = line.split(",");
-        let row = {};
-        headers.forEach((header, index) => {
-          row[header.trim()] = values[index] ? values[index].trim() : "";
-        });
-
-        const birdid = row[getColumnValue("birdid")] ?? "unknown";
-        const longitude = parseFloat(row[getColumnValue("longitude")]);
-        const latitude = parseFloat(row[getColumnValue("latitude")]);
-
-        if (
-          isNaN(longitude) ||
-          isNaN(latitude) ||
-          (longitude === 0 && latitude === 0)
-        ) {
-          return null;
-        }
-
-        const dataPoint = {
-          birdid,
-          longitude,
-          latitude,
-          altitude: parseFloat(row[getColumnValue("altitude")]),
-          speed: parseFloat(row[getColumnValue("speed")]),
-          timestamp: new Date(row[getColumnValue("timestamp")]),
-          ...Object.fromEntries(
-            headers
-              .filter(
-                (h) =>
-                  ![
-                    getColumnValue("birdid"),
-                    getColumnValue("longitude"),
-                    getColumnValue("latitude"),
-                    getColumnValue("altitude"),
-                    getColumnValue("speed"),
-                    getColumnValue("timestamp"),
-                  ].includes(h),
-              )
-              .map((h) => [h, row[h]]),
-          ),
-        };
-
-        if (!groupedByBird[birdid]) groupedByBird[birdid] = [];
-        groupedByBird[birdid].push(dataPoint);
-      });
-
-      return groupedByBird; // return grouped data
-
-      // return parsedData.filter((row) => row !== null); // remove invalid rows
-    }
-
-    function getRandomColor() {
-      const hue = Math.floor(Math.random() * 360);
-      return `hsl(${hue}, 70%, 50%)`;
-    }
-
-    async function createGeneralizedLineLayer(groupedData) {
-      const lineGraphics = [];
-
-      for (const birdid in groupedData) {
-        const data = groupedData[birdid];
-        if (data.length < 2) continue;
-
-        const polyline = new Polyline({
-          spatialReference: {
-            wkid: 4326,
-          },
-          paths: data.map((pt) => [pt.longitude, pt.latitude]),
-        });
-
-        // const generalizedPolyline = await generalizeOperator.execute(
-        //   polyline,
-        //   0.1,
-        // );
-
-        console.log(polyline);
-
-        const lineGraphic = new Graphic({
-          geometry: polyline,
-        });
-
-        console.log(lineGraphic);
-        lineGraphics.push(lineGraphic);
-      }
-
-      return new FeatureLayer({
-        title: "Generlized line",
-        source: lineGraphics,
-        objectIdField: "ObjectID",
-        geometryType: "polyline",
-        elevationInfo: {
-          mode: "on-the-ground",
-        },
-        maxScale: 300000,
-        renderer: {
-          type: "simple",
-          symbol: {
-            type: "simple-line",
-            color: [50, 50, 50, 0.5],
-            width: 15,
-          },
-        },
-      });
-    }
-
-    function createLineLayer(groupedData) {
-      const timeInfo = {
-        startField: "timestamp",
-        endField: "timestamp",
-        interval: {
-          value: 1,
-          unit: "minutes",
-        },
-      };
-
-      const fields = [
-        {
-          name: "ObjectID",
-          type: "oid",
-        },
-        { name: "birdid", type: "string" },
-        {
-          name: "longitude",
-          type: "double",
-        },
-        {
-          name: "latitude",
-          type: "double",
-        },
-        {
-          name: "timestamp",
-          type: "date",
-        },
-        {
-          name: "altitude",
-          type: "double",
-        },
-        {
-          name: "speed",
-          type: "double",
-        },
-      ];
-
-      const lineGraphics = [];
-      let idCounter = 1;
-      for (const birdid in groupedData) {
-        const data = groupedData[birdid];
-        const color = getRandomColor();
-
-        for (let i = 0; i < data.length - 1; i++) {
-          const startPoint = data[i];
-          const endPoint = data[i + 1];
-          if (!startPoint || !endPoint) continue;
-
-          const altitude = (startPoint.altitude + endPoint.altitude) / 2;
-          const lineGraphic = new Graphic({
-            geometry: {
-              type: "polyline",
-              paths: [
-                [
-                  [
-                    startPoint.longitude,
-                    startPoint.latitude,
-                    startPoint.altitude,
-                  ],
-                  [endPoint.longitude, endPoint.latitude, endPoint.altitude],
-                ],
-              ],
-              spatialReference: { wkid: 4326 },
-            },
-            symbol: {
-              type: "simple-line",
-              color: color,
-              width: 5,
-            },
-            attributes: {
-              ObjectID: idCounter++,
-              birdid,
-              altitude,
-              speed: startPoint.speed,
-              timestamp: startPoint.timestamp.getTime(),
-              longitude: startPoint.longitude,
-              latitude: startPoint.latitude,
-            },
-          });
-          lineGraphics.push(lineGraphic);
-        }
-      }
-
-      return new FeatureLayer({
-        title: "Line - altitude",
-        source: lineGraphics,
-        objectIdField: "ObjectID",
-        geometryType: "polyline",
-        elevationInfo: {
-          mode: "absolute-height",
-        },
-        timeInfo: timeInfo,
-        fields: fields,
-        renderer: {
-          type: "simple",
-          symbol: {
-            type: "line-3d",
-            symbolLayers: [
-              // new LineSymbol3DLayer({}),
-              {
-                type: "line",
-                size: 5,
-                cap: "round",
-                join: "round",
-                material: { color: [255, 0, 0] },
-              },
-            ],
-          },
-        },
-      });
-    }
   }
 
   @property()
@@ -479,11 +250,11 @@ class App extends Widget<AppProperties> {
         <calcite-dialog
           modal
           open
-          id="example-dialog"
           close-disabled
           escape-disabled
-          heading="Welcome to the app!"
           outside-close-disabled
+          id="loading-dialog"
+          heading="Welcome to the app!"
         >
           <calcite-tabs>
             <calcite-tab-nav slot="title-group">
@@ -567,9 +338,7 @@ class App extends Widget<AppProperties> {
             position="top-left"
             group="top-left"
           ></arcgis-navigation-toggle>
-          <arcgis-compass position="top-left" group="top-left">
-            {" "}
-          </arcgis-compass>
+          <arcgis-compass position="top-left" group="top-left"></arcgis-compass>
           <arcgis-expand position="top-left" group="top-left">
             <arcgis-search></arcgis-search>
           </arcgis-expand>
