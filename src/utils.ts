@@ -1,3 +1,4 @@
+import * as generalizeOperator from "@arcgis/core/geometry/operators/generalizeOperator";
 import Polyline from "@arcgis/core/geometry/Polyline";
 import Graphic from "@arcgis/core/Graphic";
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
@@ -133,15 +134,13 @@ export async function createGeneralizedLineLayer(groupedData) {
       paths: data.map((pt) => [pt.longitude, pt.latitude]),
     });
 
-    // const generalizedPolyline = await generalizeOperator.execute(
-    //   polyline,
-    //   0.1,
-    // );
-
-    console.log(polyline);
+    const generalizedPolyline = await generalizeOperator.execute(
+      polyline,
+      0.005,
+    );
 
     const lineGraphic = new Graphic({
-      geometry: polyline,
+      geometry: generalizedPolyline,
     });
 
     console.log(lineGraphic);
@@ -161,8 +160,8 @@ export async function createGeneralizedLineLayer(groupedData) {
       type: "simple",
       symbol: {
         type: "simple-line",
-        color: [50, 50, 50, 0.5],
-        width: 15,
+        color: [70, 70, 70, 0.5],
+        width: 10,
       },
     },
   });
@@ -184,6 +183,7 @@ export function createLineLayer(groupedData) {
       type: "oid",
     },
     { name: "birdid", type: "string" },
+    { name: "ColorIndex", type: "string" },
     {
       name: "longitude",
       type: "double",
@@ -206,11 +206,23 @@ export function createLineLayer(groupedData) {
     },
   ];
 
+  const colorRamp = [
+    [255, 0, 0], // red
+    [0, 255, 0], // green
+    [0, 0, 255], // blue
+    [255, 255, 0], // yellow
+    [255, 0, 255], // magenta
+    [0, 255, 255], // cyan
+    [128, 0, 128], // purple
+    [255, 165, 0], // orange
+    [0, 128, 128], // teal
+    [128, 128, 0], // olive
+  ];
+
   const lineGraphics = [];
   let idCounter = 1;
   for (const birdid in groupedData) {
     const data = groupedData[birdid];
-    const color = getRandomColor();
 
     for (let i = 0; i < data.length - 1; i++) {
       const startPoint = data[i];
@@ -229,15 +241,11 @@ export function createLineLayer(groupedData) {
           ],
           spatialReference: { wkid: 4326 },
         },
-        symbol: {
-          type: "simple-line",
-          color: color,
-          width: 5,
-        },
         attributes: {
           ObjectID: idCounter++,
           birdid,
           altitude,
+          colorIndex: colorRamp[idCounter],
           speed: startPoint.speed,
           timestamp: startPoint.timestamp.getTime(),
           longitude: startPoint.longitude,
@@ -248,33 +256,44 @@ export function createLineLayer(groupedData) {
     }
   }
 
-  return new FeatureLayer({
-    title: "Line - altitude",
+  const featureLayer = new FeatureLayer({
+    title: "Lines",
     source: lineGraphics,
     objectIdField: "ObjectID",
     geometryType: "polyline",
     elevationInfo: {
       mode: "absolute-height",
     },
-    timeInfo: timeInfo,
-    fields: fields,
+    fields,
+    timeInfo,
     renderer: {
       type: "simple",
       symbol: {
         type: "line-3d",
         symbolLayers: [
-          // new LineSymbol3DLayer({}),
           {
             type: "line",
-            size: 5,
+            size: 3,
             cap: "round",
-            join: "round",
             material: { color: [255, 0, 0] },
           },
         ],
       },
+      visualVariables: [
+        {
+          type: "color",
+          // valueExpression: `return "#00FF00";`,
+          stops: colorRamp.map((color, index) => ({
+            value: index,
+            color: color,
+          })),
+          // field: "birdid",
+        },
+      ],
     },
   });
+
+  return featureLayer;
 }
 
 function getRandomColor() {

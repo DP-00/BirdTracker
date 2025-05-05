@@ -59,15 +59,25 @@ class App extends Widget<AppProperties> {
   @property({ constructOnly: true })
   store = new AppStore();
 
-  postInitialize() {
-    requestAnimationFrame(() => {
+  @property()
+  webSceneId = params.get("webscene") || "91b46c2b162c48dba264b2190e1dbcff";
+
+  private bindView(arcgisScene: HTMLArcgisSceneElement) {
+    const view = arcgisScene.view;
+    // this.store.sceneStore.view = view;
+    view.when().then(() => {
+      // initView(view)
       console.log("Widget initialized, DOM is ready!");
 
-      const csvInput = document.getElementById("csv-input");
-      const columnPanel = document.getElementById("column-assignment");
-      const buttonSave = document.getElementById("save-button");
-      const dialog = document.getElementById("loading-dialog");
-      const alert = document.getElementById("loading-error");
+      const csvInput = document.getElementById("csv-input")!;
+      const columnPanel = document.getElementById("column-assignment")!;
+      const buttonSave = document.getElementById(
+        "save-button",
+      ) as HTMLCalciteButtonElement;
+      const dialog = document.getElementById(
+        "loading-dialog",
+      ) as HTMLCalciteDialogElement;
+      const alert = document.getElementById("loading-error")!;
       let columnNames = {
         birdid: document.getElementById("id-select"),
         longitude: document.getElementById("lon-select"),
@@ -98,8 +108,8 @@ class App extends Widget<AppProperties> {
         timestamp: ["timestamp", "time", "datetime"],
       };
 
-      let fileSize;
-      let dataParsed;
+      let fileSize: string | number;
+      let dataParsed: string | any[];
       let headers;
       let dataProcessed;
       let statJSON = {};
@@ -117,7 +127,9 @@ class App extends Widget<AppProperties> {
 
         try {
           const text = await file.text();
-          dataParsed = text.split(/\r?\n/).filter((row) => row.trim() !== "");
+          dataParsed = text
+            .split(/\r?\n/)
+            .filter((row: string) => row.trim() !== "");
           headers = dataParsed[0]
             .split(",")
             .map((h) => h.trim().replace(/^"(.*)"$/, "$1"));
@@ -125,7 +137,7 @@ class App extends Widget<AppProperties> {
           for (const [key, select] of Object.entries(columnNames)) {
             if (!(select instanceof HTMLElement)) continue;
             select.innerHTML = ""; // Clear any existing options
-            headers.forEach((header) => {
+            headers.forEach((header: string | null) => {
               const option = document.createElement("calcite-option");
               option.value = option.label = option.textContent = header;
               select.appendChild(option);
@@ -133,7 +145,7 @@ class App extends Widget<AppProperties> {
               // Auto-select default if matches expected
               if (
                 defaultNames[key].some(
-                  (defaultNamesValue) =>
+                  (defaultNamesValue: string) =>
                     defaultNamesValue.toLowerCase() === header.toLowerCase(),
                 )
               ) {
@@ -197,7 +209,7 @@ class App extends Widget<AppProperties> {
           dialog.loading = false;
           csvInput.value = "";
         } else {
-          let lineLayer = createLineLayer(dataProcessed);
+          let lineLayer = await createLineLayer(dataProcessed);
           let generalizedLayer =
             await createGeneralizedLineLayer(dataProcessed);
           const arcgisMap = document.querySelector(
@@ -206,7 +218,9 @@ class App extends Widget<AppProperties> {
           await arcgisMap.addLayers([lineLayer, generalizedLayer]);
           await lineLayer.when(); // wait until loaded
 
-          const timeSlider = document.querySelector("arcgis-time-slider");
+          const timeSlider = document.querySelector(
+            "arcgis-time-slider",
+          ) as HTMLArcgisTimeSliderElement;
           if (lineLayer.timeInfo) {
             timeSlider.view = arcgisMap.view;
             timeSlider.fullTimeExtent = lineLayer.timeInfo.fullTimeExtent;
@@ -221,109 +235,12 @@ class App extends Widget<AppProperties> {
     });
   }
 
-  @property()
-  webSceneId = params.get("webscene") || "91b46c2b162c48dba264b2190e1dbcff";
-
-  private bindView(arcgisScene: HTMLArcgisSceneElement) {
-    const view = arcgisScene.view;
-    // this.store.sceneStore.view = view;
-  }
-
   render() {
     // const store = this.store;
 
     return (
       <div>
-        {/* <calcite-shell class="app-shell"> */}
-        {/* <AppNavigation store={store}></AppNavigation> */}
-
-        {/* <calcite-shell-panel slot="panel-start" collapsed>
-            <AppMenu store={store}></AppMenu>
-          </calcite-shell-panel> */}
-
-        {/* <calcite-panel>
-            <calcite-shell content-behind="true" class="scene-shell">
-              <calcite-shell-panel slot="panel-start" display-mode="float">
-                <AppPanel store={store}></AppPanel>
-              </calcite-shell-panel>
-            </calcite-shell> */}
-        <calcite-dialog
-          modal
-          open
-          close-disabled
-          escape-disabled
-          outside-close-disabled
-          id="loading-dialog"
-          heading="Welcome to the app!"
-        >
-          <calcite-tabs>
-            <calcite-tab-nav slot="title-group">
-              <calcite-tab-title selected>Data loading</calcite-tab-title>
-              <calcite-tab-title>About</calcite-tab-title>
-              <calcite-tab-title>Tutorial</calcite-tab-title>
-            </calcite-tab-nav>
-
-            <calcite-tab selected>
-              <h3>Upload file</h3>
-              <p>Choose the file that contains bird data in a CSV format </p>
-              <calcite-notice icon="information" open>
-                <div slot="message">Leave empty to use sample data</div>
-              </calcite-notice>
-              <input type="file" id="csv-input" accept=".csv" />
-              <calcite-alert
-                id="loading-error"
-                kind="danger"
-                icon
-                label="Danger alert"
-                auto-close
-                scale="m"
-              >
-                <div slot="title">
-                  There has been an error while loading the data
-                </div>
-              </calcite-alert>
-              <calcite-panel id="column-assignment" hidden>
-                <h3>Assign column names</h3>
-                <calcite-label layout="inline-space-between">
-                  Bird ID
-                  <calcite-select required id="id-select"></calcite-select>
-                </calcite-label>
-                <calcite-label layout="inline-space-between">
-                  Longitude
-                  <calcite-select required id="lon-select"></calcite-select>
-                </calcite-label>
-                <calcite-label layout="inline-space-between">
-                  Latitude
-                  <calcite-select required id="lat-select"></calcite-select>
-                </calcite-label>
-                <calcite-label layout="inline-space-between">
-                  Elevation
-                  <calcite-select required id="elev-select"></calcite-select>
-                </calcite-label>
-                <calcite-label layout="inline-space-between">
-                  Speed
-                  <calcite-select required id="speed-select"></calcite-select>
-                </calcite-label>
-                <calcite-label layout="inline-space-between">
-                  Timestamp
-                  <calcite-select
-                    required
-                    id="timestamp-select"
-                  ></calcite-select>
-                </calcite-label>
-              </calcite-panel>
-            </calcite-tab>
-
-            <calcite-tab></calcite-tab>
-
-            <calcite-tab></calcite-tab>
-          </calcite-tabs>
-
-          <calcite-button id="save-button" slot="footer-end">
-            Upload data
-          </calcite-button>
-        </calcite-dialog>
-
+        <LoadingPanel></LoadingPanel>
         <arcgis-scene
           basemap="satellite"
           ground="world-elevation"
@@ -390,143 +307,82 @@ class App extends Widget<AppProperties> {
   }
 }
 
-// const AppNavigation = ({ store }: { store: AppStore }) => {
-//   const portalItem = store.sceneStore.map?.portalItem;
-//   const itemPageUrl = portalItem?.itemPageUrl;
+const LoadingPanel = () => {
+  return (
+    <calcite-dialog
+      modal
+      open
+      close-disabled="true"
+      escape-disabled="true"
+      outside-close-disabled="true"
+      id="loading-dialog"
+      heading="Welcome to the app!"
+    >
+      <calcite-tabs>
+        <calcite-tab-nav slot="title-group">
+          <calcite-tab-title selected>Data loading</calcite-tab-title>
+          <calcite-tab-title>About</calcite-tab-title>
+          <calcite-tab-title>Tutorial</calcite-tab-title>
+        </calcite-tab-nav>
 
-//   const userStore = store?.userStore;
+        <calcite-tab selected>
+          <h3>Upload file</h3>
+          <p>Choose the file that contains bird data in a CSV format </p>
+          <calcite-notice icon="information" open>
+            <div slot="message">Leave empty to use sample data</div>
+          </calcite-notice>
+          <input type="file" id="csv-input" accept=".csv" />
+          <calcite-alert
+            id="loading-error"
+            kind="danger"
+            icon
+            label="Danger alert"
+            auto-close
+            scale="m"
+          >
+            <div slot="title">
+              There has been an error while loading the data
+            </div>
+          </calcite-alert>
+          <calcite-panel id="column-assignment" hidden>
+            <h3>Assign column names</h3>
+            <calcite-label layout="inline-space-between">
+              Bird ID
+              <calcite-select required id="id-select"></calcite-select>
+            </calcite-label>
+            <calcite-label layout="inline-space-between">
+              Longitude
+              <calcite-select required id="lon-select"></calcite-select>
+            </calcite-label>
+            <calcite-label layout="inline-space-between">
+              Latitude
+              <calcite-select required id="lat-select"></calcite-select>
+            </calcite-label>
+            <calcite-label layout="inline-space-between">
+              Elevation
+              <calcite-select required id="elev-select"></calcite-select>
+            </calcite-label>
+            <calcite-label layout="inline-space-between">
+              Speed
+              <calcite-select required id="speed-select"></calcite-select>
+            </calcite-label>
+            <calcite-label layout="inline-space-between">
+              Timestamp
+              <calcite-select required id="timestamp-select"></calcite-select>
+            </calcite-label>
+          </calcite-panel>
+        </calcite-tab>
 
-//   const user = (userStore?.authenticated && userStore?.user) || null;
+        <calcite-tab></calcite-tab>
 
-//   return (
-//     <calcite-navigation slot="header">
-//       <calcite-navigation-logo
-//         slot="logo"
-//         heading={portalItem?.title}
-//         description="ArcGIS Maps SDK for JavaScript"
-//         thumbnail="./icon-64.svg"
-//         onclick={() => {
-//           if (itemPageUrl) {
-//             window.open(itemPageUrl, "new");
-//           }
-//         }}
-//       ></calcite-navigation-logo>
+        <calcite-tab></calcite-tab>
+      </calcite-tabs>
 
-//       <Player store={store.playerStore}></Player>
-
-//       {user ? (
-//         <calcite-navigation-user
-//           slot="user"
-//           thumbnail={user.thumbnailUrl}
-//           full-name={user.fullName}
-//           username={user.username}
-//         ></calcite-navigation-user>
-//       ) : (
-//         <calcite-menu slot="content-end">
-//           <calcite-menu-item
-//             onclick={() => userStore?.signIn()}
-//             text="Sign in"
-//             icon-start="user"
-//             text-enabled
-//           ></calcite-menu-item>
-//         </calcite-menu>
-//       )}
-//     </calcite-navigation>
-//   );
-// };
-
-// const Player = ({ store }: { store: PlayerStore }) => {
-//   if (store.state === "starting") {
-//     return (
-//       <calcite-button
-//         key="cancel"
-//         appearance="outline"
-//         kind="neutral"
-//         slot="content-center"
-//         style="align-self: center;"
-//         loading
-//         onclick={() => store.stop()}
-//       >
-//         Starting - press to cancel
-//       </calcite-button>
-//     );
-//   } else if (store.state !== "animating") {
-//     return (
-//       <calcite-button
-//         key="start"
-//         slot="content-center"
-//         icon-start="video-web"
-//         style="align-self: center;"
-//         disabled={store.state === "loading"}
-//         onclick={() => store.play()}
-//       >
-//         Animate slides
-//       </calcite-button>
-//     );
-//   } else {
-//     return [];
-//   }
-// };
-
-// const AppMenu = ({ store }: { store: AppStore }) => {
-//   const toggleMenu = (menu: ActionMenu) => {
-//     if (store.selectedMenu === menu) {
-//       store.selectedMenu = null;
-//     } else {
-//       store.selectedMenu = menu;
-//     }
-//   };
-
-//   return (
-//     <calcite-action-bar slot="action-bar" class="calcite-mode-dark">
-//       <calcite-action
-//         icon="presentation"
-//         text="Slides"
-//         active={store.selectedMenu === "slides"}
-//         onclick={() => toggleMenu("slides")}
-//       ></calcite-action>
-//       <calcite-action
-//         icon="effects"
-//         text="Animation"
-//         active={store.selectedMenu === "animation"}
-//         onclick={() => toggleMenu("animation")}
-//       ></calcite-action>
-//       <calcite-action
-//         icon="gear"
-//         text="Settings"
-//         active={store.selectedMenu === "settings"}
-//         onclick={() => toggleMenu("settings")}
-//       ></calcite-action>
-//     </calcite-action-bar>
-//   );
-// };
-
-// const AppPanel = ({ store }: { store: AppStore }) => {
-//   switch (store.selectedMenu) {
-//     case "slides":
-//       return (
-//         <SlidesPanel
-//           store={store.playerStore}
-//           onclose={() => (store.selectedMenu = null)}
-//         ></SlidesPanel>
-//       );
-//     case "animation":
-//       return (
-//         <AnimationPanel
-//           store={store}
-//           onclose={() => (store.selectedMenu = null)}
-//         ></AnimationPanel>
-//       );
-//     case "settings":
-//       return (
-//         <SettingsPanel
-//           store={store}
-//           onclose={() => (store.selectedMenu = null)}
-//         ></SettingsPanel>
-//       );
-//     default:
-//       return <div></div>;
-//   }
-// };
+      <calcite-button id="save-button" slot="footer-end">
+        Upload data
+      </calcite-button>
+    </calcite-dialog>
+  );
+};
 
 export default App;
