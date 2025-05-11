@@ -1,0 +1,240 @@
+import Basemap from "@arcgis/core/Basemap";
+import ImageryLayer from "@arcgis/core/layers/ImageryLayer";
+import ImageryTileLayer from "@arcgis/core/layers/ImageryTileLayer";
+import * as rasterFunctionUtils from "@arcgis/core/layers/support/rasterFunctionUtils";
+import TileLayer from "@arcgis/core/layers/TileLayer";
+import TimeExtent from "@arcgis/core/time/TimeExtent";
+import Slide from "@arcgis/core/webscene/Slide";
+import LocalBasemapsSource from "@arcgis/core/widgets/BasemapGallery/support/LocalBasemapsSource";
+
+export function setCameraControl(
+  view: __esri.SceneView,
+  layer: __esri.FeatureLayer,
+) {
+  document
+    .getElementById("camera-zoom")!
+    .addEventListener("click", function () {
+      view.goTo(layer.fullExtent);
+    });
+}
+
+export function setBasemaps() {
+  const customBasemaps = [
+    Basemap.fromId("topo-3d"),
+    Basemap.fromId("osm-3d"),
+    Basemap.fromId("gray-3d"),
+    Basemap.fromId("dark-gray-3d"),
+    Basemap.fromId("satellite"),
+    Basemap.fromId("hybrid"),
+    Basemap.fromId("oceans"),
+    Basemap.fromId("topo"),
+    Basemap.fromId("gray"),
+    Basemap.fromId("dark-gray"),
+    Basemap.fromId("osm"),
+    new Basemap({
+      baseLayers: [
+        new TileLayer({
+          portalItem: { id: "a66bfb7dd3b14228bf7ba42b138fe2ea" },
+        }),
+      ],
+      title: "Dark Imagery",
+      id: "firefly",
+    }),
+    new Basemap({
+      baseLayers: [
+        new TileLayer({
+          portalItem: { id: "a8588e0401e246469260f03ee44d69f1" },
+        }),
+      ],
+      title: "Vintage Shaded Relief ",
+      id: "vintage",
+    }),
+    new Basemap({
+      baseLayers: [
+        new ImageryTileLayer({
+          url: "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer",
+          title: "Terrain",
+        }),
+      ],
+      title: "Plain Elevation",
+      id: "elevation",
+    }),
+  ];
+
+  document.querySelector("arcgis-basemap-gallery")!.source =
+    new LocalBasemapsSource({ basemaps: customBasemaps });
+}
+
+export function setThematicLayers(arcgisMap: HTMLArcgisSceneElement) {
+  const footprintLayer = new TileLayer({
+    portalItem: { id: "cfe002c152204bd8b6e392f3f39f2878" },
+    visible: false,
+  });
+
+  const conopyLayer = new ImageryTileLayer({
+    portalItem: { id: "2a3dfb00c2c6425f85bd70da420d58eb" },
+    visible: false,
+  });
+  const biointactnessLayer = new ImageryTileLayer({
+    portalItem: { id: "25543641e4ce461baa2b7863dc0f80b7" },
+    visible: false,
+  });
+
+  const landCoverLayer = new ImageryLayer({
+    url: "https://ic.imagery1.arcgis.com/arcgis/rest/services/Sentinel2_10m_LandCover/ImageServer",
+    title: "Sentinel-2 10m Land Cover",
+    visible: false,
+  });
+
+  const ecosystemLayer = new ImageryLayer({
+    portalItem: { id: "926a206393ec40a590d8caf29ae9a93e" },
+    visible: false,
+  });
+
+  const ndviLayer = new ImageryLayer({
+    portalItem: { id: "f6bb66f1c11e467f9a9a859343e27cf8" },
+    visible: false,
+  });
+
+  // Raster Function for Slope
+  const slope = rasterFunctionUtils.slope({ slopeType: "degree", zFactor: 1 });
+
+  const remapSlope = rasterFunctionUtils.remap({
+    rangeMaps: [
+      { range: [30, 35], output: 30 },
+      { range: [35, 40], output: 35 },
+      { range: [40, 45], output: 40 },
+      { range: [45, 90], output: 45 },
+    ],
+    outputPixelType: "u8",
+    raster: slope,
+  });
+
+  const colorMapSlope = rasterFunctionUtils.colormap({
+    colormap: [
+      [30, 255, 255, 0],
+      [35, 255, 165, 0],
+      [40, 255, 0, 0],
+      [45, 128, 0, 128],
+    ],
+    raster: remapSlope,
+  });
+
+  const slopeLayer = new ImageryTileLayer({
+    url: "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer",
+    title: "Slope (°)",
+    rasterFunction: colorMapSlope,
+    visible: false,
+  });
+
+  const DEMLayer = new ImageryTileLayer({
+    url: "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer",
+    title: "Elevation (m.a.s.l)",
+    rasterFunction: rasterFunctionUtils.colormap({
+      colorRampName: "elevation1",
+    }),
+    opacity: 0.7,
+    visible: false,
+  });
+
+  const windspeedLayer = new ImageryTileLayer({
+    portalItem: { id: "08be07c69cd4486995d1dc5d175156e3" },
+    visible: false,
+  });
+
+  arcgisMap.addLayers([
+    footprintLayer,
+    biointactnessLayer,
+    conopyLayer,
+    landCoverLayer,
+    ecosystemLayer,
+    ndviLayer,
+    windspeedLayer,
+    DEMLayer,
+    slopeLayer,
+  ]);
+}
+
+export function setTimeSlider(
+  timeSlider: HTMLArcgisTimeSliderElement,
+  view: __esri.SceneView,
+) {
+  timeSlider.addEventListener("arcgisPropertyChange", (event) => {
+    view.environment.lighting.date = new Date(timeSlider.timeExtent.end);
+  });
+
+  document
+    .getElementById("time-window")!
+    .addEventListener("calciteSelectChange", (e) => {
+      const hours = parseInt(e.target.value);
+      const end = new Date(timeSlider.timeExtent.end);
+      let start = new Date(end.getTime() - hours * 3600000);
+      if (start < new Date(timeSlider.fullTimeExtent.start)) {
+        start = new Date(timeSlider.fullTimeExtent.start);
+      }
+      timeSlider.timeExtent = new TimeExtent({ start, end });
+    });
+
+  document
+    .getElementById("speed")!
+    .addEventListener("calciteSelectChange", (e) => {
+      timeSlider.playRate = parseFloat(e.target.value);
+    });
+  document
+    .getElementById("stops")!
+    .addEventListener("calciteSelectChange", (e) => {
+      timeSlider.stops = { interval: { value: 1, unit: e.target.value } };
+    });
+}
+
+export function setSlides(arcgisMap: HTMLArcgisSceneElement) {
+  const view = arcgisMap.view;
+
+  const slides = arcgisMap.map.presentation.slides;
+  console.log("slides", slides);
+  slides.forEach(createSlideUI);
+  document
+    .getElementById("createSlideButton")!
+    .addEventListener("click", () => {
+      Slide.createFrom(view).then((slide) => {
+        // Set the slide title using the text from the title input element
+        slide.title.text = document.getElementById(
+          "createSlideTitleInput",
+        )!.value;
+        console.log("slide", slide);
+        // arcgisMap.map.presentation.slides.add(slide);
+        // Create a UI for the slide with the new slide at the top of the list
+        createSlideUI(slide, arcgisMap, view);
+      });
+    });
+
+  document.querySelector("arcgis-layer-list")!.filterPredicate = (item) =>
+    item.title.toLowerCase().includes("line");
+}
+
+function createSlideUI(slide: Slide, arcgisMap: HTMLArcgisSceneElement) {
+  const view = arcgisMap.view;
+  // Create a new element which contains all the slide information
+  const slideElement = document.createElement("calcite-list-item");
+  // Assign the ID of the slide to the <span> element
+  slideElement.id = slide.id;
+  slideElement.label = slide.title?.text ?? "Untitled Slide";
+
+  slideElement.setAttribute("closable", "");
+  slideElement.description = slide.environment.lighting.date.toLocaleString();
+  slideElement.innerHTML = `<calcite-content slot="content-start">
+        <img alt="" title="${slide.title.text}"src="${slide.thumbnail.url}">
+      </calcite-content>`;
+
+  document.getElementById("slidesDiv")!.appendChild(slideElement);
+  console.log(document.getElementById("slidesDiv"));
+
+  // Set up an event handler on the created slide to toggle the selected slide when clicked
+  slideElement.addEventListener("calciteListItemSelect", () => {
+    slide.applyTo(view, { maxDuration: 3000, easing: "in-out-coast-cubic" });
+  });
+  slideElement.addEventListener("calciteListItemClose", () => {
+    // remove slide from slides
+    arcgisMap.map.presentation.slides.remove(slide);
+  });
+}
