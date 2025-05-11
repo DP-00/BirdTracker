@@ -28,6 +28,16 @@ body {
   display: none;
 }
 
+#slidesDiv {
+  max-height: 66vh;
+}
+
+#time-controls {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
 // .list-item-slide {
 //   margin: 5px 0px 5px 10px;
 //   width: 80px;

@@ -19,7 +19,9 @@ import "@arcgis/map-components/dist/components/arcgis-daylight";
 import "@arcgis/map-components/dist/components/arcgis-directline-measurement-3d";
 import "@arcgis/map-components/dist/components/arcgis-expand";
 import "@arcgis/map-components/dist/components/arcgis-fullscreen";
+import "@arcgis/map-components/dist/components/arcgis-home";
 import "@arcgis/map-components/dist/components/arcgis-layer-list";
+import "@arcgis/map-components/dist/components/arcgis-legend";
 import "@arcgis/map-components/dist/components/arcgis-navigation-toggle";
 import "@arcgis/map-components/dist/components/arcgis-placement";
 import "@arcgis/map-components/dist/components/arcgis-scene";
@@ -31,7 +33,6 @@ import AppStore from "../stores/AppStore";
 import { Widget } from "./Widget";
 
 import "@arcgis/core/geometry/operators/generalizeOperator";
-import TimeExtent from "@arcgis/core/time/TimeExtent";
 import "@esri/calcite-components/dist/components/calcite-action";
 import "@esri/calcite-components/dist/components/calcite-action-group";
 import "@esri/calcite-components/dist/components/calcite-action-pad";
@@ -40,6 +41,9 @@ import "@esri/calcite-components/dist/components/calcite-button";
 import "@esri/calcite-components/dist/components/calcite-dialog";
 import "@esri/calcite-components/dist/components/calcite-input";
 import "@esri/calcite-components/dist/components/calcite-label";
+import "@esri/calcite-components/dist/components/calcite-list";
+import "@esri/calcite-components/dist/components/calcite-list-item";
+import "@esri/calcite-components/dist/components/calcite-list-item-group";
 import "@esri/calcite-components/dist/components/calcite-loader";
 import "@esri/calcite-components/dist/components/calcite-menu";
 import "@esri/calcite-components/dist/components/calcite-menu-item";
@@ -48,10 +52,18 @@ import "@esri/calcite-components/dist/components/calcite-navigation-logo";
 import "@esri/calcite-components/dist/components/calcite-navigation-user";
 import "@esri/calcite-components/dist/components/calcite-notice";
 import "@esri/calcite-components/dist/components/calcite-panel";
+import "@esri/calcite-components/dist/components/calcite-sortable-list";
 import "@esri/calcite-components/dist/components/calcite-tab";
 import "@esri/calcite-components/dist/components/calcite-tab-nav";
 import "@esri/calcite-components/dist/components/calcite-tab-title";
 import "@esri/calcite-components/dist/components/calcite-tabs";
+import {
+  setBasemaps,
+  setCameraControl,
+  setSlides,
+  setThematicLayers,
+  setTimeSlider,
+} from "../mapControls";
 
 type AppProperties = {};
 
@@ -75,7 +87,7 @@ class App extends Widget<AppProperties> {
       const arcgisMap = document.querySelector(
         "arcgis-scene",
       ) as HTMLArcgisSceneElement;
-      const timeSlider = document.querySelector("arcgis-time-slider");
+      const timeSlider = document.querySelector("arcgis-time-slider")!;
       const csvInput = document.getElementById("csv-input")!;
       const columnPanel = document.getElementById("column-assignment")!;
       const buttonSave = document.getElementById(
@@ -223,6 +235,8 @@ class App extends Widget<AppProperties> {
           await arcgisMap.addLayers([lineLayer, generalizedLayer]);
           await lineLayer.when(); // wait until loaded
 
+          setCameraControl(view, lineLayer);
+
           if (lineLayer.timeInfo) {
             timeSlider.view = arcgisMap.view;
             timeSlider.fullTimeExtent = lineLayer.timeInfo.fullTimeExtent;
@@ -235,41 +249,10 @@ class App extends Widget<AppProperties> {
         }
       });
 
-      // TIME SLIDER SETTINGS
-
-      // timeSlider.addEventListener("arcgisPropertyChange", (event) => {
-      //   arcgisMap.view.environment.lighting.date = new Date(
-      //     timeSlider.timeExtent.end,
-      //   );
-      // });
-      // Timeline controls
-      document
-        .getElementById("time-window")
-        .addEventListener("calciteSelectChange", (e) => {
-          const hours = parseInt(e.target.value);
-          const end = new Date(timeSlider.timeExtent.end);
-          let start = new Date(end.getTime() - hours * 3600000);
-          if (start < new Date(timeSlider.fullTimeExtent.start)) {
-            start = new Date(timeSlider.fullTimeExtent.start);
-          }
-          timeSlider.timeExtent = new TimeExtent({
-            start,
-            end,
-          });
-        });
-      document.getElementById("speed").addEventListener("input", (e) => {
-        timeSlider.playRate = parseFloat(e.target.value);
-      });
-      document
-        .getElementById("stops")
-        .addEventListener("calciteSelectChange", (e) => {
-          timeSlider.stops = {
-            interval: {
-              value: 1,
-              unit: e.target.value,
-            },
-          };
-        });
+      setBasemaps();
+      setThematicLayers(arcgisMap);
+      setTimeSlider(timeSlider, view);
+      setSlides(arcgisMap);
     });
   }
 
@@ -280,6 +263,7 @@ class App extends Widget<AppProperties> {
       <div>
         <LoadingPanel></LoadingPanel>
         <arcgis-scene
+          // item-id="f35b4f74560c4655ba852d481d1042ce"
           basemap="satellite"
           ground="world-elevation"
           zoom="8"
@@ -289,36 +273,9 @@ class App extends Widget<AppProperties> {
           }
         >
           <arcgis-zoom position="top-left"></arcgis-zoom>
-          <arcgis-navigation-toggle
-            position="top-left"
-            group="top-left"
-          ></arcgis-navigation-toggle>
-          <arcgis-compass position="top-left" group="top-left"></arcgis-compass>
-          <arcgis-expand position="top-left" group="top-left">
-            <arcgis-search></arcgis-search>
-          </arcgis-expand>
-
-          <arcgis-expand position="top-left" group="top-left">
-            <arcgis-layer-list position="top-right"></arcgis-layer-list>
-          </arcgis-expand>
-          <arcgis-expand position="top-left" group="top-left">
-            <arcgis-basemap-gallery></arcgis-basemap-gallery>
-          </arcgis-expand>
-          <arcgis-expand position="top-left" group="top-left">
-            <arcgis-daylight
-              position="bottom-right"
-              hide-date-picker
-              hide-timezone
-              hide-play-buttons
-            ></arcgis-daylight>
-          </arcgis-expand>
-          <arcgis-expand position="top-left" group="top-left">
-            <arcgis-directline-measurement-3d></arcgis-directline-measurement-3d>
-          </arcgis-expand>
-          <arcgis-expand position="top-left" group="top-left">
-            <arcgis-area-measurement-3d></arcgis-area-measurement-3d>
-          </arcgis-expand>
-
+          <arcgis-navigation-toggle position="top-left"></arcgis-navigation-toggle>
+          <arcgis-compass position="top-left"></arcgis-compass>
+          <MapControls></MapControls>
           <arcgis-placement position="top-right">
             <div id="dashboard" class="esri-widget">
               <p>
@@ -333,41 +290,16 @@ class App extends Widget<AppProperties> {
                   ></calcite-button>
                 </h2>
               </p>
-              <div id="time-controls">
-                <calcite-label layout="inline">
-                  Time Window:
-                  <calcite-select id="time-window">
-                    <calcite-option value="1">1h</calcite-option>
-                    <calcite-option value="12" selected>
-                      12h
-                    </calcite-option>
-                    <calcite-option value="24">24h</calcite-option>
-                  </calcite-select>
-                </calcite-label>
-
-                <calcite-label layout="inline">
-                  Interval:
-                  <calcite-select id="stops">
-                    <calcite-option value="minutes">minutes</calcite-option>
-                    <calcite-option value="hours" selected>
-                      hours
-                    </calcite-option>
-                    <calcite-option value="days">days</calcite-option>
-                  </calcite-select>
-                </calcite-label>
-
-                <calcite-label layout="inline">
-                  Speed:
-                  <input
-                    type="range"
-                    id="speed"
-                    min="100"
-                    max="1000"
-                    step="10"
-                    value="100"
-                  ></input>
-                </calcite-label>
-              </div>
+              <calcite-button
+                id="camera-zoom"
+                slot="action"
+                scale="m"
+                kind="neutral"
+                appearance="solid"
+              >
+                Zoom to layer
+              </calcite-button>
+              <TimeControls></TimeControls>
               <arcgis-time-slider
                 position="bottom-right"
                 mode="time-window"
@@ -380,7 +312,6 @@ class App extends Widget<AppProperties> {
             </div>
           </arcgis-placement>
         </arcgis-scene>
-
       </div>
     );
   }
@@ -461,6 +392,147 @@ const LoadingPanel = () => {
         Upload data
       </calcite-button>
     </calcite-dialog>
+  );
+};
+
+const MapControls = () => {
+  return (
+    <arcgis-placement position="top-left">
+      <arcgis-expand
+        position="top-left"
+        group="top-left"
+        expand-tooltip="Search"
+      >
+        <arcgis-search></arcgis-search>
+      </arcgis-expand>
+
+      <arcgis-expand
+        position="top-left"
+        group="top-left"
+        expand-tooltip="Set basemap"
+      >
+        <arcgis-basemap-gallery></arcgis-basemap-gallery>
+      </arcgis-expand>
+      <arcgis-expand
+        position="top-left"
+        group="top-left"
+        expand-tooltip="Set thematic layers"
+      >
+        <arcgis-layer-list></arcgis-layer-list>
+      </arcgis-expand>
+      <arcgis-expand
+        position="top-left"
+        group="top-left"
+        expand-tooltip="Control light"
+      >
+        <arcgis-daylight
+          hide-date-picker
+          hide-timezone
+          hide-play-buttons
+        ></arcgis-daylight>
+      </arcgis-expand>
+      <arcgis-expand
+        position="top-left"
+        group="top-left"
+        expand-icon="presentation"
+        expand-tooltip="Slides"
+      >
+        <arcgis-placement>
+          <Slides></Slides>
+        </arcgis-placement>
+      </arcgis-expand>
+      <arcgis-expand
+        position="top-left"
+        group="top-left"
+        expand-tooltip="Measure distance"
+      >
+        <arcgis-directline-measurement-3d></arcgis-directline-measurement-3d>
+      </arcgis-expand>
+      <arcgis-expand
+        position="top-left"
+        group="top-left"
+        expand-tooltip="Measure area"
+      >
+        <arcgis-area-measurement-3d></arcgis-area-measurement-3d>
+      </arcgis-expand>
+    </arcgis-placement>
+  );
+};
+
+const TimeControls = () => {
+  return (
+    <div id="time-controls">
+      <calcite-label layout="inline" scale="s">
+        Time Window:
+        <calcite-select id="time-window" scale="s">
+          <calcite-option value="1">1h</calcite-option>
+          <calcite-option value="12" selected>
+            12h
+          </calcite-option>
+          <calcite-option value="24">24h</calcite-option>
+        </calcite-select>
+      </calcite-label>
+
+      <calcite-label layout="inline" scale="s">
+        Interval:
+        <calcite-select id="stops" scale="s">
+          <calcite-option value="minutes">minutes</calcite-option>
+          <calcite-option value="hours" selected>
+            hours
+          </calcite-option>
+          <calcite-option value="days">days</calcite-option>
+        </calcite-select>
+      </calcite-label>
+
+      <calcite-label layout="inline" scale="s">
+        Speed:
+        <calcite-select id="speed" scale="s">
+          <calcite-option value={1000}>slow</calcite-option>
+          <calcite-option value={500} selected>
+            normal
+          </calcite-option>
+          <calcite-option value={100}>fast</calcite-option>
+        </calcite-select>
+      </calcite-label>
+    </div>
+  );
+};
+
+const Slides = () => {
+  return (
+    <calcite-panel id="slidesDashboard" heading="Slides" scale="l">
+      <calcite-list id="slidesDiv" drag-enabled>
+        <calcite-list-item
+          label="Hiking trails"
+          description="Designated routes for hikers to use."
+          value="hiking-trails"
+        >
+          <calcite-action
+            slot="actions-end"
+            icon="layer"
+            text="Trails layer"
+          ></calcite-action>
+        </calcite-list-item>
+      </calcite-list>
+      <calcite-label layout="inline" scale="l" slot="footer">
+        Add slide:
+        <calcite-input
+          id="createSlideTitleInput"
+          placeholder="Enter name"
+          scale="m"
+        >
+          <calcite-button
+            id="createSlideButton"
+            slot="action"
+            scale="m"
+            kind="neutral"
+            appearance="solid"
+          >
+            Create
+          </calcite-button>
+        </calcite-input>
+      </calcite-label>
+    </calcite-panel>
   );
 };
 
