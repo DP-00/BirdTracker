@@ -20,9 +20,11 @@
   "dependencies": {
     "@arcgis/core": "4.32",
     "@arcgis/map-components": "^4.32",
-    "@esri/calcite-components": "3.0.3"
+    "@esri/calcite-components": "3.0.3",
+    "papaparse": "^5.5.2"
   },
   "devDependencies": {
+    "@types/papaparse": "^5.3.16",
     "@types/sortablejs": "^1.15.8",
     "prettier": "^3.3.3",
     "sass": "^1.81.0",

@@ -18,6 +18,13 @@ body {
   width: 100%;
 }
 
+input {
+  margin: 1rem 0;
+}
+#column-assignment {
+  block-size: auto !important;
+}
+
 #dashboard {
   padding: 10px;
   font-weight: 36;
@@ -29,7 +36,7 @@ body {
 }
 
 #slidesDiv {
-  max-height: 66vh;
+  max-height: 50vh;
 }
 
 #time-controls {
