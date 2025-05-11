@@ -1,17 +1,10 @@
 import {
-  createGeneralizedLineLayer,
-  createLineLayer,
-  processCSV,
-} from "../utils";
-
-import {
   property,
   subclass,
 } from "@arcgis/core/core/accessorSupport/decorators";
 
 import { tsx } from "@arcgis/core/widgets/support/widget";
 
-import { ArcgisSceneCustomEvent } from "@arcgis/map-components";
 import "@arcgis/map-components/dist/components/arcgis-area-measurement-3d";
 import "@arcgis/map-components/dist/components/arcgis-basemap-gallery";
 import "@arcgis/map-components/dist/components/arcgis-compass";
@@ -33,6 +26,7 @@ import AppStore from "../stores/AppStore";
 import { Widget } from "./Widget";
 
 import "@arcgis/core/geometry/operators/generalizeOperator";
+import { ArcgisSceneCustomEvent } from "@arcgis/map-components";
 import "@esri/calcite-components/dist/components/calcite-action";
 import "@esri/calcite-components/dist/components/calcite-action-group";
 import "@esri/calcite-components/dist/components/calcite-action-pad";
@@ -57,13 +51,8 @@ import "@esri/calcite-components/dist/components/calcite-tab";
 import "@esri/calcite-components/dist/components/calcite-tab-nav";
 import "@esri/calcite-components/dist/components/calcite-tab-title";
 import "@esri/calcite-components/dist/components/calcite-tabs";
-import {
-  setBasemaps,
-  setCameraControl,
-  setSlides,
-  setThematicLayers,
-  setTimeSlider,
-} from "../mapControls";
+import { loadData } from "../dataLoading";
+import { setBasemaps, setSlides, setThematicLayers } from "../mapControls";
 
 type AppProperties = {};
 
@@ -80,179 +69,14 @@ class App extends Widget<AppProperties> {
   private bindView(arcgisScene: HTMLArcgisSceneElement) {
     const view = arcgisScene.view;
     // this.store.sceneStore.view = view;
-    view.when().then(() => {
-      // initView(view)
-      console.log("Widget initialized, DOM is ready!");
-
+    view.when().then(async () => {
       const arcgisMap = document.querySelector(
         "arcgis-scene",
       ) as HTMLArcgisSceneElement;
-      const timeSlider = document.querySelector("arcgis-time-slider")!;
-      const csvInput = document.getElementById("csv-input")!;
-      const columnPanel = document.getElementById("column-assignment")!;
-      const buttonSave = document.getElementById(
-        "save-button",
-      ) as HTMLCalciteButtonElement;
-      const dialog = document.getElementById(
-        "loading-dialog",
-      ) as HTMLCalciteDialogElement;
-      const alert = document.getElementById("loading-error")!;
-
-      let columnNames = {
-        birdid: document.getElementById("id-select"),
-        longitude: document.getElementById("lon-select"),
-        latitude: document.getElementById("lat-select"),
-        altitude: document.getElementById("elev-select"),
-        speed: document.getElementById("speed-select"),
-        timestamp: document.getElementById("timestamp-select"),
-      };
-
-      const defaultNames = {
-        birdid: ["individual-local-identifier", "individual_local_identifier"],
-        longitude: [
-          "long",
-          "longitude",
-          "lon",
-          "location_long",
-          "location-long",
-        ],
-        latitude: ["lat", "latitude", "location_lat", "location-lat"],
-        altitude: [
-          "height-above-ellipsoid",
-          "height_above_ellipsoid",
-          "altitude",
-          "elevation",
-          "elev",
-        ],
-        speed: ["ground-speed", "ground_speed", "ground.speed", "speed"],
-        timestamp: ["timestamp", "time", "datetime"],
-      };
-
-      let fileSize: string | number;
-      let dataParsed: string | any[];
-      let headers;
-      let dataProcessed;
-      let statJSON = {};
-
-      csvInput?.addEventListener("change", async (event) => {
-        const file = event.target.files[0];
-        fileSize = (file.size / (1024 * 1024)).toFixed(0);
-        if (!file) {
-          columnPanel.hidden = true;
-          dialog.loading = false;
-          return;
-        }
-        dialog.loading = true;
-        columnPanel.hidden = false;
-
-        try {
-          const text = await file.text();
-          dataParsed = text
-            .split(/\r?\n/)
-            .filter((row: string) => row.trim() !== "");
-          headers = dataParsed[0]
-            .split(",")
-            .map((h) => h.trim().replace(/^"(.*)"$/, "$1"));
-
-          for (const [key, select] of Object.entries(columnNames)) {
-            if (!(select instanceof HTMLElement)) continue;
-            select.innerHTML = ""; // Clear any existing options
-            headers.forEach((header: string | null) => {
-              const option = document.createElement("calcite-option");
-              option.value = option.label = option.textContent = header;
-              select.appendChild(option);
-
-              // Auto-select default if matches expected
-              if (
-                defaultNames[key].some(
-                  (defaultNamesValue: string) =>
-                    defaultNamesValue.toLowerCase() === header.toLowerCase(),
-                )
-              ) {
-                select.value = header;
-              }
-            });
-          }
-        } catch (error) {
-          console.error("Error parsing CSV:", error);
-          columnPanel.hidden = true;
-          alert.open = true;
-        } finally {
-          dialog.loading = false;
-        }
-      });
-
-      buttonSave?.addEventListener("click", async function () {
-        dialog.loading = true;
-
-        const startTime = performance.now(); // for loading time
-        // Load default file if none selected
-        const defaultCSVUrl =
-          "https://raw.githubusercontent.com/DP-00/BirdTracker/refs/heads/main/data/hbCH_cut.csv";
-        let text: string;
-
-        if (!csvInput?.files?.length) {
-          try {
-            const response = await fetch(defaultCSVUrl);
-            text = await response.text();
-          } catch (error) {
-            console.error("Error loading default CSV:", error);
-            alert.open = true;
-            dialog.loading = false;
-            return;
-          }
-
-          dataParsed = text.split(/\r?\n/).filter((row) => row.trim() !== "");
-
-          columnNames = {
-            birdid: "individual-local-identifier",
-            longitude: "long",
-            latitude: "lat",
-            altitude: "height-above-ellipsoid",
-            speed: "ground-speed",
-            timestamp: "timestamp",
-          };
-
-          fileSize = 8;
-        }
-
-        [dataProcessed, statJSON] = processCSV(dataParsed, columnNames);
-
-        console.log("Parsed CSV Data:", dataProcessed);
-        console.log(
-          `Data: ${Object.keys(dataProcessed).length} tracks, ${dataParsed.length} points, ${fileSize} MB, ${((performance.now() - startTime) / 1000).toFixed(2)} s`,
-        );
-
-        if (dataProcessed.length === 0) {
-          alert.open = true;
-          columnPanel.hidden = true;
-          dialog.loading = false;
-          csvInput.value = "";
-        } else {
-          let lineLayer = await createLineLayer(dataProcessed);
-          let generalizedLayer =
-            await createGeneralizedLineLayer(dataProcessed);
-          await arcgisMap.addLayers([lineLayer, generalizedLayer]);
-          await lineLayer.when(); // wait until loaded
-
-          setCameraControl(view, lineLayer);
-
-          if (lineLayer.timeInfo) {
-            timeSlider.view = arcgisMap.view;
-            timeSlider.fullTimeExtent = lineLayer.timeInfo.fullTimeExtent;
-          }
-          setTimeout(() => {
-            // buttonSave.loading = false;
-            dialog.loading = false;
-            dialog.open = false;
-          }, 1600);
-        }
-      });
-
       setBasemaps();
       setThematicLayers(arcgisMap);
-      setTimeSlider(timeSlider, view);
       setSlides(arcgisMap);
+      await loadData(arcgisMap);
     });
   }
 
@@ -263,7 +87,6 @@ class App extends Widget<AppProperties> {
       <div>
         <LoadingPanel></LoadingPanel>
         <arcgis-scene
-          // item-id="f35b4f74560c4655ba852d481d1042ce"
           basemap="satellite"
           ground="world-elevation"
           zoom="8"
@@ -319,79 +142,85 @@ class App extends Widget<AppProperties> {
 
 const LoadingPanel = () => {
   return (
-    <calcite-dialog
-      modal
-      open
-      close-disabled="true"
-      escape-disabled="true"
-      outside-close-disabled="true"
-      id="loading-dialog"
-      heading="Welcome to the app!"
-    >
-      <calcite-tabs>
-        <calcite-tab-nav slot="title-group">
-          <calcite-tab-title selected>Data loading</calcite-tab-title>
-          <calcite-tab-title>About</calcite-tab-title>
-          <calcite-tab-title>Tutorial</calcite-tab-title>
-        </calcite-tab-nav>
+    <div>
+      {" "}
+      <calcite-alert
+        id="loading-error"
+        kind="danger"
+        icon
+        label="Danger alert"
+        auto-close
+        scale="m"
+      >
+        <div slot="title">
+          Data loading error - reload application to upload new dataset
+        </div>
+      </calcite-alert>
+      <calcite-dialog
+        modal
+        open
+        close-disabled="true"
+        escape-disabled="true"
+        outside-close-disabled="true"
+        id="loading-dialog"
+        heading="Welcome to the app!"
+      >
+        <calcite-tabs>
+          <calcite-tab-nav slot="title-group">
+            <calcite-tab-title selected>Data loading</calcite-tab-title>
+            <calcite-tab-title>About</calcite-tab-title>
+            <calcite-tab-title>Tutorial</calcite-tab-title>
+          </calcite-tab-nav>
 
-        <calcite-tab selected>
-          <h3>Upload file</h3>
-          <p>Choose the file that contains bird data in a CSV format </p>
-          <calcite-notice icon="information" open>
-            <div slot="message">Leave empty to use sample data</div>
-          </calcite-notice>
-          <input type="file" id="csv-input" accept=".csv" />
-          <calcite-alert
-            id="loading-error"
-            kind="danger"
-            icon
-            label="Danger alert"
-            auto-close
-            scale="m"
-          >
-            <div slot="title">
-              There has been an error while loading the data
-            </div>
-          </calcite-alert>
-          <calcite-panel id="column-assignment" hidden>
-            <h3>Assign column names</h3>
-            <calcite-label layout="inline-space-between">
-              Bird ID
-              <calcite-select required id="id-select"></calcite-select>
-            </calcite-label>
-            <calcite-label layout="inline-space-between">
-              Longitude
-              <calcite-select required id="lon-select"></calcite-select>
-            </calcite-label>
-            <calcite-label layout="inline-space-between">
-              Latitude
-              <calcite-select required id="lat-select"></calcite-select>
-            </calcite-label>
-            <calcite-label layout="inline-space-between">
-              Elevation
-              <calcite-select required id="elev-select"></calcite-select>
-            </calcite-label>
-            <calcite-label layout="inline-space-between">
-              Speed
-              <calcite-select required id="speed-select"></calcite-select>
-            </calcite-label>
-            <calcite-label layout="inline-space-between">
-              Timestamp
-              <calcite-select required id="timestamp-select"></calcite-select>
-            </calcite-label>
-          </calcite-panel>
-        </calcite-tab>
+          <calcite-tab selected>
+            <h3>Upload file</h3>
+            <p>Choose the file that contains bird data in a CSV format </p>
+            <calcite-notice icon="information" open>
+              <div slot="message">Maximum data size is around 250 MB</div>
+            </calcite-notice>
+            <input type="file" id="csv-input" accept=".csv" />
 
-        <calcite-tab></calcite-tab>
+            <calcite-panel id="column-assignment" hidden>
+              <h3>Assign column names</h3>
+              <calcite-label layout="inline-space-between">
+                Bird ID
+                <calcite-select required id="id-select"></calcite-select>
+              </calcite-label>
+              <calcite-label layout="inline-space-between">
+                Longitude
+                <calcite-select required id="lon-select"></calcite-select>
+              </calcite-label>
+              <calcite-label layout="inline-space-between">
+                Latitude
+                <calcite-select required id="lat-select"></calcite-select>
+              </calcite-label>
+              <calcite-label layout="inline-space-between">
+                Elevation
+                <calcite-select required id="elev-select"></calcite-select>
+              </calcite-label>
+              <calcite-label layout="inline-space-between">
+                Speed
+                <calcite-select required id="speed-select"></calcite-select>
+              </calcite-label>
+              <calcite-label layout="inline-space-between">
+                Timestamp
+                <calcite-select required id="timestamp-select"></calcite-select>
+              </calcite-label>
+            </calcite-panel>
+          </calcite-tab>
 
-        <calcite-tab></calcite-tab>
-      </calcite-tabs>
+          <calcite-tab></calcite-tab>
 
-      <calcite-button id="save-button" slot="footer-end">
-        Upload data
-      </calcite-button>
-    </calcite-dialog>
+          <calcite-tab></calcite-tab>
+        </calcite-tabs>
+        <calcite-button id="sample-button" slot="footer-end">
+          Use sample data
+        </calcite-button>
+        <calcite-button id="save-button" slot="footer-end" disabled>
+          Upload data
+        </calcite-button>
+      </calcite-dialog>
+    </div>
   );
 };
 
@@ -501,19 +330,7 @@ const TimeControls = () => {
 const Slides = () => {
   return (
     <calcite-panel id="slidesDashboard" heading="Slides" scale="l">
-      <calcite-list id="slidesDiv" drag-enabled>
-        <calcite-list-item
-          label="Hiking trails"
-          description="Designated routes for hikers to use."
-          value="hiking-trails"
-        >
-          <calcite-action
-            slot="actions-end"
-            icon="layer"
-            text="Trails layer"
-          ></calcite-action>
-        </calcite-list-item>
-      </calcite-list>
+      <calcite-list id="slidesDiv" drag-enabled></calcite-list>
       <calcite-label layout="inline" scale="l" slot="footer">
         Add slide:
         <calcite-input

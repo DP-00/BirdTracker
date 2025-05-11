@@ -6,6 +6,7 @@ import TileLayer from "@arcgis/core/layers/TileLayer";
 import TimeExtent from "@arcgis/core/time/TimeExtent";
 import Slide from "@arcgis/core/webscene/Slide";
 import LocalBasemapsSource from "@arcgis/core/widgets/BasemapGallery/support/LocalBasemapsSource";
+import { ArcgisTimeSlider } from "@arcgis/map-components/dist/components/arcgis-time-slider";
 
 export function setCameraControl(
   view: __esri.SceneView,
@@ -156,9 +157,16 @@ export function setThematicLayers(arcgisMap: HTMLArcgisSceneElement) {
 }
 
 export function setTimeSlider(
-  timeSlider: HTMLArcgisTimeSliderElement,
   view: __esri.SceneView,
+  layer: __esri.FeatureLayer,
 ) {
+  const timeSlider = document.querySelector(
+    "arcgis-time-slider",
+  )! as ArcgisTimeSlider;
+
+  timeSlider.view = view;
+  timeSlider.fullTimeExtent = layer.timeInfo?.fullTimeExtent;
+
   timeSlider.addEventListener("arcgisPropertyChange", (event) => {
     view.environment.lighting.date = new Date(timeSlider.timeExtent.end);
   });
@@ -190,9 +198,8 @@ export function setTimeSlider(
 export function setSlides(arcgisMap: HTMLArcgisSceneElement) {
   const view = arcgisMap.view;
 
-  const slides = arcgisMap.map.presentation.slides;
-  console.log("slides", slides);
-  slides.forEach(createSlideUI);
+  // const slides = arcgisMap.map.presentation.slides;
+  // slides.forEach(createSlideUI);
   document
     .getElementById("createSlideButton")!
     .addEventListener("click", () => {
@@ -201,10 +208,9 @@ export function setSlides(arcgisMap: HTMLArcgisSceneElement) {
         slide.title.text = document.getElementById(
           "createSlideTitleInput",
         )!.value;
-        console.log("slide", slide);
         // arcgisMap.map.presentation.slides.add(slide);
         // Create a UI for the slide with the new slide at the top of the list
-        createSlideUI(slide, arcgisMap, view);
+        createSlideUI(slide, arcgisMap);
       });
     });
 
@@ -227,7 +233,6 @@ function createSlideUI(slide: Slide, arcgisMap: HTMLArcgisSceneElement) {
       </calcite-content>`;
 
   document.getElementById("slidesDiv")!.appendChild(slideElement);
-  console.log(document.getElementById("slidesDiv"));
 
   // Set up an event handler on the created slide to toggle the selected slide when clicked
   slideElement.addEventListener("calciteListItemSelect", () => {
