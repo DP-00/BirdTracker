@@ -2,9 +2,28 @@
 
 ## About
 Master Thesis project
+![scheduleV6](https://github.com/user-attachments/assets/a3b9c464-2741-457f-81ca-d6f55e65b11c)
 
 ## Updates
 ---
+
+### Week 17-19
+- Data loading
+  - UI
+  - data parsing
+  - loading optimazation
+- Map controls
+  - Slides (instead of bookmarks that didn't supported 3D view and saving environmnent)
+  - Basemaps setup
+  - Thematic layers setup
+  - Additional timeline controls
+
+   
+### Week 13-16
+- planning
+- literature review
+- brainstorming and prototypes
+
 ### Week 11&12
 
 #### 🚀 New Features
