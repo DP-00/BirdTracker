@@ -10,6 +10,7 @@ import "@arcgis/map-components/dist/components/arcgis-basemap-gallery";
 import "@arcgis/map-components/dist/components/arcgis-compass";
 import "@arcgis/map-components/dist/components/arcgis-daylight";
 import "@arcgis/map-components/dist/components/arcgis-directline-measurement-3d";
+import "@arcgis/map-components/dist/components/arcgis-elevation-profile";
 import "@arcgis/map-components/dist/components/arcgis-expand";
 import "@arcgis/map-components/dist/components/arcgis-fullscreen";
 import "@arcgis/map-components/dist/components/arcgis-home";
@@ -27,11 +28,15 @@ import { Widget } from "./Widget";
 
 import "@arcgis/core/geometry/operators/generalizeOperator";
 import { ArcgisSceneCustomEvent } from "@arcgis/map-components";
+import "@esri/calcite-components/dist/components/calcite-accordion";
+import "@esri/calcite-components/dist/components/calcite-accordion-item";
 import "@esri/calcite-components/dist/components/calcite-action";
 import "@esri/calcite-components/dist/components/calcite-action-group";
 import "@esri/calcite-components/dist/components/calcite-action-pad";
 import "@esri/calcite-components/dist/components/calcite-alert";
 import "@esri/calcite-components/dist/components/calcite-button";
+import "@esri/calcite-components/dist/components/calcite-combobox";
+import "@esri/calcite-components/dist/components/calcite-combobox-item";
 import "@esri/calcite-components/dist/components/calcite-dialog";
 import "@esri/calcite-components/dist/components/calcite-input";
 import "@esri/calcite-components/dist/components/calcite-label";
@@ -46,11 +51,15 @@ import "@esri/calcite-components/dist/components/calcite-navigation-logo";
 import "@esri/calcite-components/dist/components/calcite-navigation-user";
 import "@esri/calcite-components/dist/components/calcite-notice";
 import "@esri/calcite-components/dist/components/calcite-panel";
+import "@esri/calcite-components/dist/components/calcite-segmented-control";
+import "@esri/calcite-components/dist/components/calcite-segmented-control-item";
+import "@esri/calcite-components/dist/components/calcite-slider";
 import "@esri/calcite-components/dist/components/calcite-sortable-list";
 import "@esri/calcite-components/dist/components/calcite-tab";
 import "@esri/calcite-components/dist/components/calcite-tab-nav";
 import "@esri/calcite-components/dist/components/calcite-tab-title";
 import "@esri/calcite-components/dist/components/calcite-tabs";
+
 import { loadData } from "../dataLoading";
 import { setBasemaps, setSlides, setThematicLayers } from "../mapControls";
 
@@ -73,6 +82,7 @@ class App extends Widget<AppProperties> {
       const arcgisMap = document.querySelector(
         "arcgis-scene",
       ) as HTMLArcgisSceneElement;
+      view.popup.defaultPopupTemplateEnabled = true;
       setBasemaps();
       setThematicLayers(arcgisMap);
       setSlides(arcgisMap);
@@ -113,25 +123,177 @@ class App extends Widget<AppProperties> {
                   ></calcite-button>
                 </h2>
               </p>
-              <calcite-button
-                id="camera-zoom"
-                slot="action"
-                scale="m"
-                kind="neutral"
-                appearance="solid"
-              >
-                Zoom to layer
-              </calcite-button>
-              <TimeControls></TimeControls>
-              <arcgis-time-slider
-                position="bottom-right"
-                mode="time-window"
-                play-rate="1"
-                time-visible
-                loop
-                stops-interval-value="1"
-                stops-interval-unit="hours"
-              ></arcgis-time-slider>
+              <calcite-tabs layout="center">
+                <calcite-tab-nav slot="title-group">
+                  <calcite-tab-title selected>Overview</calcite-tab-title>
+                  <calcite-tab-title>Charts</calcite-tab-title>
+                  <calcite-tab-title>Visualization</calcite-tab-title>
+                </calcite-tab-nav>
+                <calcite-tab selected>
+                  <calcite-accordion
+                    appearance="transparent"
+                    selection-mode="multiple"
+                  >
+                    <calcite-accordion-item
+                      heading="Camera control"
+                      icon-start="video"
+                      expanded
+                    >
+                      <calcite-label>
+                        <calcite-segmented-control
+                          width="full"
+                          appearance="outline-fill"
+                          scale="m"
+                        >
+                          <calcite-segmented-control-item
+                            icon-start="gps-on"
+                            value="CAD"
+                          >
+                            Follow bird
+                          </calcite-segmented-control-item>
+
+                          <calcite-segmented-control-item
+                            icon-start="line"
+                            value="KML"
+                          >
+                            Show Path
+                          </calcite-segmented-control-item>
+                          <calcite-segmented-control-item
+                            icon-start="explore"
+                            value="KML"
+                            checked
+                          >
+                            Explore free
+                          </calcite-segmented-control-item>
+                        </calcite-segmented-control>
+                      </calcite-label>
+                      <calcite-button
+                        id="camera-zoom"
+                        slot="action"
+                        scale="m"
+                        kind="neutral"
+                        appearance="solid"
+                      >
+                        Zoom to layer
+                      </calcite-button>
+                    </calcite-accordion-item>
+                    <calcite-accordion-item
+                      heading="Time control"
+                      icon-start="clock"
+                      expanded
+                    >
+                      <TimeControls></TimeControls>
+                      <arcgis-time-slider
+                        position="bottom-right"
+                        mode="time-window"
+                        play-rate="1"
+                        time-visible
+                        loop
+                        stops-interval-value="1"
+                        stops-interval-unit="hours"
+                      ></arcgis-time-slider>
+                    </calcite-accordion-item>
+                  </calcite-accordion>
+                </calcite-tab>
+                <calcite-tab>
+                  <calcite-accordion
+                    appearance="transparent"
+                    selection-mode="multiple"
+                  >
+                    <calcite-accordion-item
+                      heading="Elevation profile"
+                      icon-start="altitude"
+                      expanded
+                    >
+                      <arcgis-elevation-profile></arcgis-elevation-profile>
+                    </calcite-accordion-item>
+
+                    <calcite-accordion-item
+                      heading="Values over time"
+                      icon-start="graph-time-series"
+                    ></calcite-accordion-item>
+                    <calcite-accordion-item
+                      heading="Distribution of values"
+                      icon-start="graph-bar"
+                    ></calcite-accordion-item>
+                  </calcite-accordion>
+                </calcite-tab>
+                <calcite-tab>
+                  <calcite-accordion
+                    appearance="transparent"
+                    selection-mode="multiple"
+                  >
+                    <calcite-accordion-item
+                      icon-start="view-visible"
+                      heading="Layer visibility"
+                      expanded
+                    >
+                      <arcgis-layer-list id="vis-layers"></arcgis-layer-list>
+                    </calcite-accordion-item>
+                    <calcite-accordion-item
+                      icon-start="line"
+                      heading="Path setting"
+                      expanded
+                    >
+                      <calcite-label alignment="center">
+                        Primary visualization:
+                        <calcite-select id="primary-vis-select"></calcite-select>
+                        <calcite-label>
+                          Filter:
+                          <calcite-slider
+                            min-value="50"
+                            max-value="65"
+                            min="0"
+                            max="100"
+                            precise
+                            label-ticks
+                            label-handles
+                          ></calcite-slider>
+                          <calcite-combobox
+                            placeholder="Select a field"
+                            overlay-positioning="absolute"
+                            scale="s"
+                            selection-display="fit"
+                          >
+                            <calcite-combobox-item
+                              value="Natural Resources"
+                              heading="Natural Resources"
+                            ></calcite-combobox-item>
+                            <calcite-combobox-item
+                              value="agriculture"
+                              heading="Agriculture"
+                            ></calcite-combobox-item>
+                            <calcite-combobox-item
+                              value="forestry"
+                              heading="Forestry"
+                            ></calcite-combobox-item>
+                          </calcite-combobox>
+                        </calcite-label>
+                      </calcite-label>
+                      <calcite-label layout="inline" alignment="center">
+                        Secondary visualization:
+                        <calcite-select id="secondary-vis-select"></calcite-select>
+                      </calcite-label>
+                    </calcite-accordion-item>
+                    <calcite-accordion-item
+                      icon-start="filter"
+                      heading="Filter"
+                    ></calcite-accordion-item>
+                    <calcite-accordion-item
+                      heading="Legend"
+                      icon-start="legend"
+                      id="legend-container"
+                    >
+                      <arcgis-legend></arcgis-legend>
+                    </calcite-accordion-item>
+
+                    <calcite-accordion-item
+                      icon-start="partly-cloudy"
+                      heading="Weather settings"
+                    ></calcite-accordion-item>
+                  </calcite-accordion>
+                </calcite-tab>
+              </calcite-tabs>
             </div>
           </arcgis-placement>
         </arcgis-scene>
@@ -247,7 +409,7 @@ const MapControls = () => {
         group="top-left"
         expand-tooltip="Set thematic layers"
       >
-        <arcgis-layer-list></arcgis-layer-list>
+        <arcgis-layer-list id="thematic-layers"></arcgis-layer-list>
       </arcgis-expand>
       <arcgis-expand
         position="top-left"

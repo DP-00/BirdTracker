@@ -1,6 +1,13 @@
 import Papa from "papaparse";
+import {
+  createCylinderLayer,
+  createGeneralizedLineLayer,
+  createGraphics,
+  createLineLayer,
+} from "./layers";
 import { setCameraControl, setTimeSlider } from "./mapControls";
-import { createGeneralizedLineLayer, createLineLayer } from "./utils";
+import { setSingleVis, summarizeData } from "./singleVisualization";
+
 export async function loadData(arcgisMap: HTMLArcgisSceneElement) {
   const csvInput = document.getElementById("csv-input")! as HTMLInputElement;
   const columnPanel = document.getElementById("column-assignment")!;
@@ -46,7 +53,7 @@ export async function loadData(arcgisMap: HTMLArcgisSceneElement) {
   let headers;
   let dataProcessed;
   let statJSON = {};
-  let lineLayer;
+  let primaryLayer;
   let generalizedLayer;
 
   csvInput?.addEventListener("change", async (event) => {
@@ -98,7 +105,7 @@ export async function loadData(arcgisMap: HTMLArcgisSceneElement) {
       const result = await processCSV(csvText, mappedCols, 8);
       [dataProcessed, statJSON] = result;
 
-      [lineLayer, generalizedLayer] = await createDefaultLayers(
+      [primaryLayer, generalizedLayer] = await createDefaultLayers(
         arcgisMap,
         dataProcessed,
       );
@@ -127,7 +134,7 @@ export async function loadData(arcgisMap: HTMLArcgisSceneElement) {
       if (Object.keys(dataProcessed).length === 0) {
         alert.open = true;
       } else {
-        [lineLayer, generalizedLayer] = await createDefaultLayers(
+        [primaryLayer, generalizedLayer] = await createDefaultLayers(
           arcgisMap,
           dataProcessed,
         );
@@ -145,27 +152,41 @@ export async function loadData(arcgisMap: HTMLArcgisSceneElement) {
     }
   });
 
-  return [dataProcessed, statJSON, lineLayer, generalizedLayer];
+  return [dataProcessed, statJSON, primaryLayer, generalizedLayer];
 }
 
 async function createDefaultLayers(
   arcgisMap: HTMLArcgisSceneElement,
   dataProcessed: any,
 ) {
-  let lineLayer = await createLineLayer(dataProcessed);
+  let birdSummary = summarizeData(Object.values(dataProcessed)[0]);
+  let primaryLayer = await createLineLayer(dataProcessed, birdSummary);
   let generalizedLayer = await createGeneralizedLineLayer(dataProcessed);
+  // console.log(dataProcessed, dataProcessed["D329_015"]);
+  let secondaryLayer = createCylinderLayer(
+    createGraphics(Object.values(dataProcessed)[0], "D329_015"),
+    birdSummary,
+  );
 
-  await arcgisMap.addLayers([lineLayer, generalizedLayer]);
-  await lineLayer.when();
+  await arcgisMap.addLayers([primaryLayer, generalizedLayer, secondaryLayer]);
+  await primaryLayer.when();
 
-  await arcgisMap.view.goTo(lineLayer.fullExtent);
-  setTimeSlider(arcgisMap.view, lineLayer);
-  setCameraControl(arcgisMap.view, lineLayer);
+  await arcgisMap.view.goTo(primaryLayer.fullExtent);
+  setSingleVis(
+    Object.values(dataProcessed)[0],
+    arcgisMap,
+    primaryLayer,
+    generalizedLayer,
+    secondaryLayer,
+    birdSummary,
+  );
+  setTimeSlider(arcgisMap.view, primaryLayer);
+  setCameraControl(arcgisMap.view, primaryLayer);
 
-  document.querySelector("arcgis-layer-list")!.filterPredicate = (item) =>
-    !item.title.toLowerCase().includes("line");
+  document.getElementById("thematic-layers")!.filterPredicate = (item) =>
+    !item.title.toLowerCase().includes("visualization");
 
-  return [lineLayer, generalizedLayer];
+  return [primaryLayer, generalizedLayer, secondaryLayer];
 }
 
 function createColumnSelects(
@@ -190,6 +211,7 @@ function createColumnSelects(
   }
 }
 
+//src: chatGPT based on given requirements
 function processCSV(
   csvText: string,
   columnNames: {

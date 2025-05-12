@@ -45,6 +45,11 @@ input {
   margin-top: 1rem;
 }
 
+#legend-container {
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
 // .list-item-slide {
 //   margin: 5px 0px 5px 10px;
 //   width: 80px;
