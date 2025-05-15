@@ -141,14 +141,14 @@ export function summarizeData(birdData: any[]) {
       if (min === max) {
         summary[key] = {
           type: "other",
-          values: [min],
+          values: [min.toString()],
         };
       } else {
         summary[key] = {
           type: "number",
           min,
           max,
-          mean: count > 0 ? sum / min : NaN,
+          mean: count > 0 ? parseFloat((sum / count).toFixed(2)) : min,
           minLocation,
           maxLocation,
         };
@@ -215,7 +215,7 @@ function createAttributeSelects(
   select.value = defaultValue;
 }
 
-function createFilters(
+export function createFilters(
   arcgisMap: HTMLArcgisSceneElement,
   layer: __esri.FeatureLayer,
   birdSummary: Record<string, any>,
@@ -224,55 +224,57 @@ function createFilters(
 ) {
   container.innerHTML = "";
   const summary = birdSummary[variable];
-  if (summary.type == "number") {
-    const slider = document.createElement("calcite-slider");
-    slider.minValue = summary.min;
-    slider.maxValue = summary.max;
-    slider.min = summary.min;
-    slider.max = summary.max;
-    slider.style = "width:250px";
-    slider.setAttribute("label-handles", "");
-    slider.addEventListener("calciteSliderChange", async () => {
-      const minValue = slider.minValue;
-      const maxValue = slider.maxValue;
+  if (summary) {
+    if (summary.type == "number") {
+      const slider = document.createElement("calcite-slider");
+      slider.minValue = summary.min;
+      slider.maxValue = summary.max;
+      slider.min = summary.min;
+      slider.max = summary.max;
+      slider.style = "width:250px";
+      slider.setAttribute("label-handles", "");
+      slider.addEventListener("calciteSliderChange", async () => {
+        const minValue = slider.minValue;
+        const maxValue = slider.maxValue;
 
-      arcgisMap.view.whenLayerView(layer).then((layerView) => {
-        layerView.filter = {
-          where: `${variable} >= ${minValue} AND ${variable} <= ${maxValue}`,
-        };
-      });
-    });
-    container.appendChild(slider);
-  } else {
-    const combobox = document.createElement("calcite-combobox");
-    combobox.setAttribute("selection-display", "fit");
-    combobox.setAttribute("overlay-positioning", "fix");
-
-    let categories = summary.values;
-    categories.forEach((category) => {
-      const option = document.createElement("calcite-combobox-item");
-      option.value = option.heading = category;
-      combobox.appendChild(option);
-    });
-    combobox.addEventListener("calciteComboboxChange", async () => {
-      const selected = Array.isArray(combobox.value)
-        ? combobox.value
-        : [combobox.value];
-
-      arcgisMap.view.whenLayerView(layer).then((layerView) => {
-        if (
-          selected.length === 0 ||
-          (selected.length === 1 && selected[0] === "")
-        ) {
-          layerView.filter = null;
-        } else {
+        arcgisMap.view.whenLayerView(layer).then((layerView) => {
           layerView.filter = {
-            where: `${variable} IN (${selected.map((v) => `'${v}'`).join(", ")})`,
+            where: `${variable} >= ${minValue} AND ${variable} <= ${maxValue}`,
           };
-        }
+        });
       });
-    });
-    container.appendChild(combobox);
+      container.appendChild(slider);
+    } else {
+      const combobox = document.createElement("calcite-combobox");
+      combobox.setAttribute("selection-display", "fit");
+      combobox.setAttribute("overlay-positioning", "fix");
+
+      let categories = summary.values;
+      categories.forEach((category) => {
+        const option = document.createElement("calcite-combobox-item");
+        option.value = option.heading = category;
+        combobox.appendChild(option);
+      });
+      combobox.addEventListener("calciteComboboxChange", async () => {
+        const selected = Array.isArray(combobox.value)
+          ? combobox.value
+          : [combobox.value];
+
+        arcgisMap.view.whenLayerView(layer).then((layerView) => {
+          if (
+            selected.length === 0 ||
+            (selected.length === 1 && selected[0] === "")
+          ) {
+            layerView.filter = null;
+          } else {
+            layerView.filter = {
+              where: `${variable} IN (${selected.map((v) => `'${v}'`).join(", ")})`,
+            };
+          }
+        });
+      });
+      container.appendChild(combobox);
+    }
   }
 }
 
@@ -330,41 +332,44 @@ export function updateArrowLayer(
 function updateLayerColorVariables(variable, layer, birdSummary) {
   const summary = birdSummary[variable];
   const currentRenderer = layer.renderer.clone();
-
   if (!summary || variable === "---single color---") {
-    currentRenderer.visualVariables = [];
-    currentRenderer.uniqueValueInfos = [];
-    currentRenderer.type = "simple";
-    layer.renderer = currentRenderer;
+    // currentRenderer.visualVariables = [];
+    // currentRenderer.uniqueValueInfos = [];
+    // currentRenderer.type = "simple";
+    // layer.renderer = currentRenderer;
+    layer.renderer = createSimpleRenderer(variable, summary, currentRenderer);
     return;
   }
 
   if (summary.type === "number") {
-    // currentRenderer.uniqueValueInfos = [];
-    // currentRenderer.type = "simple";
-    currentRenderer.visualVariables = createVisualVariablesRenderer(
+    layer.renderer = createVisualVariablesRenderer(
       variable,
       summary,
+      currentRenderer,
     );
-
-    layer.renderer = currentRenderer;
   } else {
-    const uniqueRenderer = createUniqueValueRenderer(
+    layer.renderer = createUniqueValueRenderer(
       variable,
       summary.values,
       currentRenderer,
-    ); // error on second selection
-    layer.renderer = uniqueRenderer;
+    );
   }
 }
 
 function createUniqueValueRenderer(variable, uniqueValues, currentRenderer) {
-  const baseSymbol = currentRenderer?.symbol;
   let symbol;
+  let type;
+  if (currentRenderer.type === "unique-value") {
+    type = currentRenderer.uniqueValueInfos[0].symbol.type;
+  } else {
+    type = currentRenderer.symbol.type;
+  }
+  currentRenderer.symbol;
+
   const uniqueValueInfos = uniqueValues.map((val, i) => {
     console.log("val", val);
-    console.log("baseSymbol.type", baseSymbol);
-    if (baseSymbol.type === "point-3d") {
+
+    if (type === "point-3d") {
       symbol = {
         type: "point-3d",
         symbolLayers: [
@@ -380,7 +385,7 @@ function createUniqueValueRenderer(variable, uniqueValues, currentRenderer) {
           },
         ],
       };
-    } else if (baseSymbol.type === "line-3d") {
+    } else if (type === "line-3d") {
       symbol = {
         type: "line-3d",
         symbolLayers: [
@@ -409,7 +414,15 @@ function createUniqueValueRenderer(variable, uniqueValues, currentRenderer) {
   };
 }
 
-function createVisualVariablesRenderer(variable, summary) {
+function createVisualVariablesRenderer(variable, summary, currentRenderer) {
+  let symbol;
+  let type;
+  if (currentRenderer.type === "unique-value") {
+    type = currentRenderer.uniqueValueInfos[0].symbol.type;
+  } else {
+    type = currentRenderer.symbol.type;
+  }
+  currentRenderer.symbol;
   const { min, max } = summary;
 
   const step = (max - min) / 4;
@@ -417,14 +430,93 @@ function createVisualVariablesRenderer(variable, summary) {
     value: +(min + i * step).toFixed(2),
     color: getContinuousColor(i),
   }));
-
-  return [
+  let visualVariables = [
     {
       type: "color",
       field: variable,
       stops,
     },
   ];
+
+  if (type === "point-3d") {
+    symbol = {
+      type: "point-3d",
+      symbolLayers: [
+        {
+          type: "object",
+          resource: {
+            primitive: "cylinder",
+          },
+          material: { color: [255, 0, 0] },
+          width: 10,
+          height: 3000,
+          tilt: 180,
+        },
+      ],
+    };
+  } else if (type === "line-3d") {
+    symbol = {
+      type: "line-3d",
+      symbolLayers: [
+        {
+          type: "line",
+          size: 6,
+          cap: "round",
+          material: { color: [255, 0, 0] },
+        },
+      ],
+    };
+  }
+  return {
+    type: "simple",
+    symbol,
+    visualVariables,
+  };
+}
+
+function createSimpleRenderer(variable, summary, currentRenderer) {
+  let symbol;
+  let type;
+  if (currentRenderer.type === "unique-value") {
+    type = currentRenderer.uniqueValueInfos[0].symbol.type;
+  } else {
+    type = currentRenderer.symbol.type;
+  }
+  currentRenderer.symbol;
+
+  if (type === "point-3d") {
+    symbol = {
+      type: "point-3d",
+      symbolLayers: [
+        {
+          type: "object",
+          resource: {
+            primitive: "cylinder",
+          },
+          material: { color: [255, 0, 0] },
+          width: 10,
+          height: 3000,
+          tilt: 180,
+        },
+      ],
+    };
+  } else if (type === "line-3d") {
+    symbol = {
+      type: "line-3d",
+      symbolLayers: [
+        {
+          type: "line",
+          size: 6,
+          cap: "round",
+          material: { color: [255, 0, 0] },
+        },
+      ],
+    };
+  }
+  return {
+    type: "simple",
+    symbol,
+  };
 }
 
 function getContinuousColor(index) {

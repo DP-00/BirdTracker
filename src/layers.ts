@@ -25,7 +25,7 @@ export function createDynamicPopupTemplate(
     content: [
       {
         type: "text",
-        text: `${summary.type == "number" ? `<b>Mean:</b> ${summary.mean}, <b>Min:</b> ${summary.min}, <b>Max:</b> ${summary.max} <br>` : ""}`,
+        text: `${summary?.type == "number" ? `<b>Mean:</b> ${summary.mean}, <b>Min:</b> ${summary.min}, <b>Max:</b> ${summary.max} <br>` : ""}`,
       },
       {
         type: "text",

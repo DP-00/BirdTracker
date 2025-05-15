@@ -64,7 +64,7 @@ import "@esri/calcite-components/dist/components/calcite-tab-title";
 import "@esri/calcite-components/dist/components/calcite-tabs";
 
 import { loadData } from "../dataLoading";
-import { setBasemaps, setSlides, setThematicLayers } from "../mapControls";
+import { setBasemaps, setThematicLayers } from "../mapControls";
 
 type AppProperties = {};
 
@@ -88,7 +88,6 @@ class App extends Widget<AppProperties> {
       view.popup.defaultPopupTemplateEnabled = true;
       setBasemaps();
       setThematicLayers(arcgisMap);
-      setSlides(arcgisMap);
       await loadData(arcgisMap);
     });
   }

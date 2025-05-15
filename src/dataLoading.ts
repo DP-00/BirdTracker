@@ -8,8 +8,9 @@ import {
   createLineLayer,
   createTimeLayer,
 } from "./layers";
-import { setCameraControl, setTimeSlider } from "./mapControls";
+import { setCameraControl, setSlides, setTimeSlider } from "./mapControls";
 import {
+  createFilters,
   setSingleVis,
   summarizeData,
   updateArrowLayer,
@@ -166,6 +167,8 @@ async function createDefaultLayers(
   arcgisMap: HTMLArcgisSceneElement,
   dataProcessed: any,
 ) {
+  const primaryValue = "altitude";
+  const secondaryValue = "speed";
   const birdSummary = summarizeData(Object.values(dataProcessed)[0]);
   const primaryLayer = await createLineLayer(dataProcessed, birdSummary);
   const generalizedLayer = await createGeneralizedLineLayer(dataProcessed);
@@ -181,8 +184,23 @@ async function createDefaultLayers(
   const arrowLayer = new GraphicsLayer({
     title: `Extremum visualization`,
   });
-  createDynamicPopupTemplate(primaryLayer, "altitude", birdSummary);
-  createDynamicPopupTemplate(secondaryLayer, "speed", birdSummary);
+  createDynamicPopupTemplate(primaryLayer, primaryValue, birdSummary);
+  createDynamicPopupTemplate(secondaryLayer, secondaryValue, birdSummary);
+
+  createFilters(
+    arcgisMap,
+    primaryLayer,
+    birdSummary,
+    document.getElementById("prim-filter-container")!,
+    primaryValue,
+  );
+  createFilters(
+    arcgisMap,
+    secondaryLayer,
+    birdSummary,
+    document.getElementById("sec-filter-container")!,
+    secondaryValue,
+  );
 
   await arcgisMap.addLayers([
     primaryLayer,
@@ -209,6 +227,7 @@ async function createDefaultLayers(
 
   setTimeSlider(arcgisMap.view, primaryLayer);
   setCameraControl(arcgisMap.view, primaryLayer);
+  setSlides(arcgisMap);
 
   document.getElementById("thematic-layers")!.filterPredicate = (item) =>
     !item.title.toLowerCase().includes("visualization");
