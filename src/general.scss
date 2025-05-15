@@ -29,6 +29,10 @@ input {
   padding: 10px;
   font-weight: 36;
   text-align: center;
+  max-height: 90vh;
+  overflow-y: auto;
+  width: 33vw;
+  overflow-x: auto;
 }
 
 .esri-daylight__container {
@@ -45,7 +49,7 @@ input {
   margin-top: 1rem;
 }
 
-#legend-container {
+calcite-accordion-item {
   max-height: 50vh;
   overflow-y: auto;
 }

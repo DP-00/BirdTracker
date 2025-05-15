@@ -1,13 +1,45 @@
+import * as geometryEngine from "@arcgis/core/geometry/geometryEngine";
 import * as generalizeOperator from "@arcgis/core/geometry/operators/generalizeOperator";
 import Polyline from "@arcgis/core/geometry/Polyline";
+import * as webMercatorUtils from "@arcgis/core/geometry/support/webMercatorUtils";
 import Graphic from "@arcgis/core/Graphic";
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
+import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
+import TextSymbol from "@arcgis/core/symbols/TextSymbol";
 import { generateLayerFields } from "./singleVisualization";
-const popTemplate = {
-  title: "Point Info",
-  content:
-    "Height  {height-above-ellipsoid} Longitude: {longitude}°<br> Latitude: {latitude}°<br> Altitude: {altitude} meters <br> Speed: {speed} meters ",
-};
+
+// Create the popupTemplate dynamically
+export function createDynamicPopupTemplate(
+  layer: FeatureLayer,
+  activeVariable: string,
+  birdSummary,
+) {
+  const fieldInfos = layer.fields
+    .filter((f) => f.type !== "oid" && f.type !== "geometry")
+    .map((f) => ({ fieldName: f.name }));
+
+  const summary = birdSummary[activeVariable];
+
+  const popupTemplate = {
+    title: `<b>${activeVariable.toUpperCase()}:</b> {${activeVariable}}`,
+    content: [
+      {
+        type: "text",
+        text: `${summary.type == "number" ? `<b>Mean:</b> ${summary.mean}, <b>Min:</b> ${summary.min}, <b>Max:</b> ${summary.max} <br>` : ""}`,
+      },
+      {
+        type: "text",
+        text: "<b>Date:</b> {timestamp} <br>  <b>Location:</b> {longitude}, {latitude}, {altitude}  <br><br> <b>Other variables:</b>",
+      },
+      {
+        type: "fields",
+        fieldInfos,
+      },
+    ],
+  };
+
+  layer.popupTemplate = popupTemplate;
+}
 
 const specialKeys = new Set([
   "ObjectID",
@@ -18,16 +50,6 @@ const specialKeys = new Set([
   "longitude",
   "latitude",
 ]);
-
-// const fields = [
-//   { name: "ObjectID", type: "oid" },
-//   { name: "birdid", type: "string" },
-//   { name: "longitude", type: "double" },
-//   { name: "latitude", type: "double" },
-//   { name: "timestamp", type: "date" },
-//   { name: "altitude", type: "double" },
-//   { name: "speed", type: "double" },
-// ];
 
 export function createGraphics(csvData: any, birdid: string) {
   let idCounter = 1;
@@ -98,6 +120,7 @@ export async function createGeneralizedLineLayer(groupedData: {
     geometryType: "polyline",
     elevationInfo: { mode: "on-the-ground" },
     maxScale: 300000,
+    popupEnabled: false,
     renderer: {
       type: "simple",
       symbol: { type: "simple-line", color: [70, 70, 70, 0.5], width: 10 },
@@ -164,6 +187,8 @@ export async function createLineLayer(
     geometryType: "polyline",
     elevationInfo: { mode: "absolute-height" },
     fields: generateLayerFields(birdSummary),
+    outFields: ["*"],
+    // popupTemplate: popupTemplate,
     timeInfo: {
       startField: "timestamp",
       endField: "timestamp",
@@ -176,7 +201,7 @@ export async function createLineLayer(
         symbolLayers: [
           {
             type: "line",
-            size: 3,
+            size: 6,
             cap: "round",
             material: { color: [255, 0, 0] },
           },
@@ -219,6 +244,7 @@ export function createCylinderLayer(graphics: any, birdSummary: any) {
     },
     minScale: 300000,
     fields: generateLayerFields(birdSummary),
+    outFields: ["*"],
     timeInfo: {
       startField: "timestamp",
       endField: "timestamp",
@@ -265,4 +291,82 @@ export function createCylinderLayer(graphics: any, birdSummary: any) {
     },
   });
   return featureLayer;
+}
+
+export function createTimeLayer(graphics) {
+  const intervals = [
+    {
+      label: "Hour",
+      interval: 60 * 60 * 1000,
+      title: "Time and distance visualization (hours)",
+      minScale: 300000,
+    },
+    {
+      label: "Day",
+      interval: 24 * 60 * 60 * 1000,
+      title: "Time and distance visualization (days)",
+      maxScale: 300000,
+    },
+  ];
+  return intervals.map(({ label, interval, title, minScale, maxScale }) => {
+    let lastTimestamp = null;
+    let firstTimestamp = null;
+    let lastPoint = null;
+    let accumulatedDistance = 0;
+    const timeGraphic: Graphic[] = [];
+    graphics.forEach((g) => {
+      if (!firstTimestamp) firstTimestamp = g.attributes.timestamp;
+      const currentTimestamp = g.attributes.timestamp;
+      const currentPoint = g.geometry;
+
+      let distanceFromLast = 0;
+      if (lastPoint) {
+        const lastWeb = webMercatorUtils.geographicToWebMercator(lastPoint);
+        const currentWeb =
+          webMercatorUtils.geographicToWebMercator(currentPoint);
+
+        distanceFromLast =
+          geometryEngine.distance(lastWeb, currentWeb, "kilometers") || 0;
+      }
+
+      if (!lastTimestamp || currentTimestamp - lastTimestamp >= interval) {
+        accumulatedDistance += distanceFromLast;
+        lastTimestamp = currentTimestamp;
+        lastPoint = currentPoint;
+        let durationInSeconds = (currentTimestamp - firstTimestamp) / 1000;
+        let days = Math.floor(durationInSeconds / 86400);
+        let hours = Math.floor((durationInSeconds % 86400) / 3600);
+        let text =
+          label === "Hour"
+            ? `${days}d ${hours}h \ue63f +${distanceFromLast.toFixed(0)} (${accumulatedDistance.toFixed(0)})km`
+            : `${days} \ue63f +${distanceFromLast.toFixed(0)} (${accumulatedDistance.toFixed(0)})km`;
+
+        timeGraphic.push(
+          new Graphic({
+            geometry: currentPoint,
+            symbol: new TextSymbol({
+              text: text,
+              color: [30, 30, 30],
+              haloColor: [150, 150, 150, 0.5],
+              haloSize: 1.5,
+              font: {
+                size: 10,
+                family: "CalciteWebCoreIcons",
+                weight: "bold",
+              },
+            }),
+          }),
+        );
+      }
+    });
+
+    const timeLayer = new GraphicsLayer({
+      title,
+      minScale,
+      maxScale,
+    });
+    timeGraphic.forEach((g) => timeLayer.add(g));
+
+    return timeLayer;
+  });
 }

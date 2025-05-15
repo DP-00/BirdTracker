@@ -1,12 +1,19 @@
+import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import Papa from "papaparse";
 import {
   createCylinderLayer,
+  createDynamicPopupTemplate,
   createGeneralizedLineLayer,
   createGraphics,
   createLineLayer,
+  createTimeLayer,
 } from "./layers";
 import { setCameraControl, setTimeSlider } from "./mapControls";
-import { setSingleVis, summarizeData } from "./singleVisualization";
+import {
+  setSingleVis,
+  summarizeData,
+  updateArrowLayer,
+} from "./singleVisualization";
 
 export async function loadData(arcgisMap: HTMLArcgisSceneElement) {
   const csvInput = document.getElementById("csv-input")! as HTMLInputElement;
@@ -159,16 +166,32 @@ async function createDefaultLayers(
   arcgisMap: HTMLArcgisSceneElement,
   dataProcessed: any,
 ) {
-  let birdSummary = summarizeData(Object.values(dataProcessed)[0]);
-  let primaryLayer = await createLineLayer(dataProcessed, birdSummary);
-  let generalizedLayer = await createGeneralizedLineLayer(dataProcessed);
+  const birdSummary = summarizeData(Object.values(dataProcessed)[0]);
+  const primaryLayer = await createLineLayer(dataProcessed, birdSummary);
+  const generalizedLayer = await createGeneralizedLineLayer(dataProcessed);
   // console.log(dataProcessed, dataProcessed["D329_015"]);
-  let secondaryLayer = createCylinderLayer(
+  const secondaryLayer = createCylinderLayer(
     createGraphics(Object.values(dataProcessed)[0], "D329_015"),
     birdSummary,
   );
+  let hourLayer, dayLayer;
+  [hourLayer, dayLayer] = createTimeLayer(
+    createGraphics(Object.values(dataProcessed)[0], "D329_015"),
+  );
+  const arrowLayer = new GraphicsLayer({
+    title: `Extremum visualization`,
+  });
+  createDynamicPopupTemplate(primaryLayer, "altitude", birdSummary);
+  createDynamicPopupTemplate(secondaryLayer, "speed", birdSummary);
 
-  await arcgisMap.addLayers([primaryLayer, generalizedLayer, secondaryLayer]);
+  await arcgisMap.addLayers([
+    primaryLayer,
+    generalizedLayer,
+    secondaryLayer,
+    arrowLayer,
+    hourLayer,
+    dayLayer,
+  ]);
   await primaryLayer.when();
 
   await arcgisMap.view.goTo(primaryLayer.fullExtent);
@@ -178,8 +201,12 @@ async function createDefaultLayers(
     primaryLayer,
     generalizedLayer,
     secondaryLayer,
+    arrowLayer,
     birdSummary,
   );
+
+  updateArrowLayer(arrowLayer, "altitude", birdSummary);
+
   setTimeSlider(arcgisMap.view, primaryLayer);
   setCameraControl(arcgisMap.view, primaryLayer);
 
