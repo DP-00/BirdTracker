@@ -7,6 +7,25 @@ Master Thesis project
 ## Updates
 ---
 
+### Week 20
+- Single Vis
+  - Variable visualizations
+  	- Calculate color scales for continous and categorical data that adjust based on filter
+  	- Primary visualization
+  	- Secondary visualization
+  - Legend
+  - Filter
+  - Helpers
+  	- Generalized line
+  	- Time markers
+  		- Daily markers
+  		- Hourly markers
+  		- Scale settings
+  		- Distance calculcation
+  		- Style
+  	- Min/max values arrows (from the primary vis)
+  	- Pop-up with higlight
+
 ### Week 17-19
 - Data loading
   - UI
