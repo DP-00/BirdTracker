@@ -51,11 +51,11 @@ const specialKeys = new Set([
   "latitude",
 ]);
 
-export function createGraphics(csvData: any, birdid: string) {
+export function createGraphics(csvData: any) {
   let idCounter = 1;
-  // console.log("csvData", csvData);
   const allKeys = Object.keys(Object.values(csvData)[0]);
-  // console.log("allKeys", allKeys);
+  let birdid = Object.values(csvData)[0].birdid;
+
   const graphics = csvData.map((point: any, index: number) => {
     const attributes: any = {
       ObjectID: idCounter++,
@@ -181,6 +181,7 @@ export async function createLineLayer(
   }
 
   const featureLayer = new FeatureLayer({
+    id: "primaryLayer",
     title: "Primary visualization",
     source: lineGraphics,
     objectIdField: "ObjectID",
@@ -203,30 +204,10 @@ export async function createLineLayer(
             type: "line",
             size: 6,
             cap: "round",
-            material: { color: [255, 0, 0] },
+            material: { color: [104, 0, 0] },
           },
         ],
       },
-      visualVariables: [
-        {
-          type: "color",
-          field: "altitude",
-          stops: [
-            {
-              value: 1000,
-              color: [0, 255, 0, 0.3],
-            },
-            {
-              value: 1500,
-              color: [255, 255, 0, 0.7],
-            },
-            {
-              value: 2000,
-              color: [255, 0, 0, 0.9],
-            },
-          ],
-        },
-      ],
     },
   });
 
@@ -235,6 +216,7 @@ export async function createLineLayer(
 
 export function createCylinderLayer(graphics: any, birdSummary: any) {
   const featureLayer = new FeatureLayer({
+    id: "secondaryLayer",
     title: "Secondary visualization",
     source: graphics,
     objectIdField: "ObjectID",
@@ -261,33 +243,13 @@ export function createCylinderLayer(graphics: any, birdSummary: any) {
             resource: {
               primitive: "cylinder",
             },
-            material: { color: [255, 0, 0] },
+            material: { color: [104, 0, 0] },
             width: 10,
             height: 3000,
             tilt: 180,
           },
         ],
       },
-      visualVariables: [
-        {
-          type: "color",
-          field: "speed",
-          stops: [
-            {
-              value: 0,
-              color: [0, 255, 0, 0.3],
-            },
-            {
-              value: 10,
-              color: [255, 255, 0, 0.7],
-            },
-            {
-              value: 20,
-              color: [255, 0, 0, 0.9],
-            },
-          ],
-        },
-      ],
     },
   });
   return featureLayer;

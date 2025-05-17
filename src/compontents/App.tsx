@@ -64,7 +64,7 @@ import "@esri/calcite-components/dist/components/calcite-tab-title";
 import "@esri/calcite-components/dist/components/calcite-tabs";
 
 import { loadData } from "../dataLoading";
-import { setBasemaps, setThematicLayers } from "../mapControls";
+import { setBasemaps, setSlides, setThematicLayers } from "../mapControls";
 
 type AppProperties = {};
 
@@ -78,18 +78,18 @@ class App extends Widget<AppProperties> {
   @property()
   webSceneId = params.get("webscene") || "91b46c2b162c48dba264b2190e1dbcff";
 
-  private bindView(arcgisScene: HTMLArcgisSceneElement) {
+  private async bindView(arcgisScene: HTMLArcgisSceneElement) {
     const view = arcgisScene.view;
-    // this.store.sceneStore.view = view;
-    view.when().then(async () => {
-      const arcgisMap = document.querySelector(
-        "arcgis-scene",
-      ) as HTMLArcgisSceneElement;
-      view.popup.defaultPopupTemplateEnabled = true;
-      setBasemaps();
-      setThematicLayers(arcgisMap);
-      await loadData(arcgisMap);
+    view.popup!.defaultPopupTemplateEnabled = true;
+
+    await loadData(arcgisScene);
+    setSlides(arcgisScene);
+    setBasemaps();
+    setThematicLayers(arcgisScene);
+    let myLayer = view.map.layers.find(function (layer) {
+      return layer.id === "primaryLayer";
     });
+    console.log("l", view.map.layers, myLayer);
   }
 
   render() {
@@ -238,16 +238,16 @@ const OverviewDashboard = () => {
           expanded
         >
           <p>
-            <b>Bird ID123</b>
+            <b>Bird IDXXX</b>
           </p>
           <p>
-            <b>Time: </b>23.05-23.76 <b>Distance: </b>234 km
+            <b>Time: </b>XX.XX-XX.XX <b>Distance: </b>X km
           </p>
           <p>
-            <b>Primary variable:</b> Altitude
+            <b>Primary variable:</b> XXX
           </p>
           <p>
-            <b>Secondary variable:</b> Speed
+            <b>Secondary variable:</b> XXXX
           </p>
         </calcite-accordion-item>
         <calcite-accordion-item

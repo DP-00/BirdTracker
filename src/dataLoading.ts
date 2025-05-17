@@ -2,21 +2,15 @@ import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import Papa from "papaparse";
 import {
   createCylinderLayer,
-  createDynamicPopupTemplate,
   createGeneralizedLineLayer,
   createGraphics,
   createLineLayer,
   createTimeLayer,
 } from "./layers";
-import { setCameraControl, setSlides, setTimeSlider } from "./mapControls";
-import {
-  createFilters,
-  setSingleVis,
-  summarizeData,
-  updateArrowLayer,
-} from "./singleVisualization";
+import { setCameraControl, setTimeSlider } from "./mapControls";
+import { setSingleVis, summarizeData } from "./singleVisualization";
 
-export async function loadData(arcgisMap: HTMLArcgisSceneElement) {
+export async function loadData(arcgisScene: HTMLArcgisSceneElement) {
   const csvInput = document.getElementById("csv-input")! as HTMLInputElement;
   const columnPanel = document.getElementById("column-assignment")!;
   const buttonSave = document.getElementById(
@@ -114,7 +108,7 @@ export async function loadData(arcgisMap: HTMLArcgisSceneElement) {
       [dataProcessed, statJSON] = result;
 
       [primaryLayer, generalizedLayer] = await createDefaultLayers(
-        arcgisMap,
+        arcgisScene,
         dataProcessed,
       );
     } catch (err) {
@@ -143,7 +137,7 @@ export async function loadData(arcgisMap: HTMLArcgisSceneElement) {
         alert.open = true;
       } else {
         [primaryLayer, generalizedLayer] = await createDefaultLayers(
-          arcgisMap,
+          arcgisScene,
           dataProcessed,
         );
 
@@ -164,45 +158,25 @@ export async function loadData(arcgisMap: HTMLArcgisSceneElement) {
 }
 
 async function createDefaultLayers(
-  arcgisMap: HTMLArcgisSceneElement,
+  arcgisScene: HTMLArcgisSceneElement,
   dataProcessed: any,
 ) {
+  let hourLayer, dayLayer;
   const primaryValue = "altitude";
   const secondaryValue = "speed";
-  const birdSummary = summarizeData(Object.values(dataProcessed)[0]);
-  const primaryLayer = await createLineLayer(dataProcessed, birdSummary);
+  const birdPath = Object.values(dataProcessed)[0];
+
+  const birdSummary = summarizeData(birdPath);
+  const birdGraphics = createGraphics(birdPath);
   const generalizedLayer = await createGeneralizedLineLayer(dataProcessed);
-  // console.log(dataProcessed, dataProcessed["D329_015"]);
-  const secondaryLayer = createCylinderLayer(
-    createGraphics(Object.values(dataProcessed)[0], "D329_015"),
-    birdSummary,
-  );
-  let hourLayer, dayLayer;
-  [hourLayer, dayLayer] = createTimeLayer(
-    createGraphics(Object.values(dataProcessed)[0], "D329_015"),
-  );
+  const primaryLayer = await createLineLayer(dataProcessed, birdSummary);
+  const secondaryLayer = createCylinderLayer(birdGraphics, birdSummary);
+  [hourLayer, dayLayer] = createTimeLayer(birdGraphics);
   const arrowLayer = new GraphicsLayer({
     title: `Extremum visualization`,
   });
-  createDynamicPopupTemplate(primaryLayer, primaryValue, birdSummary);
-  createDynamicPopupTemplate(secondaryLayer, secondaryValue, birdSummary);
 
-  createFilters(
-    arcgisMap,
-    primaryLayer,
-    birdSummary,
-    document.getElementById("prim-filter-container")!,
-    primaryValue,
-  );
-  createFilters(
-    arcgisMap,
-    secondaryLayer,
-    birdSummary,
-    document.getElementById("sec-filter-container")!,
-    secondaryValue,
-  );
-
-  await arcgisMap.addLayers([
+  await arcgisScene.addLayers([
     primaryLayer,
     generalizedLayer,
     secondaryLayer,
@@ -211,26 +185,20 @@ async function createDefaultLayers(
     dayLayer,
   ]);
   await primaryLayer.when();
+  await arcgisScene.view.goTo(primaryLayer.fullExtent);
 
-  await arcgisMap.view.goTo(primaryLayer.fullExtent);
   setSingleVis(
-    Object.values(dataProcessed)[0],
-    arcgisMap,
+    arcgisScene,
     primaryLayer,
-    generalizedLayer,
     secondaryLayer,
     arrowLayer,
     birdSummary,
+    primaryValue,
+    secondaryValue,
   );
 
-  updateArrowLayer(arrowLayer, "altitude", birdSummary);
-
-  setTimeSlider(arcgisMap.view, primaryLayer);
-  setCameraControl(arcgisMap.view, primaryLayer);
-  setSlides(arcgisMap);
-
-  document.getElementById("thematic-layers")!.filterPredicate = (item) =>
-    !item.title.toLowerCase().includes("visualization");
+  setTimeSlider(arcgisScene.view, primaryLayer);
+  setCameraControl(arcgisScene.view, primaryLayer);
 
   return [primaryLayer, generalizedLayer, secondaryLayer];
 }
@@ -310,14 +278,32 @@ function processCSV(
             birdid,
             longitude,
             latitude,
-            altitude: parseFloat(row[getCol("altitude")]),
-            speed: parseFloat(row[getCol("speed")]),
+            // altitude: parseFloat(row[getCol("altitude")]),
+            // speed: parseFloat(row[getCol("speed")]),
+            altitude: parseFloat(
+              parseFloat(row[getCol("altitude")]).toFixed(3),
+            ),
+            speed: parseFloat(parseFloat(row[getCol("speed")]).toFixed(3)),
             timestamp: new Date(row[getCol("timestamp")]),
             ...Object.fromEntries(
               headers
                 .filter((h: any) => !excludeKeys.includes(h))
-                .map((h: string | number) => [h, row[h]]),
+                .map((h: string | number) => {
+                  const value = row[h];
+                  const processedValue =
+                    typeof value === "number"
+                      ? parseFloat(value.toFixed(3))
+                      : !isNaN(parseFloat(value)) && isFinite(value)
+                        ? parseFloat(parseFloat(value).toFixed(3))
+                        : value;
+                  return [h, processedValue];
+                }),
             ),
+            // ...Object.fromEntries(
+            //   headers
+            //     .filter((h: any) => !excludeKeys.includes(h))
+            //     .map((h: string | number) => [h, row[h]]),
+            // ),
           };
 
           (groupedByBird[birdid] ||= []).push(dataPoint);

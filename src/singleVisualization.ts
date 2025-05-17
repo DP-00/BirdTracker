@@ -4,21 +4,14 @@ import { TextSymbol } from "@arcgis/core/symbols";
 import { createDynamicPopupTemplate } from "./layers";
 
 export function setSingleVis(
-  birdData: any,
-  arcgisMap: HTMLArcgisSceneElement,
+  arcgisScene: HTMLArcgisSceneElement,
   primaryLayer: __esri.FeatureLayer,
-  generalizedLayer: __esri.FeatureLayer,
   secondaryLayer: __esri.FeatureLayer,
   arrowLayer: __esri.GraphicsLayer,
   birdSummary: Record<string, any>,
+  primaryValue: string,
+  secondaryValue: string,
 ) {
-  //   const primaryLayer = arcgisMap.view.map.layers.find(
-  //     (layer) => layer.title === "Primary visualization",
-  //   );
-
-  document.getElementById("vis-layers")!.filterPredicate = (item) =>
-    item.title.toLowerCase().includes("visualization");
-
   const primaryVisSelect = document.getElementById(
     "primary-vis-select",
   ) as HTMLCalciteSelectElement;
@@ -26,18 +19,41 @@ export function setSingleVis(
     "secondary-vis-select",
   ) as HTMLCalciteSelectElement;
 
-  // const attributes = Object.keys(birdData);
-  createAttributeSelects(birdSummary, primaryVisSelect, "altitude");
-  createAttributeSelects(birdSummary, secondaryVisSelect, "speed");
+  createAttributeSelects(birdSummary, primaryVisSelect, primaryValue);
+  createAttributeSelects(birdSummary, secondaryVisSelect, secondaryValue);
+  createDynamicPopupTemplate(primaryLayer, primaryValue, birdSummary);
+  createDynamicPopupTemplate(secondaryLayer, secondaryValue, birdSummary);
+
+  createFilters(
+    arcgisScene,
+    primaryLayer,
+    birdSummary,
+    document.getElementById("prim-filter-container")!,
+    primaryValue,
+  );
+  createFilters(
+    arcgisScene,
+    secondaryLayer,
+    birdSummary,
+    document.getElementById("sec-filter-container")!,
+    secondaryValue,
+  );
+
+  updateArrowLayer(arrowLayer, primaryValue, birdSummary);
+  updateLayerColorVariables(primaryValue, primaryLayer, birdSummary);
+  updateLayerColorVariables(secondaryValue, secondaryLayer, birdSummary);
 
   primaryVisSelect?.addEventListener("calciteSelectChange", async () => {
+    arcgisScene.view.whenLayerView(primaryLayer).then((layerView) => {
+      layerView.filter = null;
+    });
     updateLayerColorVariables(
       primaryVisSelect.value,
       primaryLayer,
       birdSummary,
     );
     createFilters(
-      arcgisMap,
+      arcgisScene,
       primaryLayer,
       birdSummary,
       document.getElementById("prim-filter-container"),
@@ -52,6 +68,9 @@ export function setSingleVis(
   });
 
   secondaryVisSelect?.addEventListener("calciteSelectChange", async () => {
+    arcgisScene.view.whenLayerView(secondaryLayer).then((layerView) => {
+      layerView.filter = null;
+    });
     updateLayerColorVariables(
       secondaryVisSelect.value,
       secondaryLayer,
@@ -59,7 +78,7 @@ export function setSingleVis(
     );
 
     createFilters(
-      arcgisMap,
+      arcgisScene,
       secondaryLayer,
       birdSummary,
       document.getElementById("sec-filter-container"),
@@ -216,7 +235,7 @@ function createAttributeSelects(
 }
 
 export function createFilters(
-  arcgisMap: HTMLArcgisSceneElement,
+  arcgisScene: HTMLArcgisSceneElement,
   layer: __esri.FeatureLayer,
   birdSummary: Record<string, any>,
   container: HTMLElement,
@@ -237,7 +256,7 @@ export function createFilters(
         const minValue = slider.minValue;
         const maxValue = slider.maxValue;
 
-        arcgisMap.view.whenLayerView(layer).then((layerView) => {
+        arcgisScene.view.whenLayerView(layer).then((layerView) => {
           layerView.filter = {
             where: `${variable} >= ${minValue} AND ${variable} <= ${maxValue}`,
           };
@@ -260,7 +279,7 @@ export function createFilters(
           ? combobox.value
           : [combobox.value];
 
-        arcgisMap.view.whenLayerView(layer).then((layerView) => {
+        arcgisScene.view.whenLayerView(layer).then((layerView) => {
           if (
             selected.length === 0 ||
             (selected.length === 1 && selected[0] === "")
@@ -329,7 +348,7 @@ export function updateArrowLayer(
   arrowLayer.addMany(graphics);
 }
 
-function updateLayerColorVariables(variable, layer, birdSummary) {
+export function updateLayerColorVariables(variable, layer, birdSummary) {
   const summary = birdSummary[variable];
   const currentRenderer = layer.renderer.clone();
   if (!summary || variable === "---single color---") {
@@ -367,8 +386,6 @@ function createUniqueValueRenderer(variable, uniqueValues, currentRenderer) {
   currentRenderer.symbol;
 
   const uniqueValueInfos = uniqueValues.map((val, i) => {
-    console.log("val", val);
-
     if (type === "point-3d") {
       symbol = {
         type: "point-3d",
@@ -520,14 +537,44 @@ function createSimpleRenderer(variable, summary, currentRenderer) {
 }
 
 function getContinuousColor(index) {
+  // https://tristen.ca/hcl-picker/#/hlc/5/1.03/2A1620/EEEE65
+  const colors = ["#2A1620", "#3E485F", "#248689", "#64C281", "#EEEE65"];
+
   // Esri color ramps - Viridis
-  const colors = [
-    "rgba(96, 88, 190, 0.7)",
-    "rgba(65, 158, 203, 0.7)",
-    "rgba(44, 220, 198, 0.7)",
-    "rgba(111, 255, 153, 0.7)",
-    "rgba(255, 255, 55, 0.7)",
-  ];
+  // const colors = [
+  //   "rgba(96, 88, 190, 0.7)",
+  //   "rgba(65, 158, 203, 0.7)",
+  //   "rgba(44, 220, 198, 0.7)",
+  //   "rgba(111, 255, 153, 0.7)",
+  //   "rgba(255, 255, 55, 0.7)",
+  // ];
+
+  // Esri color ramps - Purple 2
+  // const colors = [
+  //   "rgba(255, 252, 212, 1)",
+  //   "rgba(200, 188, 212, 1)",
+  //   "rgba(144, 124, 212, 1)",
+  //   "rgba(80, 70, 146, 1)",
+  //   "rgba(16, 16, 79, 1)",
+  // ];
+
+  // Esri color ramps - Red 10 (inverse)
+  // const colors = [
+  //   "rgba(212, 209, 206, 1)",
+  //   "rgba(173, 162, 151, 1)",
+  //   "rgba(140, 110, 98, 1)",
+  //   "rgba(137, 37, 32, 1)",
+  //   "rgba(104, 0, 0, 1)",
+  // ];
+
+  // Esri color ramps - Red 3
+  // const colors = [
+  //   "rgba(255, 239, 220, 1)",
+  //   "rgba(245, 197, 171, 1)",
+  //   "rgba(209, 94, 61, 1)",
+  //   "rgba(177, 57, 37, 1)",
+  //   "rgba(102, 2, 2, 1)",
+  // ];
 
   return colors[index % colors.length];
 }

@@ -66,7 +66,7 @@ export function setBasemaps() {
     new LocalBasemapsSource({ basemaps: customBasemaps });
 }
 
-export function setThematicLayers(arcgisMap: HTMLArcgisSceneElement) {
+export async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
   const footprintLayer = new TileLayer({
     portalItem: { id: "cfe002c152204bd8b6e392f3f39f2878" },
     visible: false,
@@ -143,7 +143,7 @@ export function setThematicLayers(arcgisMap: HTMLArcgisSceneElement) {
     visible: false,
   });
 
-  arcgisMap.addLayers([
+  await arcgisScene.addLayers([
     footprintLayer,
     biointactnessLayer,
     conopyLayer,
@@ -154,6 +154,11 @@ export function setThematicLayers(arcgisMap: HTMLArcgisSceneElement) {
     DEMLayer,
     slopeLayer,
   ]);
+
+  document.getElementById("vis-layers")!.filterPredicate = (item) =>
+    item.title.toLowerCase().includes("visualization");
+  document.querySelector("arcgis-layer-list")!.filterPredicate = (item) =>
+    !item.title.toLowerCase().includes("visualization");
 }
 
 export function setTimeSlider(
@@ -195,31 +200,28 @@ export function setTimeSlider(
     });
 }
 
-export function setSlides(arcgisMap: HTMLArcgisSceneElement) {
-  const view = arcgisMap.view;
+export function setSlides(arcgisScene: HTMLArcgisSceneElement) {
+  const view = arcgisScene.view;
 
-  // const slides = arcgisMap.map.presentation.slides;
+  // const slides = arcgisScene.map.presentation.slides;
   // slides.forEach(createSlideUI);
   document
-    .getElementById("createSlideButton")!
-    .addEventListener("click", () => {
+    .getElementById("createSlideButton")
+    ?.addEventListener("click", () => {
       Slide.createFrom(view).then((slide) => {
         // Set the slide title using the text from the title input element
         slide.title.text = document.getElementById(
           "createSlideTitleInput",
         )!.value;
-        // arcgisMap.map.presentation.slides.add(slide);
+        // arcgisScene.map.presentation.slides.add(slide);
         // Create a UI for the slide with the new slide at the top of the list
-        createSlideUI(slide, arcgisMap);
+        createSlideUI(slide, arcgisScene);
       });
     });
-
-  document.querySelector("arcgis-layer-list")!.filterPredicate = (item) =>
-    item.title.toLowerCase().includes("line");
 }
 
-function createSlideUI(slide: Slide, arcgisMap: HTMLArcgisSceneElement) {
-  const view = arcgisMap.view;
+function createSlideUI(slide: Slide, arcgisScene: HTMLArcgisSceneElement) {
+  const view = arcgisScene.view;
   // Create a new element which contains all the slide information
   const slideElement = document.createElement("calcite-list-item");
   // Assign the ID of the slide to the <span> element
@@ -240,6 +242,6 @@ function createSlideUI(slide: Slide, arcgisMap: HTMLArcgisSceneElement) {
   });
   slideElement.addEventListener("calciteListItemClose", () => {
     // remove slide from slides
-    arcgisMap.map.presentation.slides.remove(slide);
+    arcgisScene.map.presentation.slides.remove(slide);
   });
 }
