@@ -18,11 +18,6 @@ Master Thesis project
   - Helpers
   	- Generalized line
   	- Time markers
-  		- Daily markers
-  		- Hourly markers
-  		- Scale settings
-  		- Distance calculcation
-  		- Style
   	- Min/max values arrows (from the primary vis)
   	- Pop-up with higlight
 
