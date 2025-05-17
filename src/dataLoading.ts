@@ -1,7 +1,16 @@
+import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import Papa from "papaparse";
+import {
+  createCylinderLayer,
+  createGeneralizedLineLayer,
+  createGraphics,
+  createLineLayer,
+  createTimeLayer,
+} from "./layers";
 import { setCameraControl, setTimeSlider } from "./mapControls";
-import { createGeneralizedLineLayer, createLineLayer } from "./utils";
-export async function loadData(arcgisMap: HTMLArcgisSceneElement) {
+import { setSingleVis, summarizeData } from "./singleVisualization";
+
+export async function loadData(arcgisScene: HTMLArcgisSceneElement) {
   const csvInput = document.getElementById("csv-input")! as HTMLInputElement;
   const columnPanel = document.getElementById("column-assignment")!;
   const buttonSave = document.getElementById(
@@ -46,7 +55,7 @@ export async function loadData(arcgisMap: HTMLArcgisSceneElement) {
   let headers;
   let dataProcessed;
   let statJSON = {};
-  let lineLayer;
+  let primaryLayer;
   let generalizedLayer;
 
   csvInput?.addEventListener("change", async (event) => {
@@ -98,8 +107,8 @@ export async function loadData(arcgisMap: HTMLArcgisSceneElement) {
       const result = await processCSV(csvText, mappedCols, 8);
       [dataProcessed, statJSON] = result;
 
-      [lineLayer, generalizedLayer] = await createDefaultLayers(
-        arcgisMap,
+      [primaryLayer, generalizedLayer] = await createDefaultLayers(
+        arcgisScene,
         dataProcessed,
       );
     } catch (err) {
@@ -127,8 +136,8 @@ export async function loadData(arcgisMap: HTMLArcgisSceneElement) {
       if (Object.keys(dataProcessed).length === 0) {
         alert.open = true;
       } else {
-        [lineLayer, generalizedLayer] = await createDefaultLayers(
-          arcgisMap,
+        [primaryLayer, generalizedLayer] = await createDefaultLayers(
+          arcgisScene,
           dataProcessed,
         );
 
@@ -145,27 +154,53 @@ export async function loadData(arcgisMap: HTMLArcgisSceneElement) {
     }
   });
 
-  return [dataProcessed, statJSON, lineLayer, generalizedLayer];
+  return [dataProcessed, statJSON, primaryLayer, generalizedLayer];
 }
 
 async function createDefaultLayers(
-  arcgisMap: HTMLArcgisSceneElement,
+  arcgisScene: HTMLArcgisSceneElement,
   dataProcessed: any,
 ) {
-  let lineLayer = await createLineLayer(dataProcessed);
-  let generalizedLayer = await createGeneralizedLineLayer(dataProcessed);
+  let hourLayer, dayLayer;
+  const primaryValue = "altitude";
+  const secondaryValue = "speed";
+  const birdPath = Object.values(dataProcessed)[0];
 
-  await arcgisMap.addLayers([lineLayer, generalizedLayer]);
-  await lineLayer.when();
+  const birdSummary = summarizeData(birdPath);
+  const birdGraphics = createGraphics(birdPath);
+  const generalizedLayer = await createGeneralizedLineLayer(dataProcessed);
+  const primaryLayer = await createLineLayer(dataProcessed, birdSummary);
+  const secondaryLayer = createCylinderLayer(birdGraphics, birdSummary);
+  [hourLayer, dayLayer] = createTimeLayer(birdGraphics);
+  const arrowLayer = new GraphicsLayer({
+    title: `Extremum visualization`,
+  });
 
-  await arcgisMap.view.goTo(lineLayer.fullExtent);
-  setTimeSlider(arcgisMap.view, lineLayer);
-  setCameraControl(arcgisMap.view, lineLayer);
+  await arcgisScene.addLayers([
+    primaryLayer,
+    generalizedLayer,
+    secondaryLayer,
+    arrowLayer,
+    hourLayer,
+    dayLayer,
+  ]);
+  await primaryLayer.when();
+  await arcgisScene.view.goTo(primaryLayer.fullExtent);
 
-  document.querySelector("arcgis-layer-list")!.filterPredicate = (item) =>
-    !item.title.toLowerCase().includes("line");
+  setSingleVis(
+    arcgisScene,
+    primaryLayer,
+    secondaryLayer,
+    arrowLayer,
+    birdSummary,
+    primaryValue,
+    secondaryValue,
+  );
 
-  return [lineLayer, generalizedLayer];
+  setTimeSlider(arcgisScene.view, primaryLayer);
+  setCameraControl(arcgisScene.view, primaryLayer);
+
+  return [primaryLayer, generalizedLayer, secondaryLayer];
 }
 
 function createColumnSelects(
@@ -190,6 +225,7 @@ function createColumnSelects(
   }
 }
 
+//src: chatGPT based on given requirements
 function processCSV(
   csvText: string,
   columnNames: {
@@ -242,14 +278,32 @@ function processCSV(
             birdid,
             longitude,
             latitude,
-            altitude: parseFloat(row[getCol("altitude")]),
-            speed: parseFloat(row[getCol("speed")]),
+            // altitude: parseFloat(row[getCol("altitude")]),
+            // speed: parseFloat(row[getCol("speed")]),
+            altitude: parseFloat(
+              parseFloat(row[getCol("altitude")]).toFixed(3),
+            ),
+            speed: parseFloat(parseFloat(row[getCol("speed")]).toFixed(3)),
             timestamp: new Date(row[getCol("timestamp")]),
             ...Object.fromEntries(
               headers
                 .filter((h: any) => !excludeKeys.includes(h))
-                .map((h: string | number) => [h, row[h]]),
+                .map((h: string | number) => {
+                  const value = row[h];
+                  const processedValue =
+                    typeof value === "number"
+                      ? parseFloat(value.toFixed(3))
+                      : !isNaN(parseFloat(value)) && isFinite(value)
+                        ? parseFloat(parseFloat(value).toFixed(3))
+                        : value;
+                  return [h, processedValue];
+                }),
             ),
+            // ...Object.fromEntries(
+            //   headers
+            //     .filter((h: any) => !excludeKeys.includes(h))
+            //     .map((h: string | number) => [h, row[h]]),
+            // ),
           };
 
           (groupedByBird[birdid] ||= []).push(dataPoint);
