@@ -362,36 +362,10 @@ const VisDashboard = () => {
               <calcite-label layout="inline">
                 Primary visualization:
                 <div id="prim-filter-container"></div>
-                {/* <calcite-slider
-                  min-value="50"
-                  max-value="65"
-                  min="0"
-                  max="100"
-                  label-handles
-                ></calcite-slider> */}
               </calcite-label>
               <calcite-label layout="inline">
                 Secondary visualization:
                 <div id="sec-filter-container"></div>
-                {/* <calcite-combobox
-                  placeholder="Select a field"
-                  overlay-positioning="absolute"
-                  scale="s"
-                  selection-display="fit"
-                >
-                  <calcite-combobox-item
-                    value="Natural Resources"
-                    heading="Natural Resources"
-                  ></calcite-combobox-item>
-                  <calcite-combobox-item
-                    value="agriculture"
-                    heading="Agriculture"
-                  ></calcite-combobox-item>
-                  <calcite-combobox-item
-                    value="forestry"
-                    heading="Forestry"
-                  ></calcite-combobox-item>
-                </calcite-combobox> */}
               </calcite-label>
             </calcite-accordion-item>
           </calcite-accordion>
@@ -400,7 +374,23 @@ const VisDashboard = () => {
         <calcite-accordion-item
           icon-start="partly-cloudy"
           heading="Weather settings"
-        ></calcite-accordion-item>
+        >
+          <calcite-label>
+            Weather variable:
+            <calcite-select id="weather-select">
+              <calcite-option value="None" selected>
+                None
+              </calcite-option>
+              <calcite-option value="Temperature">Temperature</calcite-option>
+              <calcite-option value="Pressure">Pressure</calcite-option>
+              <calcite-option value="Precipitation">
+                Precipitation
+              </calcite-option>
+              <calcite-option value="Wind 10">Wind</calcite-option>
+              <calcite-option value="Wind 100">Wind</calcite-option>
+            </calcite-select>
+          </calcite-label>
+        </calcite-accordion-item>
         <calcite-accordion-item heading="Legend" icon-start="legend">
           <arcgis-legend></arcgis-legend>
         </calcite-accordion-item>

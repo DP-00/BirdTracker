@@ -9,6 +9,7 @@ import {
 } from "./layers";
 import { setCameraControl, setTimeSlider } from "./mapControls";
 import { setSingleVis, summarizeData } from "./singleVisualization";
+import { createWeatherLayer, setWeather } from "./weather";
 
 export async function loadData(arcgisScene: HTMLArcgisSceneElement) {
   const csvInput = document.getElementById("csv-input")! as HTMLInputElement;
@@ -172,6 +173,8 @@ async function createDefaultLayers(
   const primaryLayer = await createLineLayer(dataProcessed, birdSummary);
   const secondaryLayer = createCylinderLayer(birdGraphics, birdSummary);
   [hourLayer, dayLayer] = createTimeLayer(birdGraphics);
+  const weatherLayer = await createWeatherLayer(birdGraphics, "Temperature");
+  await setWeather(birdPath, arcgisScene, weatherLayer);
   const arrowLayer = new GraphicsLayer({
     title: `Extremum visualization`,
   });
@@ -183,6 +186,7 @@ async function createDefaultLayers(
     arrowLayer,
     hourLayer,
     dayLayer,
+    weatherLayer,
   ]);
   await primaryLayer.when();
   await arcgisScene.view.goTo(primaryLayer.fullExtent);
