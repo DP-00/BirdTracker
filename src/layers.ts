@@ -186,7 +186,7 @@ export async function createLineLayer(
     source: lineGraphics,
     objectIdField: "ObjectID",
     geometryType: "polyline",
-    elevationInfo: { mode: "absolute-height" },
+    elevationInfo: { mode: "absolute-height", offset: 3 },
     fields: generateLayerFields(birdSummary),
     outFields: ["*"],
     // popupTemplate: popupTemplate,
@@ -224,7 +224,7 @@ export function createCylinderLayer(graphics: any, birdSummary: any) {
     elevationInfo: {
       mode: "absolute-height",
     },
-    minScale: 300000,
+    // minScale: 300000,
     fields: generateLayerFields(birdSummary),
     outFields: ["*"],
     timeInfo: {

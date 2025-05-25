@@ -171,7 +171,6 @@ export function setTimeSlider(
 
   timeSlider.view = view;
   timeSlider.fullTimeExtent = layer.timeInfo?.fullTimeExtent;
-
   timeSlider.addEventListener("arcgisPropertyChange", (event) => {
     view.environment.lighting.date = new Date(timeSlider.timeExtent.end);
   });

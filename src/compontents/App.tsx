@@ -89,7 +89,7 @@ class App extends Widget<AppProperties> {
     let myLayer = view.map.layers.find(function (layer) {
       return layer.id === "primaryLayer";
     });
-    console.log("l", view.map.layers, myLayer);
+    // console.log("l", view.map.layers, myLayer);
   }
 
   render() {
@@ -127,9 +127,9 @@ class App extends Widget<AppProperties> {
               </p>
               <calcite-tabs layout="center">
                 <calcite-tab-nav slot="title-group">
-                  <calcite-tab-title selected>Overview</calcite-tab-title>
+                  <calcite-tab-title>Overview</calcite-tab-title>
                   <calcite-tab-title>Charts</calcite-tab-title>
-                  <calcite-tab-title>Visualization</calcite-tab-title>
+                  <calcite-tab-title selected>Visualization</calcite-tab-title>
                 </calcite-tab-nav>
                 <OverviewDashboard></OverviewDashboard>
                 <ChartsDashboard></ChartsDashboard>
@@ -292,7 +292,7 @@ const OverviewDashboard = () => {
             position="bottom-right"
             mode="time-window"
             play-rate="1"
-            time-visible
+            time-visible="true"
             loop
             stops-interval-value="1"
             stops-interval-unit="hours"
@@ -374,6 +374,7 @@ const VisDashboard = () => {
         <calcite-accordion-item
           icon-start="partly-cloudy"
           heading="Weather settings"
+          expanded
         >
           <calcite-label>
             Weather variable:
@@ -389,6 +390,13 @@ const VisDashboard = () => {
               <calcite-option value="Wind 10">Wind</calcite-option>
               <calcite-option value="Wind 100">Wind</calcite-option>
             </calcite-select>
+            <calcite-button
+              id="weather-button"
+              kind="neutral"
+              appearance="solid"
+            >
+              Get weather
+            </calcite-button>
           </calcite-label>
         </calcite-accordion-item>
         <calcite-accordion-item heading="Legend" icon-start="legend">
