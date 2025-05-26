@@ -10,8 +10,7 @@ import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 // Setting the infromation to be displayed in the popup
 const popTemplate = {
   title: "{parameter}: {weatherValue}",
-  content:
-    "Date:  {timestamp} <br>  <b>Location:</b> {longitude}, {latitude}, {altitude} ",
+  content: "Date:  {timestamp} <br>  <b>Location:</b> {longitude}, {latitude} ",
 };
 // Setting field names and type for both feature layers
 const fields = [
@@ -132,6 +131,12 @@ export async function setWeather(arcgisScene, secondaryLayer, polylineLayer) {
   const weatherSelect = document.getElementById(
     "weather-select",
   ) as HTMLCalciteSelectElement;
+  const weatherSize = document.getElementById(
+    "weather-size",
+  ) as HTMLCalciteSelectElement;
+  const weatherDistance = document.getElementById(
+    "weather-distance",
+  ) as HTMLCalciteSelectElement;
   const buttonWeather = document.getElementById(
     "weather-button",
   )! as HTMLCalciteButtonElement;
@@ -145,6 +150,8 @@ export async function setWeather(arcgisScene, secondaryLayer, polylineLayer) {
       weatherLayer,
       weatherSelect.value,
       polylineLayer,
+      weatherSize.value,
+      weatherDistance.value,
     );
   });
 }
@@ -156,15 +163,16 @@ export async function createWeatherLayer(arcgisScene) {
     source: [], // initially empty
     objectIdField: "ObjectID",
     geometryType: "polygon",
+    spatialReference: { wkid: 3857 },
     fields: fields,
-    timeInfo: {
-      startField: "timestamp",
-      endField: "timestamp",
-      interval: {
-        value: 1,
-        unit: "minutes",
-      },
-    },
+    // timeInfo: {
+    //   startField: "timestamp",
+    //   endField: "timestamp",
+    //   interval: {
+    //     value: 1,
+    //     unit: "minutes",
+    //   },
+    // },
     popupTemplate: popTemplate,
     elevationInfo: {
       mode: "on-the-ground",
@@ -174,13 +182,45 @@ export async function createWeatherLayer(arcgisScene) {
       symbol: {
         type: "polygon-3d",
         symbolLayers: [
+          // {
+          //   type: "fill",
+          //   material: { color: [0, 0, 0, 0.5] },
+          // },
           {
-            type: "fill",
-            material: { color: [0, 0, 0, 0.5] },
+            type: "object",
+            material: { color: [255, 0, 0] },
+            resource: { primitive: "tetrahedron" },
+            width: 500,
+            depth: 1000,
+            height: 10,
           },
         ],
       },
-      visualVariables: temperatureVariables,
+      // visualVariables: temperatureVariables,
+      visualVariables: [
+        {
+          type: "color",
+          field: "weatherValue",
+          stops: [
+            { value: -30, color: "rgba(5, 48, 97, 0.7)" },
+            { value: -20, color: "rgba(33, 102, 172, 0.7)" },
+            { value: -15, color: "rgba(67, 147, 195, 0.7)" },
+            { value: -10, color: "rgba(146, 197, 222, 0.7)" },
+            { value: -5, color: "rgba(209, 229, 240, 0.7)" },
+            { value: 0, color: "rgba(253, 219, 199, 0.7)" },
+            { value: 5, color: "rgba(244, 165, 130, 0.7)" },
+            { value: 10, color: "rgba(214, 96, 77, 0.7)" },
+            { value: 20, color: "rgba(178, 24, 43, 0.7)" },
+            { value: 30, color: "rgba(103, 0, 31, 0.7)" },
+          ],
+        },
+        {
+          type: "rotation",
+          field: "weatherValue",
+          rotationType: "geographic",
+          axis: "heading",
+        },
+      ],
     },
   });
 
@@ -194,6 +234,8 @@ async function updateWeatherLayer(
   weatherLayer,
   variable,
   polylineLayer,
+  tileSize,
+  tileBuffer,
 ) {
   const weatherGraphics = [];
   let parameter;
@@ -249,51 +291,36 @@ async function updateWeatherLayer(
       featureExtent,
       arcgisScene,
       polylineLayer,
+      tileSize,
+      tileBuffer,
     );
 
-    // const graphics = getSampledGraphics(features.features);
-    // createBufferedAreaFromPoints(features.features, arcgisScene);
-
-    // for (const g of graphics){
     for (const tile of tiles) {
       let timestamp = new Date(2022, 11, 17, 3, 24, 0);
       try {
         // const weatherValue = await getWeather(
-        //   tile.geometry,
+        //   tile.centroid,
         //   timestamp,
         //   parameter,
         // );
-        const weatherValue = Math.random() * 60 - 30;
+        // const weatherValue = Math.random() * 60 - 30;
+        const weatherValue = Math.random() * 180;
 
+        // console.log("tile", tile);
         if (weatherValue !== null && weatherValue !== undefined) {
           let graphic = new Graphic({
-            geometry: tile.geometry,
+            geometry: tile,
             attributes: {
               ObjectID: weatherGraphics.length + 1,
-              longitude: tile.geometry.centroid.longitude,
-              latitude: tile.geometry.centroid.latitude,
+              longitude: tile.centroid.longitude,
+              latitude: tile.centroid.latitude,
               parameter: parameter,
               weatherValue: weatherValue,
               timestamp: timestamp.getTime(),
             },
           });
           weatherGraphics.push(graphic);
-          arcgisScene.view.graphics.add(graphic); // works when adding here, but not visble in weathetLayer
-
-          //       const square = createSquareAroundPoint(g.geometry);
-          //       weatherGraphics.push(
-          //         new Graphic({
-          //           geometry: square,
-          //           attributes: {
-          //             ObjectID: weatherGraphics.length + 1,
-          //             longitude: g.geometry.longitude,
-          //             latitude: g.geometry.latitude,
-          //             parameter: parameter,
-          //             weatherValue: weatherValue,
-          //             timestamp: timestamp.getTime(),
-          //           },
-          //         }),
-          //       );
+          // arcgisScene.view.graphics.add(graphic); // works when adding here, but not visble in weathetLayer
         } else {
           console.warn("No weather value returned.");
         }
@@ -303,6 +330,7 @@ async function updateWeatherLayer(
     }
 
     console.log("wg", weatherGraphics);
+
     const existing = await weatherLayer.queryFeatures();
     const deleteFeatures = Array.isArray(existing.features)
       ? existing.features
@@ -315,16 +343,20 @@ async function updateWeatherLayer(
       addFeatures: weatherGraphics,
     });
 
-    await weatherLayer.when();
-    await arcgisScene.view.goTo(weatherLayer.fullExtent); // go to the whole globe, no layer extent
+    // await weatherLayer.when();
+    // await arcgisScene.view.goTo(weatherLayer.fullExtent); // go to the whole globe, no layer extent
     const result2 = await weatherLayer.queryFeatures();
     console.log("Feature count after add:", result2.features.length); // correct amount
-    console.log("After add:", weatherLayer.source.length); // 0
-    console.log("weatherLayer", weatherLayer);
+    console.log("weather var", weatherVariables);
+    const newRenderer = {
+      type: weatherLayer.renderer.type,
+      symbol: weatherLayer.renderer.symbol.clone(),
+      visualVariables: weatherVariables,
+    };
 
-    weatherLayer.renderer.visualVariables = weatherVariables;
+    weatherLayer.renderer = newRenderer;
 
-    console.log("weatherLayer renderer", weatherLayer.renderer.visualVariables);
+    // console.log("weatherLayer renderer", weatherLayer.renderer.visualVariables);
   } catch (error) {
     console.error("Error while updating weather layer:", error);
   }
@@ -334,29 +366,59 @@ export async function generateWeatherExtent(
   featureExtent,
   arcgisScene,
   polylineLayer,
+  tileSize,
+  tileBuffer,
 ) {
   console.log("e", featureExtent);
 
   const polygon = new Polygon({
     rings: [
-      [featureExtent.extent.xmin - 3, featureExtent.extent.ymin - 3],
-      [featureExtent.extent.xmin - 3, featureExtent.extent.ymax + 3],
-      [featureExtent.extent.xmax + 3, featureExtent.extent.ymax + 3],
-      [featureExtent.extent.xmax + 3, featureExtent.extent.ymin - 3],
-      [featureExtent.extent.xmin - 3, featureExtent.extent.ymin - 3],
+      [
+        featureExtent.extent.xmin - tileBuffer * 1000,
+        featureExtent.extent.ymin - tileBuffer * 1000,
+      ],
+      [
+        featureExtent.extent.xmin - tileBuffer * 1000,
+        featureExtent.extent.ymax + tileBuffer * 1000,
+      ],
+      [
+        featureExtent.extent.xmax + tileBuffer * 1000,
+        featureExtent.extent.ymax + tileBuffer * 1000,
+      ],
+      [
+        featureExtent.extent.xmax + tileBuffer * 1000,
+        featureExtent.extent.ymin - tileBuffer * 1000,
+      ],
+      [
+        featureExtent.extent.xmin - tileBuffer * 1000,
+        featureExtent.extent.ymin - tileBuffer * 1000,
+      ],
     ],
     spatialReference: { wkid: 3857 },
   });
 
   // arcgisScene.view.graphics.add(graphic);
 
-  const tiles = await generateTiles(arcgisScene, polygon, polylineLayer);
-  console.log(tiles);
+  const tiles = await generateTiles(
+    arcgisScene,
+    polygon,
+    polylineLayer,
+    tileSize,
+    tileBuffer,
+  );
+  // console.log(tiles);
   return tiles;
 }
 
-async function generateTiles(arcgisScene, polygon, polylineLayer) {
-  const step = 4000;
+async function generateTiles(
+  arcgisScene,
+  polygon,
+  polylineLayer,
+  tileSize,
+  tileBuffer,
+) {
+  // const step = 4000;
+  const step = tileSize * 1000;
   const extent = polygon.extent;
 
   const xmin = extent.xmin;
@@ -387,7 +449,7 @@ async function generateTiles(arcgisScene, polygon, polylineLayer) {
         "kilometers",
       );
 
-      if (distanceToLine !== null && distanceToLine <= 7) {
+      if (distanceToLine !== null && distanceToLine <= tileBuffer) {
         const tilePolygon = new Polygon({
           rings: [
             [x, y],
@@ -407,10 +469,9 @@ async function generateTiles(arcgisScene, polygon, polylineLayer) {
             color: getRandomColorRGBA(0.4),
           },
         });
-
-        tiles.push(tile);
-
         // arcgisScene.view.graphics.add(tile);
+
+        tiles.push(tilePolygon);
       }
     }
   }
@@ -427,6 +488,7 @@ function getRandomColorRGBA(alpha = 1) {
 }
 
 async function getWeather(point, timestamp, parameter) {
+  console.log(point);
   const dateStr = timestamp.toISOString().split("T")[0]; // yyyy-mm-dd
   const apiUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${point.latitude}&longitude=${point.longitude}&start_date=${dateStr}&end_date=${dateStr}&hourly=${parameter}&timezone=UTC`;
   const res = await fetch(apiUrl);

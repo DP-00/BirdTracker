@@ -376,7 +376,7 @@ const VisDashboard = () => {
           heading="Weather settings"
           expanded
         >
-          <calcite-label>
+          <calcite-label layout="inline">
             Weather variable:
             <calcite-select id="weather-select">
               <calcite-option value="None" selected>
@@ -387,17 +387,40 @@ const VisDashboard = () => {
               <calcite-option value="Precipitation">
                 Precipitation
               </calcite-option>
-              <calcite-option value="Wind 10">Wind</calcite-option>
-              <calcite-option value="Wind 100">Wind</calcite-option>
+              <calcite-option value="Wind 10">Wind 10</calcite-option>
+              <calcite-option value="Wind 100">Wind 100</calcite-option>
             </calcite-select>
-            <calcite-button
-              id="weather-button"
-              kind="neutral"
-              appearance="solid"
-            >
-              Get weather
-            </calcite-button>
           </calcite-label>
+          <calcite-label layout="inline">
+            Size of tile (km)
+            <calcite-slider
+              id="weather-size"
+              value="2"
+              max-label="10"
+              min-label="1"
+              label-handles="true"
+              label-ticks="true"
+              style="width:250px"
+            ></calcite-slider>
+          </calcite-label>
+          <calcite-label layout="inline">
+            Maximum distance from path (km)
+            <calcite-slider
+              id="weather-distance"
+              value="6"
+              max-label="30"
+              min-label="1"
+              label-handles="true"
+              label-ticks="true"
+              style="width:250px"
+            ></calcite-slider>
+          </calcite-label>
+          <calcite-button id="weather-grid" kind="neutral" appearance="solid">
+            Generate tiles
+          </calcite-button>
+          <calcite-button id="weather-button" kind="neutral" appearance="solid">
+            Get weather
+          </calcite-button>
         </calcite-accordion-item>
         <calcite-accordion-item heading="Legend" icon-start="legend">
           <arcgis-legend></arcgis-legend>
