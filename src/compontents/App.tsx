@@ -382,6 +382,9 @@ const VisDashboard = () => {
               <calcite-option value="None" selected>
                 None
               </calcite-option>
+              <calcite-option value="Blank" selected>
+                Blank
+              </calcite-option>
               <calcite-option value="Temperature">Temperature</calcite-option>
               <calcite-option value="Pressure">Pressure</calcite-option>
               <calcite-option value="Precipitation">
@@ -398,8 +401,9 @@ const VisDashboard = () => {
               value="2"
               max-label="10"
               min-label="1"
+              // max="10"
+              // min="1"
               label-handles="true"
-              label-ticks="true"
               style="width:250px"
             ></calcite-slider>
           </calcite-label>
@@ -410,17 +414,38 @@ const VisDashboard = () => {
               value="6"
               max-label="30"
               min-label="1"
+              // max="30"
+              // min="1"
               label-handles="true"
-              label-ticks="true"
               style="width:250px"
             ></calcite-slider>
           </calcite-label>
-          <calcite-button id="weather-grid" kind="neutral" appearance="solid">
-            Generate tiles
-          </calcite-button>
           <calcite-button id="weather-button" kind="neutral" appearance="solid">
             Get weather
           </calcite-button>
+
+          <calcite-alert
+            id="weather-alert-600"
+            kind="danger"
+            icon
+            label="Danger alert"
+            auto-close="true"
+            auto-close-duration="slow"
+          >
+            <div slot="title">Limit your grid to less than 600 tiles</div>
+          </calcite-alert>
+          <calcite-alert
+            id="weather-alert-hourly"
+            kind="danger"
+            icon
+            label="Danger alert"
+            auto-close="true"
+            auto-close-duration="slow"
+          >
+            <div slot="title">
+              You've reached the limit, try again in one hour
+            </div>
+          </calcite-alert>
         </calcite-accordion-item>
         <calcite-accordion-item heading="Legend" icon-start="legend">
           <arcgis-legend></arcgis-legend>
@@ -476,6 +501,8 @@ const TimeControls = () => {
         Time Window:
         <calcite-select id="time-window" scale="s">
           <calcite-option value="1">1h</calcite-option>
+          <calcite-option value="3">3h</calcite-option>
+          <calcite-option value="6">6h</calcite-option>
           <calcite-option value="12" selected>
             12h
           </calcite-option>

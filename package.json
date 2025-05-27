@@ -21,6 +21,7 @@
     "@arcgis/core": "4.32",
     "@arcgis/map-components": "^4.32",
     "@esri/calcite-components": "3.0.3",
+    "openmeteo": "^1.2.0",
     "papaparse": "^5.5.2"
   },
   "devDependencies": {

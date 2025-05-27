@@ -6,12 +6,7 @@ import Polygon from "@arcgis/core/geometry/Polygon";
 import * as webMercatorUtils from "@arcgis/core/geometry/support/webMercatorUtils";
 import Graphic from "@arcgis/core/Graphic";
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
-
-// Setting the infromation to be displayed in the popup
-const popTemplate = {
-  title: "{parameter}: {weatherValue}",
-  content: "Date:  {timestamp} <br>  <b>Location:</b> {longitude}, {latitude} ",
-};
+import { fetchWeatherApi } from "openmeteo";
 // Setting field names and type for both feature layers
 const fields = [
   {
@@ -38,24 +33,13 @@ const fields = [
     name: "weatherValue",
     type: "double",
   },
-];
-
-const temperatureVariables = [
   {
-    type: "color",
-    field: "weatherValue",
-    stops: [
-      { value: -30, color: "rgba(5, 48, 97, 0.7)" },
-      { value: -20, color: "rgba(33, 102, 172, 0.7)" },
-      { value: -15, color: "rgba(67, 147, 195, 0.7)" },
-      { value: -10, color: "rgba(146, 197, 222, 0.7)" },
-      { value: -5, color: "rgba(209, 229, 240, 0.7)" },
-      { value: 0, color: "rgba(253, 219, 199, 0.7)" },
-      { value: 5, color: "rgba(244, 165, 130, 0.7)" },
-      { value: 10, color: "rgba(214, 96, 77, 0.7)" },
-      { value: 20, color: "rgba(178, 24, 43, 0.7)" },
-      { value: 30, color: "rgba(103, 0, 31, 0.7)" },
-    ],
+    name: "weatherValue2",
+    type: "double",
+  },
+  {
+    name: "tileSize",
+    type: "double",
   },
 ];
 
@@ -73,59 +57,203 @@ const colors = [
   "rgba(63, 1, 63, 1)",
 ];
 
-// https://www.baranidesign.com/faq-articles/2020/1/19/rain-rate-intensity-classification
-const precipitationVariables = [
-  {
-    type: "color",
-    field: "weatherValue",
-    stops: [
-      { value: 0, color: colors[0] },
-      { value: 1, color: colors[2] },
-      { value: 3, color: colors[4] },
-      { value: 8, color: colors[6] },
-      { value: 50, color: colors[8] },
+const blankRenderer = {
+  type: "simple",
+  symbol: {
+    type: "polygon-3d",
+    symbolLayers: [
+      {
+        type: "fill",
+        material: { color: [0, 0, 0, 0.7] },
+        outline: {
+          color: "white",
+          size: 1,
+        },
+      },
     ],
   },
-];
+};
+
+const temperatureRenderer = {
+  type: "simple",
+  symbol: {
+    type: "polygon-3d",
+    symbolLayers: [
+      {
+        type: "fill",
+        material: { color: [0, 0, 0, 0.5] },
+      },
+    ],
+  },
+  visualVariables: [
+    {
+      type: "color",
+      field: "weatherValue",
+      stops: [
+        { value: -30, color: "rgba(5, 48, 97, 0.7)" },
+        { value: -20, color: "rgba(33, 102, 172, 0.7)" },
+        { value: -15, color: "rgba(67, 147, 195, 0.7)" },
+        { value: -10, color: "rgba(146, 197, 222, 0.7)" },
+        { value: -5, color: "rgba(209, 229, 240, 0.7)" },
+        { value: 0, color: "rgba(253, 219, 199, 0.7)" },
+        { value: 5, color: "rgba(244, 165, 130, 0.7)" },
+        { value: 10, color: "rgba(214, 96, 77, 0.7)" },
+        { value: 20, color: "rgba(178, 24, 43, 0.7)" },
+        { value: 30, color: "rgba(103, 0, 31, 0.7)" },
+      ],
+    },
+  ],
+};
+
+// https://www.baranidesign.com/faq-articles/2020/1/19/rain-rate-intensity-classification
+const precipitationRenderer = {
+  type: "simple",
+  symbol: {
+    type: "polygon-3d",
+    symbolLayers: [
+      {
+        type: "fill",
+        material: { color: [0, 0, 0, 0.5] },
+      },
+    ],
+  },
+  visualVariables: [
+    {
+      type: "color",
+      field: "weatherValue",
+      stops: [
+        { value: 0, color: colors[0] },
+        { value: 1, color: colors[2] },
+        { value: 3, color: colors[4] },
+        { value: 8, color: colors[6] },
+        { value: 50, color: colors[8] },
+      ],
+    },
+  ],
+};
 
 // https://www.noaa.gov/jetstream/atmosphere/air-pressure#:~:text=Millibar%20values%20used%20in%20meteorology,pressure%20is%20almost%20always%20changing.
-const pressureVariables = [
-  {
-    type: "color",
-    field: "weatherValue",
-    stops: [
-      { value: 600, color: colors[0] },
-      { value: 750, color: colors[1] },
-      { value: 700, color: colors[2] },
-      { value: 750, color: colors[3] },
-      { value: 800, color: colors[4] },
-      { value: 850, color: colors[5] },
-      { value: 900, color: colors[6] },
-      { value: 950, color: colors[7] },
-      { value: 1000, color: colors[8] },
-      { value: 1050, color: colors[9] },
+
+const pressureRenderer = {
+  type: "simple",
+  symbol: {
+    type: "polygon-3d",
+    symbolLayers: [
+      {
+        type: "fill",
+        material: { color: [0, 0, 0, 0.5] },
+      },
     ],
   },
-];
+  visualVariables: [
+    {
+      type: "color",
+      field: "weatherValue",
+      stops: [
+        { value: 600, color: colors[0] },
+        { value: 750, color: colors[1] },
+        { value: 700, color: colors[2] },
+        { value: 750, color: colors[3] },
+        { value: 800, color: colors[4] },
+        { value: 850, color: colors[5] },
+        { value: 900, color: colors[6] },
+        { value: 950, color: colors[7] },
+        { value: 1000, color: colors[8] },
+        { value: 1050, color: colors[9] },
+      ],
+    },
+  ],
+};
+
 // https://www.rmets.org/metmatters/beaufort-wind-scale
-const windSpeedVariables = [
-  {
-    type: "color",
-    field: "weatherValue",
-    stops: [
-      { value: 5, color: colors[0] },
-      { value: 11, color: colors[1] },
-      { value: 19, color: colors[2] },
-      { value: 28, color: colors[3] },
-      { value: 38, color: colors[4] },
-      { value: 49, color: colors[5] },
-      { value: 61, color: colors[6] },
-      { value: 74, color: colors[7] },
-      { value: 88, color: colors[8] },
-      { value: 102, color: colors[9] },
+const windRenderer = {
+  type: "simple",
+  symbol: {
+    type: "polygon-3d",
+    symbolLayers: [
+      {
+        type: "object",
+        material: { color: [255, 0, 0] },
+        resource: { primitive: "tetrahedron" },
+        width: 800,
+        depth: 1200,
+        height: 15,
+        anchor: "relative",
+        anchorPosition: { x: 0, y: 0, z: -10 },
+      },
+      // {
+      //   type: "icon",
+      //   material: {
+      //     color: [255, 0, 0],
+      //   },
+      //   resource: {
+      //     primitive: "triangle",
+      //   },
+      //   size: 12,
+      // },
     ],
   },
-];
+  visualVariables: [
+    {
+      type: "color",
+      field: "weatherValue",
+      stops: [
+        { value: 1, color: colors[0] },
+        { value: 3, color: colors[1] },
+        { value: 5, color: colors[2] },
+        { value: 10, color: colors[3] },
+        { value: 20, color: colors[4] },
+        { value: 30, color: colors[5] },
+        { value: 40, color: colors[6] },
+        { value: 50, color: colors[7] },
+        { value: 60, color: colors[8] },
+        { value: 70, color: colors[9] },
+      ],
+    },
+    {
+      type: "rotation",
+      field: "weatherValue2",
+      rotationType: "geographic",
+      axis: "heading",
+    },
+    {
+      type: "size",
+      axis: "height",
+      field: "tileSize",
+      minDataValue: 1,
+      maxDataValue: 100,
+      minSize: 30,
+      maxSize: 300,
+      legendOptions: {
+        showLegend: false,
+      },
+    },
+    {
+      type: "size",
+      axis: "depth",
+      field: "tileSize",
+      minDataValue: 1,
+      maxDataValue: 100,
+      minSize: 600,
+      maxSize: 60000,
+      legendOptions: {
+        showLegend: false,
+      },
+    },
+    {
+      type: "size",
+      axis: "width",
+      field: "tileSize",
+      minDataValue: 1,
+      maxDataValue: 100,
+      minSize: 400,
+      maxSize: 40000,
+      legendOptions: {
+        showLegend: false,
+      },
+    },
+  ],
+};
 
 export async function setWeather(arcgisScene, secondaryLayer, polylineLayer) {
   const weatherSelect = document.getElementById(
@@ -142,7 +270,6 @@ export async function setWeather(arcgisScene, secondaryLayer, polylineLayer) {
   )! as HTMLCalciteButtonElement;
   let weatherLayer: FeatureLayer;
   weatherLayer = await createWeatherLayer(arcgisScene);
-  console.log("wl", weatherLayer);
   buttonWeather?.addEventListener("click", async () => {
     await updateWeatherLayer(
       arcgisScene,
@@ -160,7 +287,7 @@ export async function createWeatherLayer(arcgisScene) {
   let weatherLayer = new FeatureLayer({
     id: "weatherLayer",
     title: "Weather visualization",
-    source: [], // initially empty
+    source: [],
     objectIdField: "ObjectID",
     geometryType: "polygon",
     spatialReference: { wkid: 3857 },
@@ -173,55 +300,11 @@ export async function createWeatherLayer(arcgisScene) {
     //     unit: "minutes",
     //   },
     // },
-    popupTemplate: popTemplate,
+    popupTemplate: {},
     elevationInfo: {
       mode: "on-the-ground",
     },
-    renderer: {
-      type: "simple",
-      symbol: {
-        type: "polygon-3d",
-        symbolLayers: [
-          // {
-          //   type: "fill",
-          //   material: { color: [0, 0, 0, 0.5] },
-          // },
-          {
-            type: "object",
-            material: { color: [255, 0, 0] },
-            resource: { primitive: "tetrahedron" },
-            width: 500,
-            depth: 1000,
-            height: 10,
-          },
-        ],
-      },
-      // visualVariables: temperatureVariables,
-      visualVariables: [
-        {
-          type: "color",
-          field: "weatherValue",
-          stops: [
-            { value: -30, color: "rgba(5, 48, 97, 0.7)" },
-            { value: -20, color: "rgba(33, 102, 172, 0.7)" },
-            { value: -15, color: "rgba(67, 147, 195, 0.7)" },
-            { value: -10, color: "rgba(146, 197, 222, 0.7)" },
-            { value: -5, color: "rgba(209, 229, 240, 0.7)" },
-            { value: 0, color: "rgba(253, 219, 199, 0.7)" },
-            { value: 5, color: "rgba(244, 165, 130, 0.7)" },
-            { value: 10, color: "rgba(214, 96, 77, 0.7)" },
-            { value: 20, color: "rgba(178, 24, 43, 0.7)" },
-            { value: 30, color: "rgba(103, 0, 31, 0.7)" },
-          ],
-        },
-        {
-          type: "rotation",
-          field: "weatherValue",
-          rotationType: "geographic",
-          axis: "heading",
-        },
-      ],
-    },
+    renderer: windRenderer,
   });
 
   await arcgisScene.addLayers([weatherLayer]);
@@ -237,45 +320,69 @@ async function updateWeatherLayer(
   tileSize,
   tileBuffer,
 ) {
+  const buttonWeather = document.getElementById(
+    "weather-button",
+  )! as HTMLCalciteButtonElement;
+
   const weatherGraphics = [];
   let parameter;
-  let weatherVariables;
-  // let parameter = "temperature_2m";
-  // let weatherVariables = temperatureVariables;
+  let weatherRenderer;
+  let weatherValue;
+  let popupText;
+  let weatherValue2;
+
   switch (variable) {
     case "None": {
-      parameter = "";
+      const existing = await weatherLayer.queryFeatures();
+      const deleteFeatures = Array.isArray(existing.features)
+        ? existing.features
+        : [];
+      await weatherLayer.applyEdits({
+        deleteFeatures,
+      });
+      return;
+    }
+    case "Blank": {
+      parameter = "blank";
+      weatherRenderer = blankRenderer;
+      popupText = "Blank grid";
       break;
     }
     case "Temperature": {
       parameter = "temperature_2m";
-      weatherVariables = temperatureVariables;
+      weatherRenderer = temperatureRenderer;
+      popupText = "Temperature: {weatherValue}°C";
 
       break;
     }
     case "Pressure": {
       parameter = "surface_pressure";
-      weatherVariables = pressureVariables;
+      weatherRenderer = pressureRenderer;
+      popupText = "Surface pressure: {weatherValue}hPa";
 
       break;
     }
     case "Precipitation": {
       parameter = "precipitation";
-      weatherVariables = precipitationVariables;
+      weatherRenderer = precipitationRenderer;
+      popupText = "Precipitation: {weatherValue}mm";
 
       break;
     }
     case "Wind 10": {
       parameter = "wind_speed_10m";
-      weatherVariables = windSpeedVariables;
+      weatherRenderer = windRenderer;
+      popupText = "Wind (10 km): {weatherValue}km/h {weatherValue2}°";
       break;
     }
     case "Wind 100": {
       parameter = "wind_speed_100m";
-      weatherVariables = windSpeedVariables;
+      weatherRenderer = windRenderer;
+      popupText = "Wind (100 km): {weatherValue}km/h {weatherValue2}°";
       break;
     }
   }
+  buttonWeather.loading = true;
 
   try {
     const layerView = await arcgisScene.view.whenLayerView(layer);
@@ -286,6 +393,17 @@ async function updateWeatherLayer(
       orderByFields: ["ObjectID"],
     });
 
+    const firstTimestamp = features.features[0].attributes.timestamp;
+    console.log(features.features[0]);
+    console.log(features.features[0].attributes.timestamp);
+    console.log(features.features[features.features.length - 1]);
+    console.log(
+      features.features[features.features.length - 1].attributes.timestamp,
+    );
+
+    const lastTimestamp =
+      features.features[features.features.length - 1].attributes.timestamp;
+
     const featureExtent = await layerView.queryExtent();
     const tiles = await generateWeatherExtent(
       featureExtent,
@@ -295,16 +413,42 @@ async function updateWeatherLayer(
       tileBuffer,
     );
 
+    buttonWeather.innerText = `Getting weather for ${tiles.length} tiles`;
+
+    if (tiles.length > 600) {
+      buttonWeather.loading = false;
+      document.getElementById("weather-alert-600").open = true;
+      return;
+    }
+
     for (const tile of tiles) {
-      let timestamp = new Date(2022, 11, 17, 3, 24, 0);
+      let timestamp = new Date(firstTimestamp);
+      let timestamp2 = new Date(lastTimestamp);
+
       try {
-        // const weatherValue = await getWeather(
-        //   tile.centroid,
-        //   timestamp,
-        //   parameter,
-        // );
-        // const weatherValue = Math.random() * 60 - 30;
-        const weatherValue = Math.random() * 180;
+        if (parameter != "Blank") {
+          // USE FOR TESTING
+          // weatherValue = Math.random() * 60 - 30;
+          weatherValue = Math.random() * 30;
+          weatherValue2 = Math.random() * 180;
+          // USE FOR REAL VALUES
+          // weatherValue = await getWeather(tile.centroid, timestamp, parameter);
+          // if (variable === "Wind 10") {
+          //   weatherValue2 = await getWeather(
+          //     tile.centroid,
+          //     timestamp,
+          //     "wind_direction_10m",
+          //   );
+          // } else if (variable === "Wind 100") {
+          //   weatherValue2 = await getWeather(
+          //     tile.centroid,
+          //     timestamp,
+          //     "wind_direction_100m",
+          //   );
+          // }
+
+          getWeatherAPI(tile.centroid, timestamp, timestamp2, parameter);
+        }
 
         // console.log("tile", tile);
         if (weatherValue !== null && weatherValue !== undefined) {
@@ -315,12 +459,13 @@ async function updateWeatherLayer(
               longitude: tile.centroid.longitude,
               latitude: tile.centroid.latitude,
               parameter: parameter,
+              tileSize: tileSize,
               weatherValue: weatherValue,
+              weatherValue2: weatherValue2,
               timestamp: timestamp.getTime(),
             },
           });
           weatherGraphics.push(graphic);
-          // arcgisScene.view.graphics.add(graphic); // works when adding here, but not visble in weathetLayer
         } else {
           console.warn("No weather value returned.");
         }
@@ -346,17 +491,15 @@ async function updateWeatherLayer(
     // await weatherLayer.when();
     // await arcgisScene.view.goTo(weatherLayer.fullExtent); // go to the whole globe, no layer extent
     const result2 = await weatherLayer.queryFeatures();
-    console.log("Feature count after add:", result2.features.length); // correct amount
-    console.log("weather var", weatherVariables);
-    const newRenderer = {
-      type: weatherLayer.renderer.type,
-      symbol: weatherLayer.renderer.symbol.clone(),
-      visualVariables: weatherVariables,
+    weatherLayer.renderer = weatherRenderer;
+
+    weatherLayer.popupTemplate = {
+      title: popupText,
+      content:
+        "<b>Date:</b> {timestamp} <br>  <b>Location:</b> {longitude}, {latitude} ",
     };
-
-    weatherLayer.renderer = newRenderer;
-
-    // console.log("weatherLayer renderer", weatherLayer.renderer.visualVariables);
+    buttonWeather.loading = false;
+    buttonWeather.innerText = `Get weather`;
   } catch (error) {
     console.error("Error while updating weather layer:", error);
   }
@@ -505,6 +648,86 @@ async function getWeather(point, timestamp, parameter) {
   const temp = index >= 0 ? temps[index] : null;
 
   return temp;
+}
+
+async function getWeatherAPI(point, timestampStart, timestampEnd, parameter) {
+  const params = {
+    latitude: point.latitude,
+    longitude: point.longitude,
+    start_date: timestampStart.toISOString().split("T")[0],
+    end_date: timestampEnd.toISOString().split("T")[0],
+    hourly: [
+      "wind_direction_10m",
+      "precipitation",
+      "surface_pressure",
+      "wind_speed_10m",
+      "temperature_2m",
+      "wind_direction_100m",
+      "wind_speed_100m",
+    ],
+  };
+  const url = "https://archive-api.open-meteo.com/v1/archive";
+  try {
+    const responses = await fetchWeatherApi(url, params);
+    const response = responses[0];
+    const hourly = response.hourly()!;
+    const weatherData = {
+      hourly: {
+        time: [
+          ...Array(
+            (Number(hourly.timeEnd()) - Number(hourly.time())) /
+              hourly.interval(),
+          ),
+        ].map(
+          (_, i) =>
+            new Date((Number(hourly.time()) + i * hourly.interval()) * 1000),
+        ),
+        windDirection10m: hourly.variables(0)!.valuesArray()!,
+        precipitation: hourly.variables(1)!.valuesArray()!,
+        surfacePressure: hourly.variables(2)!.valuesArray()!,
+        windSpeed10m: hourly.variables(3)!.valuesArray()!,
+        temperature2m: hourly.variables(4)!.valuesArray()!,
+        windDirection100m: hourly.variables(5)!.valuesArray()!,
+        windSpeed100m: hourly.variables(6)!.valuesArray()!,
+      },
+    };
+
+    console.log("weatherData", weatherData);
+
+    // for (let i = 0; i < weatherData.hourly.time.length; i++) {
+    //   console.log(
+    //     weatherData.hourly.time[i].toISOString(),
+    //     weatherData.hourly.windDirection10m[i],
+    //     weatherData.hourly.precipitation[i],
+    //     weatherData.hourly.surfacePressure[i],
+    //     weatherData.hourly.windSpeed10m[i],
+    //     weatherData.hourly.temperature2m[i],
+    //     weatherData.hourly.windDirection100m[i],
+    //     weatherData.hourly.windSpeed100m[i],
+    //   );
+    // }
+
+    return weatherData;
+  } catch (error) {
+    // Handle HTTP and other errors
+    let errorMessage = "An error occurred while fetching weather data.";
+
+    if (error instanceof Response) {
+      if (error.status === 429) {
+        errorMessage = "Rate limit exceeded: Too many requests to the API.";
+      } else if (error.status >= 400 && error.status < 500) {
+        errorMessage = `Client error ${error.status}: Please check the request parameters.`;
+      } else if (error.status >= 500) {
+        errorMessage = `Server error ${error.status}: The weather service is currently unavailable.`;
+      }
+    } else if (error instanceof Error) {
+      errorMessage = `Error: ${error.message}`;
+    }
+
+    console.warn(errorMessage);
+    // alert(errorMessage); // Optional: Use UI alert or custom warning UI
+    return null;
+  }
 }
 
 // ----- ARCHIVE -------
