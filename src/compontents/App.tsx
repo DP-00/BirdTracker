@@ -58,6 +58,7 @@ import "@esri/calcite-components/dist/components/calcite-segmented-control-item"
 import "@esri/calcite-components/dist/components/calcite-slider";
 import "@esri/calcite-components/dist/components/calcite-sort-handle";
 import "@esri/calcite-components/dist/components/calcite-sortable-list";
+import "@esri/calcite-components/dist/components/calcite-switch";
 import "@esri/calcite-components/dist/components/calcite-tab";
 import "@esri/calcite-components/dist/components/calcite-tab-nav";
 import "@esri/calcite-components/dist/components/calcite-tab-title";
@@ -370,88 +371,97 @@ const VisDashboard = () => {
             </calcite-accordion-item>
           </calcite-accordion>
         </calcite-accordion-item>
+        <WeatherControls></WeatherControls>
 
-        <calcite-accordion-item
-          icon-start="partly-cloudy"
-          heading="Weather settings"
-          expanded
-        >
-          <calcite-label layout="inline">
-            Weather variable:
-            <calcite-select id="weather-select">
-              <calcite-option value="None" selected>
-                None
-              </calcite-option>
-              <calcite-option value="Blank" selected>
-                Blank
-              </calcite-option>
-              <calcite-option value="Temperature">Temperature</calcite-option>
-              <calcite-option value="Pressure">Pressure</calcite-option>
-              <calcite-option value="Precipitation">
-                Precipitation
-              </calcite-option>
-              <calcite-option value="Wind 10">Wind 10</calcite-option>
-              <calcite-option value="Wind 100">Wind 100</calcite-option>
-            </calcite-select>
-          </calcite-label>
-          <calcite-label layout="inline">
-            Size of tile (km)
-            <calcite-slider
-              id="weather-size"
-              value="2"
-              max-label="10"
-              min-label="1"
-              // max="10"
-              // min="1"
-              label-handles="true"
-              style="width:250px"
-            ></calcite-slider>
-          </calcite-label>
-          <calcite-label layout="inline">
-            Maximum distance from path (km)
-            <calcite-slider
-              id="weather-distance"
-              value="6"
-              max-label="30"
-              min-label="1"
-              // max="30"
-              // min="1"
-              label-handles="true"
-              style="width:250px"
-            ></calcite-slider>
-          </calcite-label>
-          <calcite-button id="weather-button" kind="neutral" appearance="solid">
-            Get weather
-          </calcite-button>
-
-          <calcite-alert
-            id="weather-alert-600"
-            kind="danger"
-            icon
-            label="Danger alert"
-            auto-close="true"
-            auto-close-duration="slow"
-          >
-            <div slot="title">Limit your grid to less than 600 tiles</div>
-          </calcite-alert>
-          <calcite-alert
-            id="weather-alert-hourly"
-            kind="danger"
-            icon
-            label="Danger alert"
-            auto-close="true"
-            auto-close-duration="slow"
-          >
-            <div slot="title">
-              You've reached the limit, try again in one hour
-            </div>
-          </calcite-alert>
-        </calcite-accordion-item>
         <calcite-accordion-item heading="Legend" icon-start="legend">
           <arcgis-legend></arcgis-legend>
         </calcite-accordion-item>
       </calcite-accordion>
     </calcite-tab>
+  );
+};
+
+const WeatherControls = () => {
+  return (
+    <calcite-accordion-item
+      icon-start="partly-cloudy"
+      heading="Weather settings"
+      expanded
+    >
+      <calcite-label layout="inline">
+        Size of tile (km)
+        <calcite-slider
+          id="weather-size"
+          value="20"
+          max={50}
+          min={0}
+          label-handles="true"
+          style="width:250px"
+        ></calcite-slider>
+      </calcite-label>
+      <calcite-label layout="inline">
+        Maximum distance from path (km)
+        <calcite-slider
+          id="weather-distance"
+          value="4"
+          max={30}
+          min={1}
+          label-handles="true"
+          style="width:250px"
+        ></calcite-slider>
+      </calcite-label>
+      <calcite-label layout="inline">
+        <calcite-button id="tiles-button" kind="neutral" appearance="solid">
+          Generate tiles
+        </calcite-button>
+        <calcite-button
+          id="weather-button"
+          kind="neutral"
+          appearance="solid"
+          disabled
+        >
+          Get weather
+        </calcite-button>
+      </calcite-label>
+      <calcite-label layout="inline">
+        Weather visualization:
+        <calcite-select id="weather-select" disabled>
+          <calcite-option value="Temperature">Temperature</calcite-option>
+          <calcite-option value="Pressure">Pressure</calcite-option>
+          <calcite-option value="Precipitation">Precipitation</calcite-option>
+          <calcite-option value="Wind" selected>
+            Wind
+          </calcite-option>
+        </calcite-select>
+      </calcite-label>
+      <calcite-label layout="inline">
+        Snap to closest
+        <calcite-switch id="weather-time-switch" disabled></calcite-switch>
+        Control time
+      </calcite-label>
+      <calcite-label layout="inline">
+        <div id="weather-time-container"></div>
+      </calcite-label>
+      <calcite-alert
+        id="weather-alert-600"
+        kind="danger"
+        icon
+        label="Danger alert"
+        auto-close="true"
+        auto-close-duration="slow"
+      >
+        <div slot="title">Limit your grid to maximum 600 tiles</div>
+      </calcite-alert>
+      <calcite-alert
+        id="weather-alert-hourly"
+        kind="danger"
+        icon
+        label="Danger alert"
+        auto-close="true"
+      >
+        <div slot="title">You've reached the limit, try again in one hour</div>
+      </calcite-alert>
+    </calcite-accordion-item>
   );
 };
 

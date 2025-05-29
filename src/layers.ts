@@ -306,6 +306,9 @@ export function createTimeLayer(graphics) {
         timeGraphic.push(
           new Graphic({
             geometry: currentPoint,
+            attributes: {
+              timestamp: currentTimestamp,
+            },
             symbol: new TextSymbol({
               text: text,
               color: [30, 30, 30],

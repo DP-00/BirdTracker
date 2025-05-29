@@ -189,7 +189,7 @@ async function createDefaultLayers(
   await arcgisScene.view.goTo(primaryLayer.fullExtent);
 
   await secondaryLayer.when();
-  await setWeather(arcgisScene, secondaryLayer, generalizedLayer);
+  await setWeather(arcgisScene, secondaryLayer, generalizedLayer, hourLayer);
 
   // await arcgisScene.addLayers([weatherLayer]);
   setSingleVis(

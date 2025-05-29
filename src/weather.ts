@@ -1,13 +1,15 @@
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils";
 import * as geometryEngine from "@arcgis/core/geometry/geometryEngine";
 import Multipoint from "@arcgis/core/geometry/Multipoint";
+import * as distanceOperator from "@arcgis/core/geometry/operators/distanceOperator.js";
+import * as geodeticDistanceOperator from "@arcgis/core/geometry/operators/geodeticDistanceOperator";
+
 import Point from "@arcgis/core/geometry/Point";
 import Polygon from "@arcgis/core/geometry/Polygon";
 import * as webMercatorUtils from "@arcgis/core/geometry/support/webMercatorUtils";
 import Graphic from "@arcgis/core/Graphic";
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 import { fetchWeatherApi } from "openmeteo";
-// Setting field names and type for both feature layers
 const fields = [
   {
     name: "ObjectID",
@@ -26,16 +28,64 @@ const fields = [
     type: "date",
   },
   {
-    name: "parameter",
+    name: "temperature",
+    type: "double",
+  },
+  {
+    name: "pressure",
+    type: "double",
+  },
+  {
+    name: "precipitation",
+    type: "double",
+  },
+  {
+    name: "windSpeed10",
+    type: "double",
+  },
+  {
+    name: "windDirection10",
+    type: "double",
+  },
+  {
+    name: "windSpeed100",
+    type: "double",
+  },
+  {
+    name: "windDirection100",
+    type: "double",
+  },
+  {
+    name: "timestampAll",
     type: "string",
   },
   {
-    name: "weatherValue",
-    type: "double",
+    name: "temperatureAll",
+    type: "string",
   },
   {
-    name: "weatherValue2",
-    type: "double",
+    name: "pressureAll",
+    type: "string",
+  },
+  {
+    name: "precipitationAll",
+    type: "string",
+  },
+  {
+    name: "windSpeed10All",
+    type: "string",
+  },
+  {
+    name: "windDirection10All",
+    type: "string",
+  },
+  {
+    name: "windSpeed100All",
+    type: "string",
+  },
+  {
+    name: "windDirection100All",
+    type: "string",
   },
   {
     name: "tileSize",
@@ -88,7 +138,7 @@ const temperatureRenderer = {
   visualVariables: [
     {
       type: "color",
-      field: "weatherValue",
+      field: "temperature",
       stops: [
         { value: -30, color: "rgba(5, 48, 97, 0.7)" },
         { value: -20, color: "rgba(33, 102, 172, 0.7)" },
@@ -120,7 +170,7 @@ const precipitationRenderer = {
   visualVariables: [
     {
       type: "color",
-      field: "weatherValue",
+      field: "precipitation",
       stops: [
         { value: 0, color: colors[0] },
         { value: 1, color: colors[2] },
@@ -148,7 +198,7 @@ const pressureRenderer = {
   visualVariables: [
     {
       type: "color",
-      field: "weatherValue",
+      field: "pressure",
       stops: [
         { value: 600, color: colors[0] },
         { value: 750, color: colors[1] },
@@ -196,7 +246,7 @@ const windRenderer = {
   visualVariables: [
     {
       type: "color",
-      field: "weatherValue",
+      field: "windSpeed10",
       stops: [
         { value: 1, color: colors[0] },
         { value: 3, color: colors[1] },
@@ -212,7 +262,7 @@ const windRenderer = {
     },
     {
       type: "rotation",
-      field: "weatherValue2",
+      field: "windDirection10",
       rotationType: "geographic",
       axis: "heading",
     },
@@ -255,84 +305,85 @@ const windRenderer = {
   ],
 };
 
-export async function setWeather(arcgisScene, secondaryLayer, polylineLayer) {
+export async function setWeather(
+  arcgisScene,
+  secondaryLayer,
+  polylineLayer,
+  hourLayer,
+) {
   const weatherSelect = document.getElementById(
     "weather-select",
   ) as HTMLCalciteSelectElement;
   const weatherSize = document.getElementById(
     "weather-size",
-  ) as HTMLCalciteSelectElement;
+  ) as HTMLCalciteSliderElement;
   const weatherDistance = document.getElementById(
     "weather-distance",
-  ) as HTMLCalciteSelectElement;
+  ) as HTMLCalciteSliderElement;
   const buttonWeather = document.getElementById(
     "weather-button",
   )! as HTMLCalciteButtonElement;
+  const buttonTiles = document.getElementById(
+    "tiles-button",
+  )! as HTMLCalciteButtonElement;
+  const weatherTimeSwitch = document.getElementById(
+    "weather-time-switch",
+  )! as HTMLCalciteSwitchElement;
   let weatherLayer: FeatureLayer;
+  let tiles;
+
   weatherLayer = await createWeatherLayer(arcgisScene);
-  buttonWeather?.addEventListener("click", async () => {
-    await updateWeatherLayer(
+  buttonTiles?.addEventListener("click", async () => {
+    tiles = await generateWeatherExtent(
       arcgisScene,
       secondaryLayer,
-      weatherLayer,
-      weatherSelect.value,
       polylineLayer,
-      weatherSize.value,
-      weatherDistance.value,
     );
   });
-}
-
-export async function createWeatherLayer(arcgisScene) {
-  let weatherLayer = new FeatureLayer({
-    id: "weatherLayer",
-    title: "Weather visualization",
-    source: [],
-    objectIdField: "ObjectID",
-    geometryType: "polygon",
-    spatialReference: { wkid: 3857 },
-    fields: fields,
-    // timeInfo: {
-    //   startField: "timestamp",
-    //   endField: "timestamp",
-    //   interval: {
-    //     value: 1,
-    //     unit: "minutes",
-    //   },
-    // },
-    popupTemplate: {},
-    elevationInfo: {
-      mode: "on-the-ground",
-    },
-    renderer: windRenderer,
+  buttonWeather?.addEventListener("click", async () => {
+    updateWeatherLayer();
   });
 
-  await arcgisScene.addLayers([weatherLayer]);
-  return weatherLayer;
-}
+  weatherSelect?.addEventListener("calciteSelectChange", async () => {
+    updateWeatherRenderer();
+  });
 
-async function updateWeatherLayer(
-  arcgisScene,
-  layer,
-  weatherLayer,
-  variable,
-  polylineLayer,
-  tileSize,
-  tileBuffer,
-) {
-  const buttonWeather = document.getElementById(
-    "weather-button",
-  )! as HTMLCalciteButtonElement;
+  weatherTimeSwitch?.addEventListener("calciteSwitchChange", async () => {
+    const slider = document.getElementById("weather-time");
+    slider.disabled = !slider.disabled;
+    setWeatherLayerTime();
+  });
 
-  const weatherGraphics = [];
-  let parameter;
-  let weatherRenderer;
-  let weatherValue;
-  let popupText;
-  let weatherValue2;
+  async function createWeatherLayer(arcgisScene) {
+    let weatherLayer = new FeatureLayer({
+      id: "weatherLayer",
+      title: "Weather visualization",
+      source: [],
+      objectIdField: "ObjectID",
+      geometryType: "polygon",
+      spatialReference: { wkid: 3857 },
+      fields: fields,
+      // timeInfo: {
+      //   startField: "timestamp",
+      //   endField: "timestamp",
+      //   interval: {
+      //     value: 1,
+      //     unit: "minutes",
+      //   },
+      // },
+      popupTemplate: {},
+      elevationInfo: {
+        mode: "on-the-ground",
+      },
+      renderer: blankRenderer,
+    });
 
-  switch (variable) {
-    case "None": {
+    await arcgisScene.addLayers([weatherLayer]);
+    return weatherLayer;
+  }
+
+  async function generateWeatherExtent(arcgisScene, layer, polylineLayer) {
+    try {
       const existing = await weatherLayer.queryFeatures();
       const deleteFeatures = Array.isArray(existing.features)
         ? existing.features
@@ -340,393 +391,577 @@ async function updateWeatherLayer(
       await weatherLayer.applyEdits({
         deleteFeatures,
       });
-      return;
-    }
-    case "Blank": {
-      parameter = "blank";
-      weatherRenderer = blankRenderer;
-      popupText = "Blank grid";
-      break;
-    }
-    case "Temperature": {
-      parameter = "temperature_2m";
-      weatherRenderer = temperatureRenderer;
-      popupText = "Temperature: {weatherValue}°C";
 
-      break;
-    }
-    case "Pressure": {
-      parameter = "surface_pressure";
-      weatherRenderer = pressureRenderer;
-      popupText = "Surface pressure: {weatherValue}hPa";
+      if (weatherDistance.value == 0 || weatherSize.value == 0) {
+        buttonWeather.disabled = true;
+        weatherSelect.disabled = true;
+        weatherTimeSwitch.disabled = true;
+        buttonWeather.innerText = `Get weather`;
+        return;
+      }
+      const layerView = await arcgisScene.view.whenLayerView(layer);
+      await reactiveUtils.whenOnce(() => !layerView.dataUpdating);
+      const features = await layerView.queryFeatures({
+        geometry: arcgisScene.view.extent,
+        returnGeometry: true,
+        orderByFields: ["ObjectID"],
+      });
 
-      break;
-    }
-    case "Precipitation": {
-      parameter = "precipitation";
-      weatherRenderer = precipitationRenderer;
-      popupText = "Precipitation: {weatherValue}mm";
+      const firstTimestamp = features.features[0].attributes.timestamp;
+      const lastTimestamp =
+        features.features[features.features.length - 1].attributes.timestamp;
+      let timestamp = new Date(firstTimestamp);
 
-      break;
-    }
-    case "Wind 10": {
-      parameter = "wind_speed_10m";
-      weatherRenderer = windRenderer;
-      popupText = "Wind (10 km): {weatherValue}km/h {weatherValue2}°";
-      break;
-    }
-    case "Wind 100": {
-      parameter = "wind_speed_100m";
-      weatherRenderer = windRenderer;
-      popupText = "Wind (100 km): {weatherValue}km/h {weatherValue2}°";
-      break;
+      const featureExtent = await layerView.queryExtent();
+
+      const polygon = new Polygon({
+        rings: [
+          [
+            featureExtent.extent.xmin - weatherDistance.value * 1000,
+            featureExtent.extent.ymin - weatherDistance.value * 1000,
+          ],
+          [
+            featureExtent.extent.xmin - weatherDistance.value * 1000,
+            featureExtent.extent.ymax + weatherDistance.value * 1000,
+          ],
+          [
+            featureExtent.extent.xmax + weatherDistance.value * 1000,
+            featureExtent.extent.ymax + weatherDistance.value * 1000,
+          ],
+          [
+            featureExtent.extent.xmax + weatherDistance.value * 1000,
+            featureExtent.extent.ymin - weatherDistance.value * 1000,
+          ],
+          [
+            featureExtent.extent.xmin - weatherDistance.value * 1000,
+            featureExtent.extent.ymin - weatherDistance.value * 1000,
+          ],
+        ],
+        spatialReference: { wkid: 3857 },
+      });
+
+      const tiles = await generateTiles(polygon, polylineLayer, timestamp);
+
+      await weatherLayer.applyEdits({
+        addFeatures: tiles,
+      });
+      buttonWeather.innerText = `Get weather for ${tiles.length} tiles`;
+
+      if (tiles.length > 600) {
+        document.getElementById("weather-alert-600")!.open = true;
+        return;
+      } else {
+        buttonWeather.disabled = false;
+        await arcgisScene.view.goTo(tiles);
+      }
+
+      return tiles;
+    } catch (error) {
+      buttonWeather.disabled = true;
+      buttonWeather.innerText = `Get weather`;
+      console.error("Error while generating weather tiles:", error);
     }
   }
-  buttonWeather.loading = true;
 
-  try {
-    const layerView = await arcgisScene.view.whenLayerView(layer);
-    await reactiveUtils.whenOnce(() => !layerView.dataUpdating);
-    const features = await layerView.queryFeatures({
-      geometry: arcgisScene.view.extent,
+  async function generateTiles(polygon, polylineLayer, timestamp) {
+    const step = weatherSize.value * 1000;
+    const extent = polygon.extent;
+
+    const xmin = extent.xmin;
+    const xmax = extent.xmax;
+    const ymin = extent.ymin;
+    const ymax = extent.ymax;
+
+    const polylineFeatureSet = await polylineLayer.queryFeatures({
       returnGeometry: true,
-      orderByFields: ["ObjectID"],
+      where: "1=1",
     });
+    const polylineWGS84 = polylineFeatureSet.features[0].geometry;
+    const polyline = webMercatorUtils.geographicToWebMercator(polylineWGS84);
+    const tiles = [];
+    for (let x = xmin; x < xmax; x += step) {
+      for (let y = ymin; y < ymax; y += step) {
+        const tileCenter = new Point({
+          x: x + step / 2,
+          y: y + step / 2,
+          spatialReference: polygon.spatialReference,
+        });
 
-    const firstTimestamp = features.features[0].attributes.timestamp;
-    console.log(features.features[0]);
-    console.log(features.features[0].attributes.timestamp);
-    console.log(features.features[features.features.length - 1]);
-    console.log(
-      features.features[features.features.length - 1].attributes.timestamp,
-    );
+        const distanceToLine = geometryEngine.distance(
+          tileCenter,
+          polyline,
+          "kilometers",
+        );
 
-    const lastTimestamp =
-      features.features[features.features.length - 1].attributes.timestamp;
+        if (
+          distanceToLine !== null &&
+          distanceToLine <= weatherDistance.value
+        ) {
+          const tilePolygon = new Polygon({
+            rings: [
+              [x, y],
+              [x + step, y],
+              [x + step, y + step],
+              [x, y + step],
+              [x, y],
+            ],
+            spatialReference: polygon.spatialReference,
+          });
 
-    const featureExtent = await layerView.queryExtent();
-    const tiles = await generateWeatherExtent(
-      featureExtent,
-      arcgisScene,
-      polylineLayer,
-      tileSize,
-      tileBuffer,
-    );
-
-    buttonWeather.innerText = `Getting weather for ${tiles.length} tiles`;
-
-    if (tiles.length > 600) {
-      buttonWeather.loading = false;
-      document.getElementById("weather-alert-600").open = true;
-      return;
-    }
-
-    for (const tile of tiles) {
-      let timestamp = new Date(firstTimestamp);
-      let timestamp2 = new Date(lastTimestamp);
-
-      try {
-        if (parameter != "Blank") {
-          // USE FOR TESTING
-          // weatherValue = Math.random() * 60 - 30;
-          weatherValue = Math.random() * 30;
-          weatherValue2 = Math.random() * 180;
-          // USE FOR REAL VALUES
-          // weatherValue = await getWeather(tile.centroid, timestamp, parameter);
-          // if (variable === "Wind 10") {
-          //   weatherValue2 = await getWeather(
-          //     tile.centroid,
-          //     timestamp,
-          //     "wind_direction_10m",
-          //   );
-          // } else if (variable === "Wind 100") {
-          //   weatherValue2 = await getWeather(
-          //     tile.centroid,
-          //     timestamp,
-          //     "wind_direction_100m",
-          //   );
-          // }
-
-          getWeatherAPI(tile.centroid, timestamp, timestamp2, parameter);
-        }
-
-        // console.log("tile", tile);
-        if (weatherValue !== null && weatherValue !== undefined) {
-          let graphic = new Graphic({
-            geometry: tile,
+          let tile = new Graphic({
+            geometry: tilePolygon,
             attributes: {
-              ObjectID: weatherGraphics.length + 1,
-              longitude: tile.centroid.longitude,
-              latitude: tile.centroid.latitude,
-              parameter: parameter,
-              tileSize: tileSize,
-              weatherValue: weatherValue,
-              weatherValue2: weatherValue2,
+              ObjectID: tiles.length + 1,
+              longitude: tilePolygon.centroid?.longitude,
+              latitude: tilePolygon.centroid?.latitude,
               timestamp: timestamp.getTime(),
+              tileSize: weatherSize.value,
+              temperature: null,
+              pressure: null,
+              precipitation: null,
+              windSpeed10: null,
+              windDirection10: null,
+              windSpeed100: null,
+              windDirection100: null,
             },
           });
-          weatherGraphics.push(graphic);
-        } else {
-          console.warn("No weather value returned.");
+
+          tiles.push(tile);
         }
-      } catch (err) {
-        console.warn("Weather API error:", err);
       }
     }
 
-    console.log("wg", weatherGraphics);
+    return tiles;
+  }
 
-    const existing = await weatherLayer.queryFeatures();
-    const deleteFeatures = Array.isArray(existing.features)
-      ? existing.features
-      : [];
+  async function getWeatherAPI(point, timestampStart, timestampEnd) {
+    const params = {
+      latitude: point.latitude,
+      longitude: point.longitude,
+      start_date: timestampStart.toISOString().split("T")[0],
+      end_date: timestampEnd.toISOString().split("T")[0],
+      hourly: [
+        "wind_direction_10m",
+        "precipitation",
+        "surface_pressure",
+        "wind_speed_10m",
+        "temperature_2m",
+        "wind_direction_100m",
+        "wind_speed_100m",
+      ],
+    };
+    const url = "https://archive-api.open-meteo.com/v1/archive";
+    try {
+      const responses = await fetchWeatherApi(url, params);
+      const response = responses[0];
+      const hourly = response.hourly()!;
+      const round1 = (v: number) => Math.round(v * 10) / 10;
+      const toRoundedArray = (typedArray: Float32Array | number[]) =>
+        Array.from(typedArray, round1);
+      const weatherData = {
+        hourly: {
+          time: [
+            ...Array(
+              (Number(hourly.timeEnd()) - Number(hourly.time())) /
+                hourly.interval(),
+            ),
+          ].map(
+            (_, i) =>
+              new Date((Number(hourly.time()) + i * hourly.interval()) * 1000),
+          ),
+
+          windDirection10m: toRoundedArray(hourly.variables(0)!.valuesArray()!),
+          precipitation: toRoundedArray(hourly.variables(1)!.valuesArray()!),
+          surfacePressure: toRoundedArray(hourly.variables(2)!.valuesArray()!),
+          windSpeed10m: toRoundedArray(hourly.variables(3)!.valuesArray()!),
+          temperature2m: toRoundedArray(hourly.variables(4)!.valuesArray()!),
+          windDirection100m: toRoundedArray(
+            hourly.variables(5)!.valuesArray()!,
+          ),
+          windSpeed100m: toRoundedArray(hourly.variables(6)!.valuesArray()!),
+        },
+      };
+      console.log(weatherData);
+
+      return weatherData.hourly;
+    } catch (error) {
+      let errorMessage = "An error occurred while fetching weather data.";
+
+      if (error instanceof Response) {
+        if (error.status === 429) {
+          errorMessage = "Rate limit exceeded: Too many requests to the API.";
+        } else if (error.status >= 400 && error.status < 500) {
+          errorMessage = `Client error ${error.status}: Please check the request parameters.`;
+        } else if (error.status >= 500) {
+          errorMessage = `Server error ${error.status}: The weather service is currently unavailable.`;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      console.warn(errorMessage);
+      return null;
+    }
+  }
+
+  async function updateWeatherLayer() {
+    buttonWeather.loading = true;
+
+    let weatherData;
+
+    for (const tile of tiles) {
+      let timestamp = new Date(tile.attributes.timestamp);
+      try {
+        weatherData = await getWeatherAPI(
+          tile.geometry.centroid,
+          timestamp,
+          timestamp,
+        );
+
+        tile.attributes.timestampAll = weatherData.time;
+        tile.attributes.temperatureAll = weatherData.temperature2m;
+        tile.attributes.precipitationAll = weatherData.precipitation;
+        tile.attributes.pressureAll = weatherData.surfacePressure;
+        tile.attributes.windSpeed10All = weatherData.windSpeed10m;
+        tile.attributes.windDirection10All = weatherData.windDirection10m;
+        tile.attributes.windSpeed100All = weatherData.windSpeed100m;
+        tile.attributes.windDirection100All = weatherData.windDirection100m;
+      } catch (err) {
+        console.warn("Weather API error:", err);
+        buttonWeather.loading = false;
+      }
+    }
+
+    createTimeControl(weatherData.time);
+
     await weatherLayer.applyEdits({
-      deleteFeatures,
+      updateFeatures: tiles,
     });
+    weatherSelect.disabled = false;
+    weatherTimeSwitch.disabled = false;
+
+    await setWeatherLayerTime();
+    updateWeatherRenderer();
+
+    buttonWeather.loading = false;
+  }
+
+  async function getClosestHour(weatherPoint) {
+    let closestGraphic = null;
+    let minDistance = Infinity;
+
+    for (const graphic of hourLayer.graphics.items) {
+      let graphicPoint = new Point({
+        longitude: graphic.geometry.longitude,
+        latitude: graphic.geometry.latitude,
+        spatialReference: graphic.geometry.spatialReference,
+      });
+
+      let graphicPointMercator =
+        webMercatorUtils.geographicToWebMercator(graphicPoint);
+
+      if (!geodeticDistanceOperator.isLoaded()) {
+        await geodeticDistanceOperator.load();
+      }
+
+      let distance = distanceOperator.execute(
+        graphicPointMercator,
+        weatherPoint,
+      );
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestGraphic = graphic;
+      }
+    }
+
+    if (closestGraphic) {
+      return new Date(closestGraphic.attributes.timestamp);
+    }
+
+    return null;
+  }
+
+  function mapDatetoIndex(date) {
+    const timeArray = tiles[0].attributes.timestampAll;
+    const targetHour = new Date(date);
+    targetHour.setMinutes(0, 0, 0);
+
+    for (let i = 0; i < timeArray.length; i++) {
+      const arrayDate = new Date(timeArray[i]);
+      arrayDate.setMinutes(0, 0, 0);
+      if (arrayDate.getTime() === targetHour.getTime()) {
+        return i;
+      }
+    }
+
+    return 0;
+  }
+
+  function formatDateShort(d) {
+    return `${d.getHours()}h ${d.getDate()}/${d.getMonth() + 1}`;
+  }
+
+  function createTimeControl() {
+    const weatherTimeContainer = document.getElementById(
+      "weather-time-container",
+    ) as HTMLElement;
+
+    let timeArray = tiles[0].attributes.timestampAll;
+    weatherTimeContainer.innerHTML = "";
+    const slider = document.createElement("calcite-slider");
+
+    slider.id = "weather-time";
+    slider.min = 0;
+    slider.max = timeArray.length - 1;
+    slider.value = timeArray.length - 1;
+    slider.style = "width:250px";
+    slider.setAttribute("label-handles", "");
+    slider.labelFormatter = function (value, type) {
+      if (type === "value") {
+        return formatDateShort(timeArray[value]);
+      }
+    };
+    slider.addEventListener("calciteSliderInput", async () => {
+      await setWeatherLayerTime();
+    });
+    slider.disabled = true;
+    weatherTimeContainer.appendChild(slider);
+
+    const timeSlider = document.querySelector(
+      "arcgis-time-slider",
+    )! as ArcgisTimeSlider;
+
+    timeSlider.addEventListener("arcgisPropertyChange", (event) => {
+      slider.value = mapDatetoIndex(timeSlider.timeExtent.end);
+      setWeatherLayerTime();
+    });
+  }
+
+  async function setWeatherLayerTime() {
+    let i = document.getElementById("weather-time")!.value;
+
+    for (const tile of tiles) {
+      if (!weatherTimeSwitch.checked) {
+        let currentTimestamp = await getClosestHour(tile.geometry.centroid);
+        i = mapDatetoIndex(currentTimestamp);
+      }
+      tile.attributes.timestamp = tile.attributes.timestampAll[i].toISOString();
+      tile.attributes.temperature = tile.attributes.temperatureAll[i]; //Math.random() * 60 - 30
+      tile.attributes.precipitation = tile.attributes.precipitationAll[i];
+      tile.attributes.pressure = tile.attributes.pressureAll[i];
+      tile.attributes.windSpeed10 = tile.attributes.windSpeed10All[i];
+      tile.attributes.windDirection10 = tile.attributes.windDirection10All[i];
+      tile.attributes.windSpeed100 = tile.attributes.windSpeed100All[i];
+      tile.attributes.windDirection100 = tile.attributes.windDirection100All[i];
+    }
 
     await weatherLayer.applyEdits({
-      addFeatures: weatherGraphics,
+      updateFeatures: tiles,
     });
+  }
 
-    // await weatherLayer.when();
-    // await arcgisScene.view.goTo(weatherLayer.fullExtent); // go to the whole globe, no layer extent
-    const result2 = await weatherLayer.queryFeatures();
+  function updateWeatherRenderer() {
+    let weatherRenderer;
+    let popupText;
+    switch (weatherSelect.value) {
+      case "Temperature": {
+        weatherRenderer = temperatureRenderer;
+        popupText = "Temperature: {temperature} °C";
+        break;
+      }
+      case "Pressure": {
+        weatherRenderer = pressureRenderer;
+        popupText = "Surface pressure: {pressure} hPa";
+        break;
+      }
+      case "Precipitation": {
+        weatherRenderer = precipitationRenderer;
+        popupText = "Precipitation: {precipitation} mm";
+        break;
+      }
+      case "Wind": {
+        weatherRenderer = windRenderer;
+        popupText = "Wind: {windSpeed10} km/h   {windDirection10} °";
+        break;
+      }
+    }
+
     weatherLayer.renderer = weatherRenderer;
+
+    const fieldInfos = [
+      "temperature",
+      "pressure",
+      "precipitation",
+      "windSpeed10",
+      "windDirection10",
+      "windSpeed100",
+      "windDirection100",
+    ].map((f) => ({ fieldName: f }));
 
     weatherLayer.popupTemplate = {
       title: popupText,
-      content:
-        "<b>Date:</b> {timestamp} <br>  <b>Location:</b> {longitude}, {latitude} ",
+      outFields: ["*"],
+      content: [
+        {
+          type: "custom",
+          creator: createWeatherChartPopup(weatherSelect.value),
+        },
+        {
+          type: "text",
+          text: "<b>Date:</b> {timestamp} <br><b>Location:</b>{longitude}, {latitude} <br><br> <b>All weather parameters at this time and place:</b>",
+        },
+
+        {
+          type: "fields",
+          fieldInfos,
+        },
+      ],
     };
-    buttonWeather.loading = false;
-    buttonWeather.innerText = `Get weather`;
-  } catch (error) {
-    console.error("Error while updating weather layer:", error);
   }
-}
 
-export async function generateWeatherExtent(
-  featureExtent,
-  arcgisScene,
-  polylineLayer,
-  tileSize,
-  tileBuffer,
-) {
-  console.log("e", featureExtent);
+  // src: chatGPT based on the given requirements
+  function createWeatherChartPopup(variableName) {
+    return (target) => {
+      const graphic = target.graphic;
+      const attrs = graphic.attributes;
 
-  const polygon = new Polygon({
-    rings: [
-      [
-        featureExtent.extent.xmin - tileBuffer * 1000,
-        featureExtent.extent.ymin - tileBuffer * 1000,
-      ],
-      [
-        featureExtent.extent.xmin - tileBuffer * 1000,
-        featureExtent.extent.ymax + tileBuffer * 1000,
-      ],
-      [
-        featureExtent.extent.xmax + tileBuffer * 1000,
-        featureExtent.extent.ymax + tileBuffer * 1000,
-      ],
-      [
-        featureExtent.extent.xmax + tileBuffer * 1000,
-        featureExtent.extent.ymin - tileBuffer * 1000,
-      ],
-      [
-        featureExtent.extent.xmin - tileBuffer * 1000,
-        featureExtent.extent.ymin - tileBuffer * 1000,
-      ],
-    ],
-    spatialReference: { wkid: 3857 },
-  });
+      // --- Parse timestamps ---
+      const timestampStrings = String(attrs.timestampAll)
+        .split(",")
+        .map((s) => s.trim());
+      const timestamps = timestampStrings.map((s) => new Date(s));
 
-  // arcgisScene.view.graphics.add(graphic);
+      // --- Extract data based on selected variable ---
+      let rawValues = [];
+      let label = "";
+      let color = "rgb(255, 99, 132)";
 
-  const tiles = await generateTiles(
-    arcgisScene,
-    polygon,
-    polylineLayer,
-    tileSize,
-    tileBuffer,
-  );
-  // console.log(tiles);
-  return tiles;
-}
+      switch (variableName) {
+        case "Temperature":
+          rawValues = String(attrs.temperatureAll)
+            .split(",")
+            .map((v) => parseFloat(v.trim()));
+          label = "Temperature (°C)";
+          break;
+        case "Pressure":
+          rawValues = String(attrs.pressureAll)
+            .split(",")
+            .map((v) => parseFloat(v.trim()));
+          label = "Pressure (hPa)";
+          break;
+        case "Precipitation":
+          rawValues = String(attrs.precipitationAll)
+            .split(",")
+            .map((v) => parseFloat(v.trim()));
+          label = "Precipitation (mm)";
+          break;
+        case "Wind":
+          rawValues = String(attrs.windSpeed10All)
+            .split(",")
+            .map((v) => parseFloat(v.trim()));
+          label = "Wind Speed 10m (km/h)";
+          break;
+      }
 
-async function generateTiles(
-  arcgisScene,
-  polygon,
-  polylineLayer,
-  tileSize,
-  tileBuffer,
-) {
-  // const step = 4000;
-  const step = tileSize * 1000;
-  const extent = polygon.extent;
-
-  const xmin = extent.xmin;
-  const xmax = extent.xmax;
-  const ymin = extent.ymin;
-  const ymax = extent.ymax;
-
-  const polylineFeatureSet = await polylineLayer.queryFeatures({
-    returnGeometry: true,
-    where: "1=1",
-  });
-  const polylineWGS84 = polylineFeatureSet.features[0].geometry;
-  const polyline = webMercatorUtils.geographicToWebMercator(polylineWGS84);
-  console.log("line", polyline);
-  const tiles = [];
-  let counter = 0;
-  for (let x = xmin; x < xmax; x += step) {
-    for (let y = ymin; y < ymax; y += step) {
-      const tileCenter = new Point({
-        x: x + step / 2,
-        y: y + step / 2,
-        spatialReference: polygon.spatialReference,
+      // --- Generate readable labels for x-axis ---
+      const labels = timestamps.map((d, i) => {
+        const isMidnight = d.getHours() === 0 && d.getMinutes() === 0;
+        return isMidnight
+          ? `${d.getDate()}/${d.getMonth() + 1}`
+          : `${d.getHours()}h`;
       });
 
-      const distanceToLine = geometryEngine.distance(
-        tileCenter,
-        polyline,
-        "kilometers",
-      );
+      // --- Create chart container ---
+      const container = document.createElement("div");
+      container.style.width = "100%";
+      container.style.maxWidth = "350px";
+      container.style.height = "160px";
 
-      if (distanceToLine !== null && distanceToLine <= tileBuffer) {
-        const tilePolygon = new Polygon({
-          rings: [
-            [x, y],
-            [x + step, y],
-            [x + step, y + step],
-            [x, y + step],
-            [x, y],
-          ],
-          spatialReference: polygon.spatialReference,
-        });
-        counter++;
+      const canvas = document.createElement("canvas");
+      canvas.width = 350;
+      canvas.height = 160;
+      container.appendChild(canvas);
 
-        let tile = new Graphic({
-          geometry: tilePolygon,
-          symbol: {
-            type: "simple-fill",
-            color: getRandomColorRGBA(0.4),
+      const nowLinePlugin = {
+        id: "nowLine",
+        afterDraw(chart) {
+          const {
+            ctx,
+            chartArea: { top, bottom },
+            scales: { x },
+          } = chart;
+
+          // Find the index of the current/nearest timestamp
+          const now = new Date(attrs.timestamp);
+          const index = timestamps.findIndex(
+            (t) => Math.abs(t.getTime() - now.getTime()) < 60 * 60 * 1000, // within 1h
+          );
+
+          if (index === -1) return;
+
+          const xPos = x.getPixelForValue(index);
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(xPos, top);
+          ctx.lineTo(xPos, bottom);
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = "white";
+          ctx.setLineDash([4, 2]);
+          ctx.stroke();
+
+          // Draw "Now" label
+          ctx.fillStyle = "white";
+          ctx.font = "10px sans-serif";
+          ctx.fillText("Now", xPos + 4, top + 10);
+          ctx.restore();
+        },
+      };
+
+      // --- Create chart after DOM is ready ---
+      setTimeout(() => {
+        const ctx = canvas.getContext("2d");
+        new Chart(ctx, {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              {
+                label,
+                data: rawValues,
+                fill: false,
+                borderColor: color,
+                tension: 0.2,
+                pointRadius: 0,
+              },
+            ],
           },
+          options: {
+            responsive: false,
+            plugins: {
+              legend: { display: true },
+            },
+            scales: {
+              x: {
+                ticks: {
+                  maxTicksLimit: 12,
+                  autoSkip: true,
+                },
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: label,
+                },
+              },
+            },
+          },
+          plugins: [nowLinePlugin],
         });
-        // arcgisScene.view.graphics.add(tile);
+      }, 0);
 
-        tiles.push(tilePolygon);
-      }
-    }
-  }
-  console.log("nr of tiles", counter);
-
-  return tiles;
-}
-
-function getRandomColorRGBA(alpha = 1) {
-  const r = Math.floor(Math.random() * 200);
-  const g = Math.floor(Math.random() * 200);
-  const b = Math.floor(Math.random() * 200);
-  return [r, g, b, alpha];
-}
-
-async function getWeather(point, timestamp, parameter) {
-  console.log(point);
-  const dateStr = timestamp.toISOString().split("T")[0]; // yyyy-mm-dd
-  const apiUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${point.latitude}&longitude=${point.longitude}&start_date=${dateStr}&end_date=${dateStr}&hourly=${parameter}&timezone=UTC`;
-  const res = await fetch(apiUrl);
-  const data = await res.json();
-
-  if (!data.hourly[parameter] || !data.hourly.time) return;
-
-  const times = data.hourly.time;
-  const temps = data.hourly[parameter];
-
-  const targetHour = timestamp.toISOString().slice(0, 13); // yyyy-mm-ddThh
-
-  const index = times.findIndex((t) => t.startsWith(targetHour));
-  const temp = index >= 0 ? temps[index] : null;
-
-  return temp;
-}
-
-async function getWeatherAPI(point, timestampStart, timestampEnd, parameter) {
-  const params = {
-    latitude: point.latitude,
-    longitude: point.longitude,
-    start_date: timestampStart.toISOString().split("T")[0],
-    end_date: timestampEnd.toISOString().split("T")[0],
-    hourly: [
-      "wind_direction_10m",
-      "precipitation",
-      "surface_pressure",
-      "wind_speed_10m",
-      "temperature_2m",
-      "wind_direction_100m",
-      "wind_speed_100m",
-    ],
-  };
-  const url = "https://archive-api.open-meteo.com/v1/archive";
-  try {
-    const responses = await fetchWeatherApi(url, params);
-    const response = responses[0];
-    const hourly = response.hourly()!;
-    const weatherData = {
-      hourly: {
-        time: [
-          ...Array(
-            (Number(hourly.timeEnd()) - Number(hourly.time())) /
-              hourly.interval(),
-          ),
-        ].map(
-          (_, i) =>
-            new Date((Number(hourly.time()) + i * hourly.interval()) * 1000),
-        ),
-        windDirection10m: hourly.variables(0)!.valuesArray()!,
-        precipitation: hourly.variables(1)!.valuesArray()!,
-        surfacePressure: hourly.variables(2)!.valuesArray()!,
-        windSpeed10m: hourly.variables(3)!.valuesArray()!,
-        temperature2m: hourly.variables(4)!.valuesArray()!,
-        windDirection100m: hourly.variables(5)!.valuesArray()!,
-        windSpeed100m: hourly.variables(6)!.valuesArray()!,
-      },
+      return container;
     };
-
-    console.log("weatherData", weatherData);
-
-    // for (let i = 0; i < weatherData.hourly.time.length; i++) {
-    //   console.log(
-    //     weatherData.hourly.time[i].toISOString(),
-    //     weatherData.hourly.windDirection10m[i],
-    //     weatherData.hourly.precipitation[i],
-    //     weatherData.hourly.surfacePressure[i],
-    //     weatherData.hourly.windSpeed10m[i],
-    //     weatherData.hourly.temperature2m[i],
-    //     weatherData.hourly.windDirection100m[i],
-    //     weatherData.hourly.windSpeed100m[i],
-    //   );
-    // }
-
-    return weatherData;
-  } catch (error) {
-    // Handle HTTP and other errors
-    let errorMessage = "An error occurred while fetching weather data.";
-
-    if (error instanceof Response) {
-      if (error.status === 429) {
-        errorMessage = "Rate limit exceeded: Too many requests to the API.";
-      } else if (error.status >= 400 && error.status < 500) {
-        errorMessage = `Client error ${error.status}: Please check the request parameters.`;
-      } else if (error.status >= 500) {
-        errorMessage = `Server error ${error.status}: The weather service is currently unavailable.`;
-      }
-    } else if (error instanceof Error) {
-      errorMessage = `Error: ${error.message}`;
-    }
-
-    console.warn(errorMessage);
-    // alert(errorMessage); // Optional: Use UI alert or custom warning UI
-    return null;
   }
 }
 
@@ -810,96 +1045,21 @@ function createBufferedAreaFromPoints(pointFeatures, arcgisScene) {
   arcgisScene.view.graphics.add(graphic);
 }
 
-// export async function createWeatherLayer(graphics, variable) {
-//   let interval = 60 * 60 * 1000;
-//   let minScale = 300000;
-//   let lastTimestamp = null;
-//   let firstTimestamp = null;
-//   let lastPoint = null;
-//   let accumulatedDistance = 0;
-//   const weatherGraphics = [];
-//   let parameter = "temperature_2m";
-//   let weatherVariables = temperatureVariables;
+async function getWeather(point, timestamp, parameter) {
+  const dateStr = timestamp.toISOString().split("T")[0]; // yyyy-mm-dd
+  const apiUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${point.latitude}&longitude=${point.longitude}&start_date=${dateStr}&end_date=${dateStr}&hourly=${parameter}&timezone=UTC`;
+  const res = await fetch(apiUrl);
+  const data = await res.json();
 
-//   try {
-//     for (const g of graphics) {
-//       if (!firstTimestamp) firstTimestamp = g.attributes.timestamp;
-//       const currentTimestamp = g.attributes.timestamp;
-//       const currentPoint = g.geometry;
+  if (!data.hourly[parameter] || !data.hourly.time) return;
 
-//       let distanceFromLast = 0;
-//       if (lastPoint) {
-//         const lastWeb = webMercatorUtils.geographicToWebMercator(lastPoint);
-//         const currentWeb =
-//           webMercatorUtils.geographicToWebMercator(currentPoint);
+  const times = data.hourly.time;
+  const temps = data.hourly[parameter];
 
-//         distanceFromLast =
-//           geometryEngine.distance(lastWeb, currentWeb, "kilometers") || 0;
-//       }
+  const targetHour = timestamp.toISOString().slice(0, 13); // yyyy-mm-ddThh
 
-//       //   if (!lastTimestamp || currentTimestamp - lastTimestamp >= interval) {
-//       if (!lastTimestamp || distanceFromLast >= 4) {
-//         accumulatedDistance += distanceFromLast;
-//         lastTimestamp = currentTimestamp;
-//         lastPoint = currentPoint;
-//         const timestamp = new Date(currentTimestamp);
-//         // const temp = Math.random() * 60 - 30;
-//         let weatherValue = await getWeather(currentPoint, timestamp, parameter);
-//         // console.log("w", weatherValue);
-//         const square = createSquareAroundPoint(currentPoint);
-//         weatherGraphics.push(
-//           new Graphic({
-//             geometry: square,
-//             attributes: {
-//               ObjectID: weatherGraphics.length + 1,
-//               longitude: currentPoint.longitude,
-//               latitude: currentPoint.latitude,
-//               parameter: parameter,
-//               weatherValue: weatherValue,
-//               timestamp: timestamp.getTime(),
-//             },
-//           }),
-//         );
-//       }
-//     }
+  const index = times.findIndex((t) => t.startsWith(targetHour));
+  const temp = index >= 0 ? temps[index] : null;
 
-//     console.log("g", weatherGraphics);
-//     const weatherLayer = new FeatureLayer({
-//       id: "weatherLayer",
-//       title: "Weather visualization",
-//       source: weatherGraphics,
-//       objectIdField: "ObjectID",
-//       geometryType: "polygon",
-//       fields: fields,
-//       timeInfo: {
-//         startField: "timestamp",
-//         endField: "timestamp",
-//         interval: {
-//           value: 1,
-//           unit: "minutes",
-//         },
-//       },
-//       popupTemplate: popTemplate,
-//       elevationInfo: {
-//         mode: "on-the-ground",
-//       },
-//       renderer: {
-//         type: "simple",
-//         symbol: {
-//           type: "polygon-3d",
-//           symbolLayers: [
-//             {
-//               type: "fill",
-//               material: { color: [0, 0, 0, 0.5] }, // fallback
-//             },
-//           ],
-//         },
-//         visualVariables: weatherVariables,
-//       },
-//     });
-
-//     return weatherLayer;
-//   } catch (err) {
-//     console.error(`Failed to fetch weather data for point ${index}`, err);
-//   }
-// }
+  return temp;
+}
