@@ -7,6 +7,16 @@ Master Thesis project
 ## Updates
 ---
 
+### Week 21-22
+- Weather
+  - find weather data sources
+  - generate weather grid and tiles
+  - create renderers for tile weather data
+  - configure pop-ups
+  - get weather data from API
+  - apply time logic
+  - handle errors
+
 ### Week 20
 - Single Vis
   - Variable visualizations
