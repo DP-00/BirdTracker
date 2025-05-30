@@ -58,6 +58,7 @@ import "@esri/calcite-components/dist/components/calcite-segmented-control-item"
 import "@esri/calcite-components/dist/components/calcite-slider";
 import "@esri/calcite-components/dist/components/calcite-sort-handle";
 import "@esri/calcite-components/dist/components/calcite-sortable-list";
+import "@esri/calcite-components/dist/components/calcite-switch";
 import "@esri/calcite-components/dist/components/calcite-tab";
 import "@esri/calcite-components/dist/components/calcite-tab-nav";
 import "@esri/calcite-components/dist/components/calcite-tab-title";
@@ -89,7 +90,7 @@ class App extends Widget<AppProperties> {
     let myLayer = view.map.layers.find(function (layer) {
       return layer.id === "primaryLayer";
     });
-    console.log("l", view.map.layers, myLayer);
+    // console.log("l", view.map.layers, myLayer);
   }
 
   render() {
@@ -127,9 +128,9 @@ class App extends Widget<AppProperties> {
               </p>
               <calcite-tabs layout="center">
                 <calcite-tab-nav slot="title-group">
-                  <calcite-tab-title selected>Overview</calcite-tab-title>
+                  <calcite-tab-title>Overview</calcite-tab-title>
                   <calcite-tab-title>Charts</calcite-tab-title>
-                  <calcite-tab-title>Visualization</calcite-tab-title>
+                  <calcite-tab-title selected>Visualization</calcite-tab-title>
                 </calcite-tab-nav>
                 <OverviewDashboard></OverviewDashboard>
                 <ChartsDashboard></ChartsDashboard>
@@ -292,7 +293,7 @@ const OverviewDashboard = () => {
             position="bottom-right"
             mode="time-window"
             play-rate="1"
-            time-visible
+            time-visible="true"
             loop
             stops-interval-value="1"
             stops-interval-unit="hours"
@@ -362,50 +363,122 @@ const VisDashboard = () => {
               <calcite-label layout="inline">
                 Primary visualization:
                 <div id="prim-filter-container"></div>
-                {/* <calcite-slider
-                  min-value="50"
-                  max-value="65"
-                  min="0"
-                  max="100"
-                  label-handles
-                ></calcite-slider> */}
               </calcite-label>
               <calcite-label layout="inline">
                 Secondary visualization:
                 <div id="sec-filter-container"></div>
-                {/* <calcite-combobox
-                  placeholder="Select a field"
-                  overlay-positioning="absolute"
-                  scale="s"
-                  selection-display="fit"
-                >
-                  <calcite-combobox-item
-                    value="Natural Resources"
-                    heading="Natural Resources"
-                  ></calcite-combobox-item>
-                  <calcite-combobox-item
-                    value="agriculture"
-                    heading="Agriculture"
-                  ></calcite-combobox-item>
-                  <calcite-combobox-item
-                    value="forestry"
-                    heading="Forestry"
-                  ></calcite-combobox-item>
-                </calcite-combobox> */}
               </calcite-label>
             </calcite-accordion-item>
           </calcite-accordion>
         </calcite-accordion-item>
+        <WeatherControls></WeatherControls>
 
-        <calcite-accordion-item
-          icon-start="partly-cloudy"
-          heading="Weather settings"
-        ></calcite-accordion-item>
         <calcite-accordion-item heading="Legend" icon-start="legend">
           <arcgis-legend></arcgis-legend>
         </calcite-accordion-item>
       </calcite-accordion>
     </calcite-tab>
+  );
+};
+
+const WeatherControls = () => {
+  return (
+    <calcite-accordion-item
+      icon-start="partly-cloudy"
+      heading="Weather settings"
+      expanded
+    >
+      <calcite-label layout="inline">
+        Size of tile (km)
+        <calcite-slider
+          id="weather-size"
+          value="20"
+          max={50}
+          min={0}
+          label-handles="true"
+          style="width:250px"
+        ></calcite-slider>
+      </calcite-label>
+      <calcite-label layout="inline">
+        Maximum distance from path (km)
+        <calcite-slider
+          id="weather-distance"
+          value="4"
+          max={30}
+          min={1}
+          label-handles="true"
+          style="width:250px"
+        ></calcite-slider>
+      </calcite-label>
+      <calcite-label layout="inline">
+        <calcite-button id="tiles-button" kind="neutral" appearance="solid">
+          Generate tiles
+        </calcite-button>
+        <calcite-button
+          id="weather-button"
+          kind="neutral"
+          appearance="solid"
+          disabled
+        >
+          Get weather
+        </calcite-button>
+      </calcite-label>
+      <calcite-label layout="inline">
+        Weather visualization:
+        <calcite-select id="weather-select" disabled>
+          <calcite-option value="Temperature">Temperature</calcite-option>
+          <calcite-option value="Pressure">Pressure</calcite-option>
+          <calcite-option value="Precipitation">Precipitation</calcite-option>
+          <calcite-option value="Wind" selected>
+            Wind
+          </calcite-option>
+        </calcite-select>
+      </calcite-label>
+      <calcite-label layout="inline">
+        Snap to closest
+        <calcite-switch id="weather-time-switch" disabled></calcite-switch>
+        Control time
+      </calcite-label>
+      <calcite-label layout="inline">
+        <div id="weather-time-container"></div>
+      </calcite-label>
+      <calcite-alert
+        id="weather-alert-600"
+        kind="danger"
+        icon
+        label="Danger alert"
+        auto-close="true"
+        auto-close-duration="slow"
+      >
+        <div slot="title">Weather tiles error: size limit</div>
+        <div slot="message">Limit your grid to maximum 600 tiles</div>
+      </calcite-alert>
+      <calcite-alert
+        id="weather-alert-14"
+        kind="danger"
+        icon
+        label="Danger alert"
+        auto-close="true"
+        auto-close-duration="slow"
+      >
+        <div slot="title">Weather tiles error: duration limit</div>
+        <div slot="message">Limit your grid to maximum 2 week period</div>
+      </calcite-alert>
+      <calcite-alert
+        id="weather-alert-general"
+        kind="danger"
+        icon
+        label="Danger alert"
+        auto-close="true"
+      >
+        <div slot="title">Weather service error</div>
+        <div slot="message">
+          There has been an error with the weather service. Some of you data
+          couldn't be requested. Check console for more details or try different
+          request.
+        </div>
+      </calcite-alert>
+    </calcite-accordion-item>
   );
 };
 
@@ -455,6 +528,8 @@ const TimeControls = () => {
         Time Window:
         <calcite-select id="time-window" scale="s">
           <calcite-option value="1">1h</calcite-option>
+          <calcite-option value="3">3h</calcite-option>
+          <calcite-option value="6">6h</calcite-option>
           <calcite-option value="12" selected>
             12h
           </calcite-option>

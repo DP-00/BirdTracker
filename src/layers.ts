@@ -1,11 +1,12 @@
-import * as geometryEngine from "@arcgis/core/geometry/geometryEngine";
+import * as geodeticDistanceOperator from "@arcgis/core/geometry/operators/geodeticDistanceOperator";
+
 import * as generalizeOperator from "@arcgis/core/geometry/operators/generalizeOperator";
 import Polyline from "@arcgis/core/geometry/Polyline";
-import * as webMercatorUtils from "@arcgis/core/geometry/support/webMercatorUtils";
 import Graphic from "@arcgis/core/Graphic";
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import TextSymbol from "@arcgis/core/symbols/TextSymbol";
+
 import { generateLayerFields } from "./singleVisualization";
 
 // Create the popupTemplate dynamically
@@ -186,7 +187,7 @@ export async function createLineLayer(
     source: lineGraphics,
     objectIdField: "ObjectID",
     geometryType: "polyline",
-    elevationInfo: { mode: "absolute-height" },
+    elevationInfo: { mode: "absolute-height", offset: 3 },
     fields: generateLayerFields(birdSummary),
     outFields: ["*"],
     // popupTemplate: popupTemplate,
@@ -224,7 +225,7 @@ export function createCylinderLayer(graphics: any, birdSummary: any) {
     elevationInfo: {
       mode: "absolute-height",
     },
-    minScale: 300000,
+    // minScale: 300000,
     fields: generateLayerFields(birdSummary),
     outFields: ["*"],
     timeInfo: {
@@ -255,7 +256,7 @@ export function createCylinderLayer(graphics: any, birdSummary: any) {
   return featureLayer;
 }
 
-export function createTimeLayer(graphics) {
+export async function createTimeLayer(graphics) {
   const intervals = [
     {
       label: "Hour",
@@ -270,25 +271,35 @@ export function createTimeLayer(graphics) {
       maxScale: 300000,
     },
   ];
-  return intervals.map(({ label, interval, title, minScale, maxScale }) => {
+
+  const layers = [];
+
+  for (const config of intervals) {
+    const { label, interval, title, minScale, maxScale } = config;
+    const graphicsArray = [];
+
     let lastTimestamp = null;
     let firstTimestamp = null;
     let lastPoint = null;
     let accumulatedDistance = 0;
-    const timeGraphic: Graphic[] = [];
-    graphics.forEach((g) => {
+
+    for (const g of graphics) {
       if (!firstTimestamp) firstTimestamp = g.attributes.timestamp;
       const currentTimestamp = g.attributes.timestamp;
       const currentPoint = g.geometry;
 
       let distanceFromLast = 0;
       if (lastPoint) {
-        const lastWeb = webMercatorUtils.geographicToWebMercator(lastPoint);
-        const currentWeb =
-          webMercatorUtils.geographicToWebMercator(currentPoint);
+        if (!geodeticDistanceOperator.isLoaded()) {
+          await geodeticDistanceOperator.load();
+        }
 
-        distanceFromLast =
-          geometryEngine.distance(lastWeb, currentWeb, "kilometers") || 0;
+        distanceFromLast = geodeticDistanceOperator.execute(
+          lastPoint,
+          currentPoint,
+        );
+
+        distanceFromLast = distanceFromLast / 1000;
       }
 
       if (!lastTimestamp || currentTimestamp - lastTimestamp >= interval) {
@@ -300,14 +311,15 @@ export function createTimeLayer(graphics) {
         let hours = Math.floor((durationInSeconds % 86400) / 3600);
         let text =
           label === "Hour"
-            ? `${days}d ${hours}h \ue63f +${distanceFromLast.toFixed(0)} (${accumulatedDistance.toFixed(0)})km`
-            : `${days} \ue63f +${distanceFromLast.toFixed(0)} (${accumulatedDistance.toFixed(0)})km`;
+            ? `${days}d ${hours}h \ue63f +${Math.round(distanceFromLast)} (${Math.round(accumulatedDistance)})km`
+            : `${days} \ue63f +${Math.round(distanceFromLast)} (${Math.round(accumulatedDistance)})km`;
 
-        timeGraphic.push(
+        graphicsArray.push(
           new Graphic({
             geometry: currentPoint,
+            attributes: { timestamp: currentTimestamp },
             symbol: new TextSymbol({
-              text: text,
+              text,
               color: [30, 30, 30],
               haloColor: [150, 150, 150, 0.5],
               haloSize: 1.5,
@@ -320,15 +332,114 @@ export function createTimeLayer(graphics) {
           }),
         );
       }
-    });
+    }
 
-    const timeLayer = new GraphicsLayer({
+    const layer = new GraphicsLayer({
       title,
       minScale,
       maxScale,
     });
-    timeGraphic.forEach((g) => timeLayer.add(g));
 
-    return timeLayer;
-  });
+    layer.addMany(graphicsArray);
+    layers.push(layer);
+  }
+
+  return layers;
 }
+
+// export function createTimeLayer(graphics) {
+//   const intervals = [
+//     {
+//       label: "Hour",
+//       interval: 60 * 60 * 1000,
+//       title: "Time and distance visualization (hours)",
+//       minScale: 300000,
+//     },
+//     {
+//       label: "Day",
+//       interval: 24 * 60 * 60 * 1000,
+//       title: "Time and distance visualization (days)",
+//       maxScale: 300000,
+//     },
+//   ];
+//   return intervals.map(
+//     async ({ label, interval, title, minScale, maxScale }) => {
+//       let lastTimestamp = null;
+//       let firstTimestamp = null;
+//       let lastPoint = null;
+//       let accumulatedDistance = 0;
+//       const timeGraphic: Graphic[] = [];
+
+//       // graphics.forEach(async (g) => {
+//       for (const g of graphics) {
+//         if (!firstTimestamp) firstTimestamp = g.attributes.timestamp;
+//         const currentTimestamp = g.attributes.timestamp;
+//         const currentPoint = g.geometry;
+
+//         let distanceFromLast = 0;
+//         if (lastPoint) {
+//           const lastWeb = webMercatorUtils.geographicToWebMercator(lastPoint);
+//           const currentWeb =
+//             webMercatorUtils.geographicToWebMercator(currentPoint);
+
+//           distanceFromLast =
+//             geometryEngine.distance(lastWeb, currentWeb, "kilometers") || 0;
+
+//           if (!geodeticDistanceOperator.isLoaded()) {
+//             await geodeticDistanceOperator.load();
+//           }
+
+//           let distanceFromLast2 = geodeticDistanceOperator.execute(
+//             lastPoint,
+//             currentPoint,
+//           );
+
+//           // distanceFromLast = distanceFromLast / 1000;
+//           console.log("d", distanceFromLast2);
+//         }
+
+//         if (!lastTimestamp || currentTimestamp - lastTimestamp >= interval) {
+//           accumulatedDistance += distanceFromLast;
+//           lastTimestamp = currentTimestamp;
+//           lastPoint = currentPoint;
+//           let durationInSeconds = (currentTimestamp - firstTimestamp) / 1000;
+//           let days = Math.floor(durationInSeconds / 86400);
+//           let hours = Math.floor((durationInSeconds % 86400) / 3600);
+//           let text =
+//             label === "Hour"
+//               ? `${days}d ${hours}h \ue63f +${distanceFromLast.toFixed(0)} (${accumulatedDistance.toFixed(0)})km`
+//               : `${days} \ue63f +${distanceFromLast.toFixed(0)} (${accumulatedDistance.toFixed(0)})km`;
+
+//           timeGraphic.push(
+//             new Graphic({
+//               geometry: currentPoint,
+//               attributes: {
+//                 timestamp: currentTimestamp,
+//               },
+//               symbol: new TextSymbol({
+//                 text: text,
+//                 color: [30, 30, 30],
+//                 haloColor: [150, 150, 150, 0.5],
+//                 haloSize: 1.5,
+//                 font: {
+//                   size: 10,
+//                   family: "CalciteWebCoreIcons",
+//                   weight: "bold",
+//                 },
+//               }),
+//             }),
+//           );
+//         }
+//       }
+
+//       const timeLayer = new GraphicsLayer({
+//         title,
+//         minScale,
+//         maxScale,
+//       });
+//       timeGraphic.forEach((g) => timeLayer.add(g));
+
+//       return timeLayer;
+//     },
+//   );
+// }
