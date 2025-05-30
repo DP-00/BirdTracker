@@ -1,14 +1,11 @@
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils";
-import * as geometryEngine from "@arcgis/core/geometry/geometryEngine";
-import Multipoint from "@arcgis/core/geometry/Multipoint";
-import * as distanceOperator from "@arcgis/core/geometry/operators/distanceOperator.js";
 import * as geodeticDistanceOperator from "@arcgis/core/geometry/operators/geodeticDistanceOperator";
-
 import Point from "@arcgis/core/geometry/Point";
 import Polygon from "@arcgis/core/geometry/Polygon";
 import * as webMercatorUtils from "@arcgis/core/geometry/support/webMercatorUtils";
 import Graphic from "@arcgis/core/Graphic";
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
+import { ArcgisTimeSlider } from "@arcgis/map-components/dist/components/arcgis-time-slider";
 import { fetchWeatherApi } from "openmeteo";
 const fields = [
   {
@@ -22,6 +19,14 @@ const fields = [
   {
     name: "latitude",
     type: "double",
+  },
+  {
+    name: "firstTimestamp",
+    type: "date",
+  },
+  {
+    name: "lastTimestamp",
+    type: "date",
   },
   {
     name: "timestamp",
@@ -329,8 +334,14 @@ export async function setWeather(
   const weatherTimeSwitch = document.getElementById(
     "weather-time-switch",
   )! as HTMLCalciteSwitchElement;
+  const weatherAlert = document.getElementById(
+    "weather-alert-general",
+  )! as HTMLCalciteAlertElement;
+  const timeSlider = document.querySelector(
+    "arcgis-time-slider",
+  )! as ArcgisTimeSlider;
   let weatherLayer: FeatureLayer;
-  let tiles;
+  let tiles: any;
 
   weatherLayer = await createWeatherLayer(arcgisScene);
   buttonTiles?.addEventListener("click", async () => {
@@ -339,6 +350,8 @@ export async function setWeather(
       secondaryLayer,
       polylineLayer,
     );
+
+    console.log("t", tiles);
   });
   buttonWeather?.addEventListener("click", async () => {
     updateWeatherLayer();
@@ -383,6 +396,7 @@ export async function setWeather(
   }
 
   async function generateWeatherExtent(arcgisScene, layer, polylineLayer) {
+    buttonTiles.loading = true;
     try {
       const existing = await weatherLayer.queryFeatures();
       const deleteFeatures = Array.isArray(existing.features)
@@ -397,21 +411,22 @@ export async function setWeather(
         weatherSelect.disabled = true;
         weatherTimeSwitch.disabled = true;
         buttonWeather.innerText = `Get weather`;
+        buttonTiles.loading = false;
+        return;
+      }
+
+      const firstTimestamp = new Date(timeSlider.timeExtent.start);
+      const lastTimestamp = new Date(timeSlider.timeExtent.end);
+
+      console.log(firstTimestamp, lastTimestamp);
+
+      if (lastTimestamp - firstTimestamp > 14 * 24 * 60 * 60 * 1000) {
+        document.getElementById("weather-alert-14")!.open = true;
+        buttonTiles.loading = false;
         return;
       }
       const layerView = await arcgisScene.view.whenLayerView(layer);
       await reactiveUtils.whenOnce(() => !layerView.dataUpdating);
-      const features = await layerView.queryFeatures({
-        geometry: arcgisScene.view.extent,
-        returnGeometry: true,
-        orderByFields: ["ObjectID"],
-      });
-
-      const firstTimestamp = features.features[0].attributes.timestamp;
-      const lastTimestamp =
-        features.features[features.features.length - 1].attributes.timestamp;
-      let timestamp = new Date(firstTimestamp);
-
       const featureExtent = await layerView.queryExtent();
 
       const polygon = new Polygon({
@@ -440,15 +455,22 @@ export async function setWeather(
         spatialReference: { wkid: 3857 },
       });
 
-      const tiles = await generateTiles(polygon, polylineLayer, timestamp);
+      const tiles = await generateTiles(
+        polygon,
+        polylineLayer,
+        firstTimestamp,
+        lastTimestamp,
+      );
 
       await weatherLayer.applyEdits({
         addFeatures: tiles,
       });
+      updateWeatherRenderer("Blank");
       buttonWeather.innerText = `Get weather for ${tiles.length} tiles`;
-
+      buttonTiles.loading = false;
       if (tiles.length > 600) {
         document.getElementById("weather-alert-600")!.open = true;
+        buttonWeather.disabled = true;
         return;
       } else {
         buttonWeather.disabled = false;
@@ -463,7 +485,12 @@ export async function setWeather(
     }
   }
 
-  async function generateTiles(polygon, polylineLayer, timestamp) {
+  async function generateTiles(
+    polygon,
+    polylineLayer,
+    firstTimestamp,
+    lastTimestamp,
+  ) {
     const step = weatherSize.value * 1000;
     const extent = polygon.extent;
 
@@ -487,15 +514,18 @@ export async function setWeather(
           spatialReference: polygon.spatialReference,
         });
 
-        const distanceToLine = geometryEngine.distance(
+        if (!geodeticDistanceOperator.isLoaded()) {
+          await geodeticDistanceOperator.load();
+        }
+
+        let distanceToLine = geodeticDistanceOperator.execute(
           tileCenter,
           polyline,
-          "kilometers",
         );
 
         if (
           distanceToLine !== null &&
-          distanceToLine <= weatherDistance.value
+          distanceToLine / 1000 <= weatherDistance.value
         ) {
           const tilePolygon = new Polygon({
             rings: [
@@ -514,17 +544,14 @@ export async function setWeather(
               ObjectID: tiles.length + 1,
               longitude: tilePolygon.centroid?.longitude,
               latitude: tilePolygon.centroid?.latitude,
-              timestamp: timestamp.getTime(),
+              timestamp: lastTimestamp.getTime(),
+              firstTimestamp: firstTimestamp.getTime(),
+              lastTimestamp: lastTimestamp.getTime(),
               tileSize: weatherSize.value,
-              temperature: null,
-              pressure: null,
-              precipitation: null,
-              windSpeed10: null,
-              windDirection10: null,
-              windSpeed100: null,
-              windDirection100: null,
             },
           });
+
+          console.log("gr", tile);
 
           tiles.push(tile);
         }
@@ -581,24 +608,25 @@ export async function setWeather(
           windSpeed100m: toRoundedArray(hourly.variables(6)!.valuesArray()!),
         },
       };
-      console.log(weatherData);
+
+      console.log("weatherData", weatherData);
 
       return weatherData.hourly;
     } catch (error) {
       let errorMessage = "An error occurred while fetching weather data.";
 
       if (error instanceof Response) {
-        if (error.status === 429) {
-          errorMessage = "Rate limit exceeded: Too many requests to the API.";
-        } else if (error.status >= 400 && error.status < 500) {
-          errorMessage = `Client error ${error.status}: Please check the request parameters.`;
-        } else if (error.status >= 500) {
-          errorMessage = `Server error ${error.status}: The weather service is currently unavailable.`;
-        }
+        errorMessage = `Error ${error.status}`;
       } else if (error instanceof Error) {
         errorMessage = `Error: ${error.message}`;
       }
-      console.warn(errorMessage);
+
+      const messageSlot = weatherAlert?.querySelector('[slot="message"]');
+      if (messageSlot) {
+        messageSlot.textContent = errorMessage;
+      }
+      weatherAlert.open = true;
+      // console.warn(errorMessage);
       return null;
     }
   }
@@ -606,17 +634,21 @@ export async function setWeather(
   async function updateWeatherLayer() {
     buttonWeather.loading = true;
 
-    let weatherData;
+    let isUpdated = false;
 
+    if (tiles == undefined || tiles.length === 0) {
+      buttonWeather.loading = false;
+      buttonWeather.innerText = `Get weather`;
+      return;
+    }
     for (const tile of tiles) {
-      let timestamp = new Date(tile.attributes.timestamp);
-      try {
-        weatherData = await getWeatherAPI(
-          tile.geometry.centroid,
-          timestamp,
-          timestamp,
-        );
+      const weatherData = await getWeatherAPI(
+        tile.geometry.centroid,
+        new Date(tile.attributes.firstTimestamp),
+        new Date(tile.attributes.lastTimestamp),
+      );
 
+      if (weatherData) {
         tile.attributes.timestampAll = weatherData.time;
         tile.attributes.temperatureAll = weatherData.temperature2m;
         tile.attributes.precipitationAll = weatherData.precipitation;
@@ -625,80 +657,30 @@ export async function setWeather(
         tile.attributes.windDirection10All = weatherData.windDirection10m;
         tile.attributes.windSpeed100All = weatherData.windSpeed100m;
         tile.attributes.windDirection100All = weatherData.windDirection100m;
-      } catch (err) {
-        console.warn("Weather API error:", err);
+        isUpdated = true;
+      } else {
+        await weatherLayer.applyEdits({
+          deleteFeatures: tiles,
+        });
         buttonWeather.loading = false;
+        return;
       }
     }
+    if (isUpdated) {
+      createTimeControl();
 
-    createTimeControl(weatherData.time);
+      weatherSelect.disabled = false;
+      weatherTimeSwitch.disabled = false;
+
+      await setWeatherLayerTime();
+      updateWeatherRenderer();
+    }
 
     await weatherLayer.applyEdits({
       updateFeatures: tiles,
     });
-    weatherSelect.disabled = false;
-    weatherTimeSwitch.disabled = false;
-
-    await setWeatherLayerTime();
-    updateWeatherRenderer();
 
     buttonWeather.loading = false;
-  }
-
-  async function getClosestHour(weatherPoint) {
-    let closestGraphic = null;
-    let minDistance = Infinity;
-
-    for (const graphic of hourLayer.graphics.items) {
-      let graphicPoint = new Point({
-        longitude: graphic.geometry.longitude,
-        latitude: graphic.geometry.latitude,
-        spatialReference: graphic.geometry.spatialReference,
-      });
-
-      let graphicPointMercator =
-        webMercatorUtils.geographicToWebMercator(graphicPoint);
-
-      if (!geodeticDistanceOperator.isLoaded()) {
-        await geodeticDistanceOperator.load();
-      }
-
-      let distance = distanceOperator.execute(
-        graphicPointMercator,
-        weatherPoint,
-      );
-
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestGraphic = graphic;
-      }
-    }
-
-    if (closestGraphic) {
-      return new Date(closestGraphic.attributes.timestamp);
-    }
-
-    return null;
-  }
-
-  function mapDatetoIndex(date) {
-    const timeArray = tiles[0].attributes.timestampAll;
-    const targetHour = new Date(date);
-    targetHour.setMinutes(0, 0, 0);
-
-    for (let i = 0; i < timeArray.length; i++) {
-      const arrayDate = new Date(timeArray[i]);
-      arrayDate.setMinutes(0, 0, 0);
-      if (arrayDate.getTime() === targetHour.getTime()) {
-        return i;
-      }
-    }
-
-    return 0;
-  }
-
-  function formatDateShort(d) {
-    return `${d.getHours()}h ${d.getDate()}/${d.getMonth() + 1}`;
   }
 
   function createTimeControl() {
@@ -727,43 +709,63 @@ export async function setWeather(
     slider.disabled = true;
     weatherTimeContainer.appendChild(slider);
 
-    const timeSlider = document.querySelector(
-      "arcgis-time-slider",
-    )! as ArcgisTimeSlider;
-
     timeSlider.addEventListener("arcgisPropertyChange", (event) => {
-      slider.value = mapDatetoIndex(timeSlider.timeExtent.end);
+      slider.value = mapDatetoIndex(timeSlider.timeExtent.end, timeArray);
       setWeatherLayerTime();
     });
   }
 
   async function setWeatherLayerTime() {
-    let i = document.getElementById("weather-time")!.value;
+    let timeIndex = document.getElementById("weather-time")!.value;
 
-    for (const tile of tiles) {
+    for (let i = tiles.length - 1; i >= 0; i--) {
+      const tile = tiles[i];
+
       if (!weatherTimeSwitch.checked) {
         let currentTimestamp = await getClosestHour(tile.geometry.centroid);
-        i = mapDatetoIndex(currentTimestamp);
+        timeIndex = mapDatetoIndex(
+          currentTimestamp,
+          tile.attributes.timestampAll,
+        );
       }
-      tile.attributes.timestamp = tile.attributes.timestampAll[i].toISOString();
-      tile.attributes.temperature = tile.attributes.temperatureAll[i]; //Math.random() * 60 - 30
-      tile.attributes.precipitation = tile.attributes.precipitationAll[i];
-      tile.attributes.pressure = tile.attributes.pressureAll[i];
-      tile.attributes.windSpeed10 = tile.attributes.windSpeed10All[i];
-      tile.attributes.windDirection10 = tile.attributes.windDirection10All[i];
-      tile.attributes.windSpeed100 = tile.attributes.windSpeed100All[i];
-      tile.attributes.windDirection100 = tile.attributes.windDirection100All[i];
-    }
 
+      if (
+        tile.attributes.timestampAll &&
+        tile.attributes.timestampAll[timeIndex] !== undefined
+      ) {
+        tile.attributes.timestamp =
+          tile.attributes.timestampAll[timeIndex].toISOString();
+        tile.attributes.temperature = tile.attributes.temperatureAll[timeIndex];
+        tile.attributes.precipitation =
+          tile.attributes.precipitationAll[timeIndex];
+        tile.attributes.pressure = tile.attributes.pressureAll[timeIndex];
+        tile.attributes.windSpeed10 = tile.attributes.windSpeed10All[timeIndex];
+        tile.attributes.windDirection10 =
+          tile.attributes.windDirection10All[timeIndex];
+        tile.attributes.windSpeed100 =
+          tile.attributes.windSpeed100All[timeIndex];
+        tile.attributes.windDirection100 =
+          tile.attributes.windDirection100All[timeIndex];
+      }
+      // else {
+      //   // Remove tile if no timestamp data (backward for loop to allow it)
+      //   tiles.splice(i, 1);
+      // }
+    }
     await weatherLayer.applyEdits({
       updateFeatures: tiles,
     });
   }
 
-  function updateWeatherRenderer() {
+  function updateWeatherRenderer(value = weatherSelect.value) {
     let weatherRenderer;
     let popupText;
-    switch (weatherSelect.value) {
+    switch (value) {
+      case "Blank": {
+        weatherRenderer = blankRenderer;
+        popupText = "Grid layout";
+        break;
+      }
       case "Temperature": {
         weatherRenderer = temperatureRenderer;
         popupText = "Temperature: {temperature} °C";
@@ -804,7 +806,7 @@ export async function setWeather(
       content: [
         {
           type: "custom",
-          creator: createWeatherChartPopup(weatherSelect.value),
+          creator: createWeatherChartPopup(value),
         },
         {
           type: "text",
@@ -820,6 +822,7 @@ export async function setWeather(
   }
 
   // src: chatGPT based on the given requirements
+
   function createWeatherChartPopup(variableName) {
     return (target) => {
       const graphic = target.graphic;
@@ -865,10 +868,16 @@ export async function setWeather(
 
       // --- Generate readable labels for x-axis ---
       const labels = timestamps.map((d, i) => {
-        const isMidnight = d.getHours() === 0 && d.getMinutes() === 0;
-        return isMidnight
-          ? `${d.getDate()}/${d.getMonth() + 1}`
-          : `${d.getHours()}h`;
+        const hour = d.getHours();
+        const minute = d.getMinutes();
+
+        const isMidnight = hour === 0 && minute === 0;
+        const isNoon = hour === 12 && minute === 0;
+
+        if (isMidnight) return `${d.getDate()}/${d.getMonth() + 1}`;
+        if (isNoon) return "12h";
+
+        return ""; // hide all other labels
       });
 
       // --- Create chart container ---
@@ -939,13 +948,26 @@ export async function setWeather(
           options: {
             responsive: false,
             plugins: {
-              legend: { display: true },
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  title: (tooltipItems) => {
+                    const i = tooltipItems[0].dataIndex;
+                    return timestamps[i].toLocaleString();
+                  },
+                },
+              },
             },
             scales: {
               x: {
                 ticks: {
-                  maxTicksLimit: 12,
-                  autoSkip: true,
+                  font: { size: 10 },
+                  autoSkip: false,
+                  maxRotation: 45,
+                  minRotation: 0,
+                  callback: function (val, index, ticks) {
+                    return labels[index]; // Use custom formatted labels
+                  },
                 },
               },
               y: {
@@ -963,103 +985,59 @@ export async function setWeather(
       return container;
     };
   }
-}
 
-// ----- ARCHIVE -------
+  async function getClosestHour(weatherPoint) {
+    let closestGraphic = null;
+    let minDistance = Infinity;
 
-function getSampledGraphics(graphics, minDistanceKm = 4) {
-  const sampled = [];
-  let lastPoint = null;
-  let lastTimestamp = null;
-  let sampleInterval = 1000;
+    for (const graphic of hourLayer.graphics.items) {
+      let graphicPoint = new Point({
+        longitude: graphic.geometry.longitude,
+        latitude: graphic.geometry.latitude,
+        spatialReference: graphic.geometry.spatialReference,
+      });
 
-  for (let i = 0; i < graphics.length; i += sampleInterval) {
-    const g = graphics[i];
-    const currentTimestamp = g.attributes.timestamp;
-    const currentPoint = g.geometry;
+      let graphicPointMercator =
+        webMercatorUtils.geographicToWebMercator(graphicPoint);
 
-    let distanceFromLast = 0;
-    if (lastPoint) {
-      const lastWeb = webMercatorUtils.geographicToWebMercator(lastPoint);
-      const currentWeb = webMercatorUtils.geographicToWebMercator(currentPoint);
-      distanceFromLast =
-        geometryEngine.distance(lastWeb, currentWeb, "kilometers") || 0;
+      if (!geodeticDistanceOperator.isLoaded()) {
+        await geodeticDistanceOperator.load();
+      }
+
+      let distance = geodeticDistanceOperator.execute(
+        graphicPointMercator,
+        weatherPoint,
+      );
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestGraphic = graphic;
+      }
     }
 
-    if (!lastTimestamp || distanceFromLast >= minDistanceKm) {
-      lastTimestamp = currentTimestamp;
-      lastPoint = currentPoint;
-      sampled.push(g);
+    if (closestGraphic) {
+      return new Date(closestGraphic.attributes.timestamp);
     }
+
+    return null;
   }
 
-  return sampled;
-}
+  function mapDatetoIndex(date, timeArray) {
+    const targetHour = new Date(date);
+    targetHour.setMinutes(0, 0, 0);
 
-function createSquareAroundPoint(point: Point): Polygon {
-  //  diagonal of 2 km square ≈ 2 * sqrt(2) / 2 = 1.414 km
-  const buffer = geometryEngine.geodesicBuffer(point, 1.414, "kilometers");
-  const envelope = buffer.extent;
-  const { xmin, ymin, xmax, ymax } = envelope;
+    for (let i = 0; i < timeArray.length; i++) {
+      const arrayDate = new Date(timeArray[i]);
+      arrayDate.setMinutes(0, 0, 0);
+      if (arrayDate.getTime() === targetHour.getTime()) {
+        return i;
+      }
+    }
 
-  const square = new Polygon({
-    rings: [
-      [xmin, ymin],
-      [xmax, ymin],
-      [xmax, ymax],
-      [xmin, ymax],
-      [xmin, ymin],
-    ],
-    spatialReference: point.spatialReference,
-  });
+    return 0;
+  }
 
-  return square;
-}
-
-function createBufferedAreaFromPoints(pointFeatures, arcgisScene) {
-  if (!pointFeatures.length) return;
-
-  const spatialRef = pointFeatures[0].geometry.spatialReference;
-  const coords = pointFeatures.map((f) => [
-    f.geometry.longitude,
-    f.geometry.latitude,
-  ]);
-
-  const multipoint = new Multipoint({
-    points: coords,
-    spatialReference: spatialRef,
-  });
-
-  const webMercator = webMercatorUtils.geographicToWebMercator(multipoint);
-
-  const buffer = geometryEngine.buffer(webMercator, 3, "kilometers");
-
-  let graphic = new Graphic({
-    geometry: buffer,
-    symbol: {
-      type: "simple-fill",
-      color: [255, 0, 0, 0.5],
-    },
-  });
-
-  arcgisScene.view.graphics.add(graphic);
-}
-
-async function getWeather(point, timestamp, parameter) {
-  const dateStr = timestamp.toISOString().split("T")[0]; // yyyy-mm-dd
-  const apiUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${point.latitude}&longitude=${point.longitude}&start_date=${dateStr}&end_date=${dateStr}&hourly=${parameter}&timezone=UTC`;
-  const res = await fetch(apiUrl);
-  const data = await res.json();
-
-  if (!data.hourly[parameter] || !data.hourly.time) return;
-
-  const times = data.hourly.time;
-  const temps = data.hourly[parameter];
-
-  const targetHour = timestamp.toISOString().slice(0, 13); // yyyy-mm-ddThh
-
-  const index = times.findIndex((t) => t.startsWith(targetHour));
-  const temp = index >= 0 ? temps[index] : null;
-
-  return temp;
+  function formatDateShort(d) {
+    return `${d.getHours()}h ${d.getDate()}/${d.getMonth() + 1}`;
+  }
 }

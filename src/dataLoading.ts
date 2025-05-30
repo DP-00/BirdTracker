@@ -172,7 +172,8 @@ async function createDefaultLayers(
   const generalizedLayer = await createGeneralizedLineLayer(dataProcessed);
   const primaryLayer = await createLineLayer(dataProcessed, birdSummary);
   const secondaryLayer = createCylinderLayer(birdGraphics, birdSummary);
-  [hourLayer, dayLayer] = createTimeLayer(birdGraphics);
+  [hourLayer, dayLayer] = await createTimeLayer(birdGraphics);
+
   const arrowLayer = new GraphicsLayer({
     title: `Extremum visualization`,
   });

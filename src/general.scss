@@ -54,6 +54,17 @@ calcite-accordion-item {
   overflow-y: auto;
 }
 
+.esri-popup__main-container {
+  max-width: unset !important;
+  min-width: unset !important;
+}
+
+.esri-popup__content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 // .list-item-slide {
 //   margin: 5px 0px 5px 10px;
 //   width: 80px;

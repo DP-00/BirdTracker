@@ -450,16 +450,33 @@ const WeatherControls = () => {
         auto-close="true"
         auto-close-duration="slow"
       >
-        <div slot="title">Limit your grid to maximum 600 tiles</div>
+        <div slot="title">Weather tiles error: size limit</div>
+        <div slot="message">Limit your grid to maximum 600 tiles</div>
       </calcite-alert>
       <calcite-alert
-        id="weather-alert-hourly"
+        id="weather-alert-14"
+        kind="danger"
+        icon
+        label="Danger alert"
+        auto-close="true"
+        auto-close-duration="slow"
+      >
+        <div slot="title">Weather tiles error: duration limit</div>
+        <div slot="message">Limit your grid to maximum 2 week period</div>
+      </calcite-alert>
+      <calcite-alert
+        id="weather-alert-general"
         kind="danger"
         icon
         label="Danger alert"
         auto-close="true"
       >
-        <div slot="title">You've reached the limit, try again in one hour</div>
+        <div slot="title">Weather service error</div>
+        <div slot="message">
+          There has been an error with the weather service. Some of you data
+          couldn't be requested. Check console for more details or try different
+          request.
+        </div>
       </calcite-alert>
     </calcite-accordion-item>
   );
