@@ -175,6 +175,40 @@ export function setTimeSlider(
     view.environment.lighting.date = new Date(timeSlider.timeExtent.end);
   });
 
+  // timeSlider.actions = [
+  //   {
+  //     id: "quake",
+  //     icon: "exclamation-mark-triangle",
+  //     title: "Jump to Earthquake",
+  //   },
+  //   {
+  //     id: "quake-plus-one-month",
+  //     icon: "organization",
+  //     title: "One month later",
+  //   },
+  // ];
+
+  // timeSlider.on("trigger-action", (event) => {
+  //   const quake = new Date(Date.UTC(2011, 3, 11, 8, 16, 12));
+  //   const oneMonthLater = new Date(quake.getTime()).setMonth(
+  //     quake.getMonth() + 1,
+  //   );
+  //   switch (event.action.id) {
+  //     case "quake":
+  //       timeSlider.timeExtent = {
+  //         start: quake,
+  //         end: quake,
+  //       };
+  //       break;
+  //     case "quake-plus-one-month":
+  //       timeSlider.timeExtent = {
+  //         start: oneMonthLater,
+  //         end: oneMonthLater,
+  //       };
+  //       break;
+  //   }
+  // });
+
   document
     .getElementById("time-window")!
     .addEventListener("calciteSelectChange", (e) => {

@@ -99,46 +99,124 @@ class App extends Widget<AppProperties> {
     return (
       <div>
         <LoadingPanel></LoadingPanel>
-        <arcgis-scene
-          basemap="satellite"
-          ground="world-elevation"
-          zoom="8"
-          center="9.5,45"
-          onArcgisViewReadyChange={(e: ArcgisSceneCustomEvent<void>) =>
-            this.bindView(e.target)
-          }
-        >
-          <arcgis-zoom position="top-left"></arcgis-zoom>
-          <arcgis-navigation-toggle position="top-left"></arcgis-navigation-toggle>
-          <arcgis-compass position="top-left"></arcgis-compass>
-          <MapControls></MapControls>
-          <arcgis-placement position="top-right">
-            <div id="dashboard" class="esri-widget">
+        <div id="main-div">
+          <arcgis-scene
+            id="scene-div"
+            basemap="satellite"
+            ground="world-elevation"
+            zoom="8"
+            center="9.5,45"
+            onArcgisViewReadyChange={(e: ArcgisSceneCustomEvent<void>) =>
+              this.bindView(e.target)
+            }
+          >
+            <arcgis-zoom position="top-left"></arcgis-zoom>
+            <arcgis-navigation-toggle position="top-left"></arcgis-navigation-toggle>
+            <arcgis-compass position="top-left"></arcgis-compass>
+            <MapControls></MapControls>
+            <arcgis-placement position="bottom-right">
+              <TimeControls></TimeControls>
+              <arcgis-time-slider
+                width="1000px"
+                layout="auto"
+                reference-element="scene-div"
+                position="bottom-right"
+                mode="time-window"
+                play-rate="1"
+                time-visible="true"
+                loop
+                stops-interval-value="1"
+                stops-interval-unit="hours"
+              ></arcgis-time-slider>
+            </arcgis-placement>
+          </arcgis-scene>
+          <div id="dashboard" class="esri-widget">
+            <p>
+              <h2>
+                Birdtracker{" "}
+                <calcite-button
+                  appearance="transparent"
+                  icon-start="information"
+                  kind="neutral"
+                  round
+                  scale="s"
+                ></calcite-button>
+              </h2>
               <p>
-                <h2>
-                  Birdtracker{" "}
-                  <calcite-button
-                    appearance="transparent"
-                    icon-start="information"
-                    kind="neutral"
-                    round
-                    scale="s"
-                  ></calcite-button>
-                </h2>
+                <b>Bird IDXXX</b>
               </p>
-              <calcite-tabs layout="center">
-                <calcite-tab-nav slot="title-group">
-                  <calcite-tab-title>Overview</calcite-tab-title>
-                  <calcite-tab-title>Charts</calcite-tab-title>
-                  <calcite-tab-title selected>Visualization</calcite-tab-title>
-                </calcite-tab-nav>
-                <OverviewDashboard></OverviewDashboard>
-                <ChartsDashboard></ChartsDashboard>
-                <VisDashboard></VisDashboard>
-              </calcite-tabs>
-            </div>
-          </arcgis-placement>
-        </arcgis-scene>
+              <p>
+                <b>Duration: </b>35 days <b>Distance: </b>1253 km
+              </p>
+              <p id="dashboard-current">test</p>
+              <calcite-label>
+                <calcite-segmented-control
+                  width="full"
+                  appearance="outline-fill"
+                  scale="m"
+                >
+                  <calcite-segmented-control-item
+                    icon-start="gps-on"
+                    value="CAD"
+                    selected
+                  >
+                    Follow bird
+                  </calcite-segmented-control-item>
+
+                  <calcite-segmented-control-item
+                    id="camera-zoom"
+                    icon-start="line"
+                    value="KML"
+                  >
+                    Show Path
+                  </calcite-segmented-control-item>
+                  {/* <calcite-segmented-control-item
+                    icon-start="explore"
+                    value="KML"
+                    checked
+                  >
+                    Explore free
+                  </calcite-segmented-control-item> */}
+                </calcite-segmented-control>
+              </calcite-label>
+              <calcite-label layout="inline">
+                Primary visualization:
+                <calcite-select id="primary-vis-select"></calcite-select>
+              </calcite-label>
+              <div id="prim-filter-container"></div>
+              <calcite-label layout="inline">
+                Secondary visualization:
+                <calcite-select id="secondary-vis-select"></calcite-select>
+              </calcite-label>
+              <div id="sec-filter-container"></div>
+            </p>
+
+            <calcite-tabs layout="center">
+              <calcite-tab-nav slot="title-group">
+                <calcite-tab-title selected>Charts</calcite-tab-title>
+                <calcite-tab-title>Legend</calcite-tab-title>
+                <calcite-tab-title>Visibility</calcite-tab-title>
+                <calcite-tab-title>Weather</calcite-tab-title>
+              </calcite-tab-nav>
+              {/* <OverviewDashboard></OverviewDashboard> */}
+              {/* <VisDashboard></VisDashboard> */}
+
+              <ChartsDashboard></ChartsDashboard>
+              <calcite-tab>
+                <arcgis-legend reference-element="scene-div"></arcgis-legend>
+              </calcite-tab>
+              <calcite-tab>
+                <arcgis-layer-list
+                  id="vis-layers"
+                  reference-element="scene-div"
+                ></arcgis-layer-list>
+              </calcite-tab>
+              <calcite-tab>
+                <WeatherControls></WeatherControls>
+              </calcite-tab>
+            </calcite-tabs>
+          </div>
+        </div>
       </div>
     );
   }
@@ -290,6 +368,7 @@ const OverviewDashboard = () => {
         >
           <TimeControls></TimeControls>
           <arcgis-time-slider
+            reference-element="scene-div"
             position="bottom-right"
             mode="time-window"
             play-rate="1"
@@ -313,7 +392,7 @@ const ChartsDashboard = () => {
           icon-start="altitude"
           expanded
         >
-          <arcgis-elevation-profile></arcgis-elevation-profile>
+          <arcgis-elevation-profile reference-element="scene-div"></arcgis-elevation-profile>
         </calcite-accordion-item>
 
         <calcite-accordion-item
@@ -343,38 +422,41 @@ const VisDashboard = () => {
               icon-start="view-visible"
               heading="Layer visibility"
             >
-              <arcgis-layer-list id="vis-layers"></arcgis-layer-list>
+              <arcgis-layer-list
+                id="vis-layers"
+                reference-element="scene-div"
+              ></arcgis-layer-list>
             </calcite-accordion-item>
             <calcite-accordion-item
               icon-start="multiple-variables"
               heading="Variable selection"
               expanded
             >
-              <calcite-label layout="inline">
+              {/* <calcite-label layout="inline">
                 Primary visualization:
                 <calcite-select id="primary-vis-select"></calcite-select>
               </calcite-label>
               <calcite-label layout="inline">
                 Secondary visualization:
                 <calcite-select id="secondary-vis-select"></calcite-select>
-              </calcite-label>
+              </calcite-label> */}
             </calcite-accordion-item>
             <calcite-accordion-item icon-start="filter" heading="Filter">
-              <calcite-label layout="inline">
+              {/* <calcite-label layout="inline">
                 Primary visualization:
                 <div id="prim-filter-container"></div>
               </calcite-label>
               <calcite-label layout="inline">
                 Secondary visualization:
                 <div id="sec-filter-container"></div>
-              </calcite-label>
+              </calcite-label> */}
             </calcite-accordion-item>
           </calcite-accordion>
         </calcite-accordion-item>
         <WeatherControls></WeatherControls>
 
         <calcite-accordion-item heading="Legend" icon-start="legend">
-          <arcgis-legend></arcgis-legend>
+          <arcgis-legend reference-element="scene-div"></arcgis-legend>
         </calcite-accordion-item>
       </calcite-accordion>
     </calcite-tab>

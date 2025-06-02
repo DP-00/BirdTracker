@@ -1,11 +1,5 @@
 @import "@arcgis/core/assets/esri/themes/dark/main.css";
 
-arcgis-scene {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-}
-
 calcite-block {
   margin: 0px;
 }
@@ -21,18 +15,26 @@ body {
 input {
   margin: 1rem 0;
 }
-#column-assignment {
-  block-size: auto !important;
+
+#main-div {
+  display: flex;
+  height: 100vh;
+}
+
+#scene-div {
+  flex: 1;
 }
 
 #dashboard {
-  padding: 10px;
+  flex: 1;
+  padding: 1.5rem;
   font-weight: 36;
   text-align: center;
-  max-height: 90vh;
-  overflow-y: auto;
-  width: 33vw;
-  overflow-x: auto;
+  max-width: 30rem;
+}
+
+#column-assignment {
+  block-size: auto !important;
 }
 
 .esri-daylight__container {
@@ -47,6 +49,10 @@ input {
   display: flex;
   gap: 1rem;
   margin-top: 1rem;
+}
+
+arcgis-time-slider {
+  width: 69.5vw;
 }
 
 calcite-accordion-item {

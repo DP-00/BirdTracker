@@ -1,5 +1,6 @@
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import Papa from "papaparse";
+import { setBirdPerspective } from "./birdPerspective";
 import {
   createCylinderLayer,
   createGeneralizedLineLayer,
@@ -179,8 +180,8 @@ async function createDefaultLayers(
   });
 
   await arcgisScene.addLayers([
-    primaryLayer,
     generalizedLayer,
+    primaryLayer,
     secondaryLayer,
     arrowLayer,
     hourLayer,
@@ -191,6 +192,8 @@ async function createDefaultLayers(
 
   await secondaryLayer.when();
   await setWeather(arcgisScene, secondaryLayer, generalizedLayer, hourLayer);
+
+  await setBirdPerspective(arcgisScene, secondaryLayer);
 
   // await arcgisScene.addLayers([weatherLayer]);
   setSingleVis(

@@ -250,7 +250,7 @@ export function createFilters(
       slider.maxValue = summary.max;
       slider.min = summary.min;
       slider.max = summary.max;
-      slider.style = "width:250px";
+      // slider.style = "width:250px";
       slider.setAttribute("label-handles", "");
       slider.addEventListener("calciteSliderChange", async () => {
         const minValue = slider.minValue;

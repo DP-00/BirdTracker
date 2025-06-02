@@ -370,7 +370,7 @@ export async function setWeather(
   async function createWeatherLayer(arcgisScene) {
     let weatherLayer = new FeatureLayer({
       id: "weatherLayer",
-      title: "Weather visualization",
+      title: "Weather",
       source: [],
       objectIdField: "ObjectID",
       geometryType: "polygon",
