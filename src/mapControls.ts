@@ -3,7 +3,6 @@ import ImageryLayer from "@arcgis/core/layers/ImageryLayer";
 import ImageryTileLayer from "@arcgis/core/layers/ImageryTileLayer";
 import * as rasterFunctionUtils from "@arcgis/core/layers/support/rasterFunctionUtils";
 import TileLayer from "@arcgis/core/layers/TileLayer";
-import TimeExtent from "@arcgis/core/time/TimeExtent";
 import Slide from "@arcgis/core/webscene/Slide";
 import LocalBasemapsSource from "@arcgis/core/widgets/BasemapGallery/support/LocalBasemapsSource";
 import { ArcgisTimeSlider } from "@arcgis/map-components/dist/components/arcgis-time-slider";
@@ -171,66 +170,36 @@ export function setTimeSlider(
 
   timeSlider.view = view;
   timeSlider.fullTimeExtent = layer.timeInfo?.fullTimeExtent;
+  console.log(timeSlider.timeExtent);
+  timeSlider.stops = { interval: { value: 5, unit: "minutes" } };
   timeSlider.addEventListener("arcgisPropertyChange", (event) => {
     view.environment.lighting.date = new Date(timeSlider.timeExtent.end);
   });
 
-  // timeSlider.actions = [
-  //   {
-  //     id: "quake",
-  //     icon: "exclamation-mark-triangle",
-  //     title: "Jump to Earthquake",
-  //   },
-  //   {
-  //     id: "quake-plus-one-month",
-  //     icon: "organization",
-  //     title: "One month later",
-  //   },
-  // ];
+  // timeSlider.stops = null;
 
-  // timeSlider.on("trigger-action", (event) => {
-  //   const quake = new Date(Date.UTC(2011, 3, 11, 8, 16, 12));
-  //   const oneMonthLater = new Date(quake.getTime()).setMonth(
-  //     quake.getMonth() + 1,
-  //   );
-  //   switch (event.action.id) {
-  //     case "quake":
-  //       timeSlider.timeExtent = {
-  //         start: quake,
-  //         end: quake,
-  //       };
-  //       break;
-  //     case "quake-plus-one-month":
-  //       timeSlider.timeExtent = {
-  //         start: oneMonthLater,
-  //         end: oneMonthLater,
-  //       };
-  //       break;
-  //   }
-  // });
+  // document
+  //   .getElementById("time-window")!
+  //   .addEventListener("calciteSelectChange", (e) => {
+  //     const hours = parseInt(e.target.value);
+  //     const end = new Date(timeSlider.timeExtent.end);
+  //     let start = new Date(end.getTime() - (hours * 3600000) / 60000);
+  //     if (start < new Date(timeSlider.fullTimeExtent.start)) {
+  //       start = new Date(timeSlider.fullTimeExtent.start);
+  //     }
+  //     timeSlider.timeExtent = new TimeExtent({ start, end });
+  //   });
 
-  document
-    .getElementById("time-window")!
-    .addEventListener("calciteSelectChange", (e) => {
-      const hours = parseInt(e.target.value);
-      const end = new Date(timeSlider.timeExtent.end);
-      let start = new Date(end.getTime() - hours * 3600000);
-      if (start < new Date(timeSlider.fullTimeExtent.start)) {
-        start = new Date(timeSlider.fullTimeExtent.start);
-      }
-      timeSlider.timeExtent = new TimeExtent({ start, end });
-    });
-
-  document
-    .getElementById("speed")!
-    .addEventListener("calciteSelectChange", (e) => {
-      timeSlider.playRate = parseFloat(e.target.value);
-    });
-  document
-    .getElementById("stops")!
-    .addEventListener("calciteSelectChange", (e) => {
-      timeSlider.stops = { interval: { value: 1, unit: e.target.value } };
-    });
+  // document
+  //   .getElementById("speed")!
+  //   .addEventListener("calciteSelectChange", (e) => {
+  //     timeSlider.playRate = parseFloat(e.target.value);
+  //   });
+  // document
+  //   .getElementById("stops")!
+  //   .addEventListener("calciteSelectChange", (e) => {
+  //     timeSlider.stops = { interval: { value: 1, unit: e.target.value } };
+  //   });
 }
 
 export function setSlides(arcgisScene: HTMLArcgisSceneElement) {

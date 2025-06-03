@@ -1,5 +1,21 @@
 @import "@arcgis/core/assets/esri/themes/dark/main.css";
 
+body.calcite-mode-dark {
+  --calcite-color-foreground-1: #0e1615 !important;
+  --calcite-button-background-color: #1d2e24 !important;
+  --calcite-panel-background-color: #0e1615 !important;
+  --calcite-color-brand: #7d958b !important;
+  --calcite-color-focus: #7d958b !important;
+  --calcite-color-text-3: #7d958b !important;
+  --calcite-color-text-2: #7d958b !important;
+  --calcite-color-text-1: #7d958b !important;
+}
+
+.esri-ui {
+  --calcite-color-brand: #1d2e24;
+  --calcite-color-brand-hover: #456c55;
+  --calcite-color-brand-press: #1d2e24;
+}
 calcite-block {
   margin: 0px;
 }
@@ -10,6 +26,31 @@ body {
   margin: 0;
   height: 100%;
   width: 100%;
+}
+
+.esri-widget {
+  background-color: #0c1614;
+  color: #7d958b;
+}
+
+.button,
+.esri-time-slider,
+.esri-time-slider__slider,
+.esri-time-slider__row,
+.esri-slider__content {
+  background-color: #0d1a1568;
+}
+
+.button {
+  background-color: #0d1a1568;
+}
+
+.esri-time-slider__slider .esri-slider {
+  background-color: #0d1a1500;
+}
+
+.esri-widget--button {
+  background-color: #0d1a1568;
 }
 
 input {
@@ -31,6 +72,20 @@ input {
   font-weight: 36;
   text-align: center;
   max-width: 30rem;
+}
+
+#dashboard-info {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 10px;
+  padding-bottom: 2rem;
+}
+
+#weather-container {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 10px;
+  padding-bottom: 2rem;
 }
 
 #column-assignment {
