@@ -3,6 +3,7 @@ import ImageryLayer from "@arcgis/core/layers/ImageryLayer";
 import ImageryTileLayer from "@arcgis/core/layers/ImageryTileLayer";
 import * as rasterFunctionUtils from "@arcgis/core/layers/support/rasterFunctionUtils";
 import TileLayer from "@arcgis/core/layers/TileLayer";
+import TimeExtent from "@arcgis/core/time/TimeExtent";
 import Slide from "@arcgis/core/webscene/Slide";
 import LocalBasemapsSource from "@arcgis/core/widgets/BasemapGallery/support/LocalBasemapsSource";
 import { ArcgisTimeSlider } from "@arcgis/map-components/dist/components/arcgis-time-slider";
@@ -158,6 +159,19 @@ export async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
     item.title.toLowerCase().includes("visualization");
   document.querySelector("arcgis-layer-list")!.filterPredicate = (item) =>
     !item.title.toLowerCase().includes("visualization");
+
+  console.log();
+
+  document.getElementById("thematic-layers-legend")!.layerInfos =
+    arcgisScene.map.layers
+      .filter(
+        (layer) =>
+          layer.title && !layer.title.toLowerCase().includes("visualization"),
+      )
+      .map((layer) => ({
+        layer,
+        title: layer.title,
+      }));
 }
 
 export function setTimeSlider(
@@ -170,13 +184,17 @@ export function setTimeSlider(
 
   timeSlider.view = view;
   timeSlider.fullTimeExtent = layer.timeInfo?.fullTimeExtent;
-  console.log(timeSlider.timeExtent);
-  timeSlider.stops = { interval: { value: 5, unit: "minutes" } };
+  const start = new Date(timeSlider.fullTimeExtent.start);
+  let end = new Date(start.getTime() + 600000);
+  timeSlider.timeExtent = new TimeExtent({ start, end });
+  timeSlider.stops = { count: 10000 };
+
+  // timeSlider.stops = null;
+
+  // timeSlider.stops = { interval: { value: 2, unit: "minutes" } };
   timeSlider.addEventListener("arcgisPropertyChange", (event) => {
     view.environment.lighting.date = new Date(timeSlider.timeExtent.end);
   });
-
-  // timeSlider.stops = null;
 
   // document
   //   .getElementById("time-window")!

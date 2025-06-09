@@ -1,6 +1,11 @@
 import Point from "@arcgis/core/geometry/Point";
 import Graphic from "@arcgis/core/Graphic";
+import * as colorRendererCreator from "@arcgis/core/smartMapping/renderers/color";
+
+import Color from "@arcgis/core/Color";
+import histogram from "@arcgis/core/smartMapping/statistics/histogram";
 import { TextSymbol } from "@arcgis/core/symbols";
+import ColorSlider from "@arcgis/core/widgets/smartMapping/ColorSlider";
 import { createDynamicPopupTemplate } from "./layers";
 
 export function setSingleVis(
@@ -23,6 +28,19 @@ export function setSingleVis(
   createAttributeSelects(birdSummary, secondaryVisSelect, secondaryValue);
   createDynamicPopupTemplate(primaryLayer, primaryValue, birdSummary);
   createDynamicPopupTemplate(secondaryLayer, secondaryValue, birdSummary);
+
+  createColorSlider(
+    primaryVisSelect.value,
+    primaryLayer,
+    arcgisScene,
+    "color-slider-primary",
+  );
+  createColorSlider(
+    secondaryVisSelect.value,
+    secondaryLayer,
+    arcgisScene,
+    "color-slider-secondary",
+  );
 
   createFilters(
     arcgisScene,
@@ -52,6 +70,12 @@ export function setSingleVis(
       primaryLayer,
       birdSummary,
     );
+    createColorSlider(
+      primaryVisSelect.value,
+      primaryLayer,
+      arcgisScene,
+      "color-slider-primary",
+    );
     createFilters(
       arcgisScene,
       primaryLayer,
@@ -75,6 +99,12 @@ export function setSingleVis(
       secondaryVisSelect.value,
       secondaryLayer,
       birdSummary,
+    );
+    createColorSlider(
+      secondaryVisSelect.value,
+      secondaryLayer,
+      arcgisScene,
+      "color-slider-secondary",
     );
 
     createFilters(
@@ -197,6 +227,8 @@ export function generateLayerFields(birdSummary: any) {
     { name: "timestamp", type: "date" },
     { name: "altitude", type: "double" },
     { name: "speed", type: "double" },
+    { name: "heading", type: "double" },
+    { name: "roll", type: "double" },
   ];
 
   const specialKeys = new Set(fields.map((f) => f.name));
@@ -232,6 +264,135 @@ function createAttributeSelects(
     select.appendChild(option);
   });
   select.value = defaultValue;
+}
+
+function createColorSlider(
+  variable,
+  layer: __esri.FeatureLayer,
+  arcgisScene,
+  container,
+) {
+  document.getElementById(container).innerHTML = null;
+  const colorParams = {
+    layer: layer,
+    view: arcgisScene.view,
+    field: variable,
+    theme: "above-and-below",
+    // edgesType: "solid",
+  };
+
+  const bars = [];
+  let rendererResult = null;
+  let vv = null;
+
+  colorRendererCreator
+    .createContinuousRenderer(colorParams)
+    .then((response) => {
+      // set the renderer to the layer and add it to the map
+      rendererResult = response;
+      vv = rendererResult.visualVariable;
+      layer.renderer = response.renderer;
+      layer.visible = true;
+
+      return histogram({
+        layer: colorParams.layer,
+        field: colorParams.field,
+        numBins: 60,
+      });
+    })
+    .then((histogramResult) => {
+      const slider = ColorSlider.fromRendererResult(
+        rendererResult,
+        histogramResult,
+      );
+
+      slider.set({
+        primaryHandleEnabled: true,
+        container: container,
+        handlesSyncedToPrimary: false,
+        syncedSegmentsEnabled: true,
+        labelFormatFunction: (value) => {
+          return value.toFixed(0);
+        },
+      });
+      // update the slider bars to match renderer values
+      slider.histogramConfig.barCreatedFunction = (index, element) => {
+        const bin = histogramResult.bins[index];
+        const midValue = (bin.maxValue - bin.minValue) / 2 + bin.minValue;
+        const color = getColorFromValue(vv.stops, midValue);
+        element.setAttribute("fill", color.toHex());
+        bars.push(element);
+      };
+
+      slider.on(
+        [
+          "thumb-change",
+          "thumb-drag",
+          "min-change",
+          "max-change",
+          "segment-drag",
+        ],
+        () => {
+          const renderer = layer.renderer.clone();
+          const colorVariable = renderer.visualVariables[0].clone();
+          colorVariable.stops = slider.stops;
+          renderer.visualVariables = [colorVariable];
+          layer.renderer = renderer;
+
+          // update the color of each histogram bar based on the
+          // values of the slider thumbs
+          bars.forEach((bar, index) => {
+            const bin = slider.histogramConfig.bins[index];
+            const midValue = (bin.maxValue - bin.minValue) / 2 + bin.minValue;
+            const color = getColorFromValue(slider.stops, midValue);
+            bar.setAttribute("fill", color.toHex());
+          });
+        },
+      );
+    })
+    .catch((error) => {
+      console.log("there was an error: ", error);
+    });
+
+  // infers the color for a given value
+  // based on the stops from a ColorVariable
+  function getColorFromValue(stops, value) {
+    let minStop = stops[0];
+    let maxStop = stops[stops.length - 1];
+
+    const minStopValue = minStop.value;
+    const maxStopValue = maxStop.value;
+
+    if (value < minStopValue) {
+      return minStop.color;
+    }
+
+    if (value > maxStopValue) {
+      return maxStop.color;
+    }
+
+    const exactMatches = stops.filter((stop) => {
+      return stop.value === value;
+    });
+
+    if (exactMatches.length > 0) {
+      return exactMatches[0].color;
+    }
+
+    minStop = null;
+    maxStop = null;
+    stops.forEach((stop, i) => {
+      if (!minStop && !maxStop && stop.value >= value) {
+        minStop = stops[i - 1];
+        maxStop = stop;
+      }
+    });
+
+    const weightedPosition =
+      (value - minStop.value) / (maxStop.value - minStop.value);
+
+    return Color.blendColors(minStop.color, maxStop.color, weightedPosition);
+  }
 }
 
 export function createFilters(
@@ -309,13 +470,13 @@ export function updateArrowLayer(
   const arrows = [
     {
       location: summary.minLocation,
-      icon: "\ue60a", // Down arrow
+      icon: "\ue608", // Down arrow
       label: summary.min.toFixed(0),
       color: [255, 0, 0],
     },
     {
       location: summary.maxLocation,
-      icon: "\ue60d", // Up arrow
+      icon: "\ue609", // Up arrow
       label: summary.max.toFixed(0),
     },
   ];
@@ -332,8 +493,8 @@ export function updateArrowLayer(
       geometry: point,
       symbol: new TextSymbol({
         text: `${label}\n${icon}`,
-        color: [30, 30, 30],
-        haloColor: [150, 150, 150, 0.5],
+        color: [14, 22, 21],
+        haloColor: [125, 149, 139, 0.5],
         haloSize: 2,
         font: {
           size: 24,

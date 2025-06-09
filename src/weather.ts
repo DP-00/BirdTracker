@@ -5,6 +5,7 @@ import Polygon from "@arcgis/core/geometry/Polygon";
 import * as webMercatorUtils from "@arcgis/core/geometry/support/webMercatorUtils";
 import Graphic from "@arcgis/core/Graphic";
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
+import { ArcgisLegend } from "@arcgis/map-components/dist/components/arcgis-legend";
 import { ArcgisTimeSlider } from "@arcgis/map-components/dist/components/arcgis-time-slider";
 import { fetchWeatherApi } from "openmeteo";
 const fields = [
@@ -340,18 +341,29 @@ export async function setWeather(
   const timeSlider = document.querySelector(
     "arcgis-time-slider",
   )! as ArcgisTimeSlider;
+  const weatherLegend = document.getElementById(
+    "weather-legend",
+  )! as ArcgisLegend;
+  const weatherHidden = document.getElementById("weather-hidden")!;
+
   let weatherLayer: FeatureLayer;
   let tiles: any;
 
   weatherLayer = await createWeatherLayer(arcgisScene);
+
+  weatherLegend.layerInfos = [
+    {
+      layer: weatherLayer,
+      title: "Legend",
+    },
+  ];
   buttonTiles?.addEventListener("click", async () => {
     tiles = await generateWeatherExtent(
       arcgisScene,
       secondaryLayer,
       polylineLayer,
     );
-
-    console.log("t", tiles);
+    weatherHidden.style.display = "none";
   });
   buttonWeather?.addEventListener("click", async () => {
     updateWeatherLayer();
@@ -370,7 +382,7 @@ export async function setWeather(
   async function createWeatherLayer(arcgisScene) {
     let weatherLayer = new FeatureLayer({
       id: "weatherLayer",
-      title: "Weather",
+      title: "Weather visualization",
       source: [],
       objectIdField: "ObjectID",
       geometryType: "polygon",
@@ -407,9 +419,11 @@ export async function setWeather(
       });
 
       if (weatherDistance.value == 0 || weatherSize.value == 0) {
-        buttonWeather.disabled = true;
-        weatherSelect.disabled = true;
-        weatherTimeSwitch.disabled = true;
+        // buttonWeather.disabled = true;
+        // weatherSelect.disabled = true;
+        // weatherTimeSwitch.disabled = true;
+        weatherHidden.style.display = "none";
+
         buttonWeather.innerText = `Get weather`;
         buttonTiles.loading = false;
         return;
@@ -669,8 +683,9 @@ export async function setWeather(
     if (isUpdated) {
       createTimeControl();
 
-      weatherSelect.disabled = false;
-      weatherTimeSwitch.disabled = false;
+      // weatherSelect.disabled = false;
+      // weatherTimeSwitch.disabled = false;
+      weatherHidden.style.display = "grid";
 
       await setWeatherLayerTime();
       updateWeatherRenderer();

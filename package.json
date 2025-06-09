@@ -18,6 +18,7 @@
     "lint:prettier": "prettier --write 'src/**/*.{js,jsx,ts,tsx,css,scss}'"
   },
   "dependencies": {
+    "@arcgis/charts-components": "^4.32.14",
     "@arcgis/core": "4.32",
     "@arcgis/map-components": "^4.32",
     "@esri/calcite-components": "3.0.3",

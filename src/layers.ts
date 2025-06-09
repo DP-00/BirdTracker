@@ -119,6 +119,7 @@ export async function createGeneralizedLineLayer(groupedData: {
     source: lineGraphics,
     objectIdField: "ObjectID",
     geometryType: "polyline",
+    legendEnabled: false,
     elevationInfo: { mode: "on-the-ground" },
     maxScale: 300000,
     popupEnabled: false,
@@ -311,8 +312,9 @@ export async function createTimeLayer(graphics) {
         let hours = Math.floor((durationInSeconds % 86400) / 3600);
         let text =
           label === "Hour"
-            ? `${days}d ${hours}h \ue63f +${Math.round(distanceFromLast)} (${Math.round(accumulatedDistance)})km`
-            : `${days} \ue63f +${Math.round(distanceFromLast)} (${Math.round(accumulatedDistance)})km`;
+            ? `${days}d ${hours}h: +${Math.round(distanceFromLast)} km`
+            : // : `${days} \ue64e +${Math.round(distanceFromLast)} (${Math.round(accumulatedDistance)}) km`;
+              `${days} \ue64e +${Math.round(distanceFromLast)} km`;
 
         graphicsArray.push(
           new Graphic({
@@ -320,8 +322,8 @@ export async function createTimeLayer(graphics) {
             attributes: { timestamp: currentTimestamp },
             symbol: new TextSymbol({
               text,
-              color: [30, 30, 30],
-              haloColor: [150, 150, 150, 0.5],
+              color: [14, 22, 21],
+              haloColor: [125, 149, 139, 0.5],
               haloSize: 1.5,
               font: {
                 size: 10,

@@ -1,6 +1,7 @@
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import Papa from "papaparse";
 import { setBirdPerspective } from "./birdPerspective";
+import { setCharts } from "./charts";
 import {
   createCylinderLayer,
   createGeneralizedLineLayer,
@@ -195,6 +196,7 @@ async function createDefaultLayers(
 
   await setBirdPerspective(arcgisScene, secondaryLayer);
 
+  setCharts(generalizedLayer);
   // await arcgisScene.addLayers([weatherLayer]);
   setSingleVis(
     arcgisScene,
@@ -287,8 +289,6 @@ function processCSV(
             birdid,
             longitude,
             latitude,
-            // altitude: parseFloat(row[getCol("altitude")]),
-            // speed: parseFloat(row[getCol("speed")]),
             altitude: parseFloat(
               parseFloat(row[getCol("altitude")]).toFixed(3),
             ),
