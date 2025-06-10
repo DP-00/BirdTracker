@@ -48,6 +48,11 @@ body {
   width: 100%;
   background-color: #192a27;
   color: #aed8cc;
+  // font-weight: 900;
+}
+
+b {
+  font-weight: 900;
 }
 
 .esri-widget {
@@ -119,6 +124,10 @@ input {
   margin: 1rem 0;
 }
 
+b {
+  font-weight: bolder;
+}
+
 calcite-segmented-control-item[checked] {
   --calcite-segmented-control-background-color: #aed8cc;
   --calcite-segmented-control-icon-color: #233935;
@@ -130,9 +139,29 @@ calcite-segmented-control-item[checked] {
   height: 100vh;
 }
 
-#scene-div {
+#scene-wrapper {
   flex: 1;
+  position: relative; /* required for absolute children */
+  overflow: hidden;
 }
+
+#scene-div {
+  width: 100%;
+  height: 100%;
+}
+
+/* Time slider overlays the bottom of the map with 1rem side spacing */
+#time-slider {
+  position: absolute;
+  bottom: 2rem;
+  left: 1rem;
+  right: 1rem;
+  z-index: 10;
+}
+
+// #scene-div {
+//   flex: 1;
+// }
 
 #dashboard {
   flex: 1;
@@ -152,8 +181,27 @@ calcite-segmented-control-item[checked] {
 #color-scale-container {
   display: grid;
   grid-template-columns: auto auto;
-  gap: 0;
+  gap: 3px;
 }
+
+#legend-primary {
+  display: none;
+}
+
+#legend-secondary {
+  display: none;
+}
+
+#gauges-container {
+  // display: none;
+  height: 600px;
+  width: 200px;
+}
+
+// .gauge-canvas {
+//   width: 200px;
+//   height: 200px;
+// }
 
 #weather-container {
   display: grid;
@@ -188,10 +236,6 @@ calcite-segmented-control-item[checked] {
   display: flex;
   gap: 1rem;
   margin-top: 1rem;
-}
-
-arcgis-time-slider {
-  width: 69.5vw;
 }
 
 calcite-accordion-item {

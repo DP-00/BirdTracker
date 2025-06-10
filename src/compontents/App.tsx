@@ -104,34 +104,49 @@ class App extends Widget<AppProperties> {
       <div>
         <LoadingPanel></LoadingPanel>
         <div id="main-div">
-          <arcgis-scene
-            id="scene-div"
-            basemap="satellite"
-            ground="world-elevation"
-            zoom="8"
-            center="9.5,45"
-            onArcgisViewReadyChange={(e: ArcgisSceneCustomEvent<void>) =>
-              this.bindView(e.target)
-            }
-          >
-            <arcgis-zoom position="top-left"></arcgis-zoom>
-            <arcgis-navigation-toggle position="top-left"></arcgis-navigation-toggle>
-            <arcgis-compass position="top-left"></arcgis-compass>
-            <MapControls></MapControls>
-            <arcgis-placement position="top-right">
-              <p id="dashboard-current"></p>
-              <canvas id="gauge2"></canvas>
-            </arcgis-placement>
-            <arcgis-placement position="top-right">
-              <canvas id="gauge"></canvas>
-            </arcgis-placement>
-            <arcgis-placement position="top-right">
-              <canvas id="gauge3"></canvas>
-            </arcgis-placement>
-            <arcgis-placement position="bottom-right">
+          <div id="scene-wrapper">
+            <arcgis-scene
+              id="scene-div"
+              basemap="satellite"
+              ground="world-elevation"
+              zoom="8"
+              center="9.5,45"
+              onArcgisViewReadyChange={(e: ArcgisSceneCustomEvent<void>) =>
+                this.bindView(e.target)
+              }
+            >
+              <arcgis-zoom position="top-left"></arcgis-zoom>
+              <arcgis-navigation-toggle position="top-left"></arcgis-navigation-toggle>
+              <arcgis-compass position="top-left"></arcgis-compass>
+              <MapControls></MapControls>
+              <arcgis-placement position="top-right">
+                <div id="gauges-container">
+                  <p id="dashboard-current"></p>
+                  <canvas id="gauge2" class="gauge-canvas"></canvas>
+                  <canvas id="gauge" class="gauge-canvas"></canvas>
+                  <canvas id="gauge3" class="gauge-canvas"></canvas>
+                </div>
+              </arcgis-placement>
+              <arcgis-placement id="time-placement" position="bottom-right">
+                {/* <TimeControls></TimeControls>
+                <arcgis-time-slider
+                  width="100%"
+                  layout="auto"
+                  reference-element="scene-div"
+                  position="bottom-right"
+                  mode="time-window"
+                  play-rate="100"
+                  time-visible="true"
+                  loop
+                  stops-interval-value="1"
+                  stops-interval-unit="minutes"
+                ></arcgis-time-slider> */}
+              </arcgis-placement>
+            </arcgis-scene>
+            <div id="time-slider">
               <TimeControls></TimeControls>
               <arcgis-time-slider
-                width="800px"
+                width="100%"
                 layout="auto"
                 reference-element="scene-div"
                 position="bottom-right"
@@ -142,12 +157,12 @@ class App extends Widget<AppProperties> {
                 stops-interval-value="1"
                 stops-interval-unit="minutes"
               ></arcgis-time-slider>
-            </arcgis-placement>
-          </arcgis-scene>
+            </div>
+          </div>
           <div id="dashboard" class="esri-widget">
             <p>
               <h2>
-                Bird IDXXX
+                Bird <span id="dashboard-birdid"></span>
                 <calcite-button
                   appearance="transparent"
                   icon-start="information"
@@ -156,11 +171,10 @@ class App extends Widget<AppProperties> {
                   scale="s"
                 ></calcite-button>
               </h2>
-              <p>
-                <b>Duration: </b>35 days <b>Distance: </b>1253 km
-              </p>
+              <p id="dashboard-duration"></p>
               <calcite-label>
                 <calcite-segmented-control
+                  id="camera-control"
                   width="full"
                   appearance="outline-fill"
                   scale="m"
@@ -168,7 +182,6 @@ class App extends Widget<AppProperties> {
                   <calcite-segmented-control-item
                     icon-start="gps-on"
                     value="bird"
-                    checked
                   >
                     Follow bird
                   </calcite-segmented-control-item>
@@ -177,6 +190,7 @@ class App extends Widget<AppProperties> {
                     id="camera-zoom"
                     icon-start="line"
                     value="line"
+                    checked
                   >
                     Explore Path
                   </calcite-segmented-control-item>
@@ -217,7 +231,15 @@ class App extends Widget<AppProperties> {
                   <p>Primary color scale</p>
                   <p>Secondary color scale</p>
                   <div id="color-slider-primary"></div>
+                  <arcgis-legend
+                    id="legend-primary"
+                    reference-element="scene-div"
+                  ></arcgis-legend>
                   <div id="color-slider-secondary"></div>
+                  <arcgis-legend
+                    id="legend-secondary"
+                    reference-element="scene-div"
+                  ></arcgis-legend>
                 </div>
               </calcite-tab>
               <ChartsDashboard></ChartsDashboard>

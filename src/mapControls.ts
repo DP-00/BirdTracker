@@ -8,17 +8,6 @@ import Slide from "@arcgis/core/webscene/Slide";
 import LocalBasemapsSource from "@arcgis/core/widgets/BasemapGallery/support/LocalBasemapsSource";
 import { ArcgisTimeSlider } from "@arcgis/map-components/dist/components/arcgis-time-slider";
 
-export function setCameraControl(
-  view: __esri.SceneView,
-  layer: __esri.FeatureLayer,
-) {
-  document
-    .getElementById("camera-zoom")!
-    .addEventListener("click", function () {
-      view.goTo(layer.fullExtent);
-    });
-}
-
 export function setBasemaps() {
   const customBasemaps = [
     Basemap.fromId("topo-3d"),
