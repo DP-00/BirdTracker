@@ -10,7 +10,7 @@ import ColorSlider from "@arcgis/core/widgets/smartMapping/ColorSlider";
 import { createDynamicPopupTemplate } from "./layers";
 
 import * as colorRendererCreator from "@arcgis/core/smartMapping/renderers/color.js";
-export function setSingleVis(
+export async function setSingleVis(
   arcgisScene: HTMLArcgisSceneElement,
   primaryLayer: __esri.FeatureLayer,
   secondaryLayer: __esri.FeatureLayer,
@@ -66,8 +66,12 @@ export function setSingleVis(
       layer: secondaryLayer,
     },
   ];
-  createColorSlider(primaryVisSelect.value, primaryLayer, "primary");
-  createColorSlider(secondaryVisSelect.value, secondaryLayer, "secondary");
+  await createColorSlider(primaryVisSelect.value, primaryLayer, "primary");
+  await createColorSlider(
+    secondaryVisSelect.value,
+    secondaryLayer,
+    "secondary",
+  );
   primaryVisSelect?.addEventListener("calciteSelectChange", async () => {
     arcgisScene.view.whenLayerView(primaryLayer).then((layerView) => {
       layerView.filter = null;
@@ -77,7 +81,7 @@ export function setSingleVis(
       primaryLayer,
       birdSummary,
     );
-    createColorSlider(primaryVisSelect.value, primaryLayer, "primary");
+    await createColorSlider(primaryVisSelect.value, primaryLayer, "primary");
     createFilters(
       arcgisScene,
       primaryLayer,
@@ -102,7 +106,11 @@ export function setSingleVis(
       secondaryLayer,
       birdSummary,
     );
-    createColorSlider(secondaryVisSelect.value, secondaryLayer, "secondary");
+    await createColorSlider(
+      secondaryVisSelect.value,
+      secondaryLayer,
+      "secondary",
+    );
 
     createFilters(
       arcgisScene,
@@ -139,7 +147,11 @@ export function setSingleVis(
     select.value = defaultValue;
   }
 
-  function createColorSlider(variable, layer: __esri.FeatureLayer, layerType) {
+  async function createColorSlider(
+    variable,
+    layer: __esri.FeatureLayer,
+    layerType,
+  ) {
     const summary = birdSummary[variable];
     const currentRenderer = layer.renderer.clone();
     let container;

@@ -34,7 +34,19 @@
   --calcite-slider-track-fill-color: #aed8cc !important;
   --calcite-tab-accent-color-press: #aed8cc !important;
   --calcite-border-width-sm: 2px;
+  --calcite-font-weight-light: 400;
+  --calcite-font-weight-normal: 500;
+  --calcite-font-weight-medium: 600;
+  --calcite-font-weight-bold: 700;
 }
+
+.esri-widget {
+  font-weight: 500;
+}
+
+// p {
+//   font-weight: 500;
+// }
 
 calcite-block {
   margin: 0px;
@@ -48,8 +60,17 @@ body {
   width: 100%;
   background-color: #192a27;
   color: #aed8cc;
+  // text-shadow: #aed8cc 0 0 1.5px;
   // font-weight: 900;
 }
+
+// calcite-icon {
+//   filter: drop-shadow(0 0 1.5px #aed8cc) !important;
+// }
+
+// svg {
+//   filter: drop-shadow(0 0 1.5px #aed8cc) !important;
+// }
 
 b {
   font-weight: 900;
@@ -128,6 +149,19 @@ b {
   font-weight: bolder;
 }
 
+input[type="file"]::file-selector-button {
+  border: 0 solid #000000;
+  padding: 0.5em 0.5em;
+  border-radius: 0;
+  background-color: #090e0d;
+  color: #aed8cc;
+}
+
+// input[type="file"]::file-selector-button:hover {
+//   background-color: #81ecec;
+//   border: 2px solid #00cec9;
+// }
+
 calcite-segmented-control-item[checked] {
   --calcite-segmented-control-background-color: #aed8cc;
   --calcite-segmented-control-icon-color: #233935;
@@ -150,13 +184,64 @@ calcite-segmented-control-item[checked] {
   height: 100%;
 }
 
-/* Time slider overlays the bottom of the map with 1rem side spacing */
 #time-slider {
   position: absolute;
   bottom: 2rem;
   left: 1rem;
   right: 1rem;
   z-index: 10;
+}
+
+#gauges-container {
+  position: absolute;
+  top: 1rem;
+  bottom: 10rem;
+  left: 1rem;
+  right: 1rem;
+  z-index: 10;
+  pointer-events: none;
+}
+
+#gauges-container canvas {
+  position: absolute;
+  z-index: 1;
+}
+
+#speedGauge {
+  bottom: 0;
+  left: 0;
+}
+
+#headingGauge {
+  top: 0;
+  right: 0;
+}
+
+#altitudeGauge {
+  bottom: 0;
+  right: 0;
+}
+
+#bird-camera-control {
+  position: absolute;
+  pointer-events: auto;
+  z-index: 1;
+  font-size: 50px;
+  font-weight: 800;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+#time-dashboard {
+  position: absolute;
+  z-index: 1;
+  font-size: 50px;
+  font-weight: 800;
+  bottom: -3rem;
+  left: 50%;
+  transform: translateX(-50%);
+  text-shadow: #192a27 0 0 10px;
 }
 
 // #scene-div {
@@ -184,18 +269,29 @@ calcite-segmented-control-item[checked] {
   gap: 3px;
 }
 
+// .esri-color-slider
+//   esri-widget
+//   esri-widget--panel
+//   esri-color-slider--primary-handle {
+//   width: 18rem;
+// }
+// .esri-color-slider__slider-container {
+//   width: 18rem;
+// }
+// .esri-color-slider .esri-slider .esri-slider__content {
+//   margin: 0;
+// }
+
+// .esri-slider--vertical .esri-slider__content {
+//   width: 18rem;
+// }
+
 #legend-primary {
   display: none;
 }
 
 #legend-secondary {
   display: none;
-}
-
-#gauges-container {
-  // display: none;
-  height: 600px;
-  width: 200px;
 }
 
 // .gauge-canvas {
@@ -238,6 +334,10 @@ calcite-segmented-control-item[checked] {
   margin-top: 1rem;
 }
 
+#timezone-picker {
+  width: 7rem;
+}
+
 calcite-accordion-item {
   max-height: 50vh;
   overflow-y: auto;
@@ -253,78 +353,6 @@ calcite-accordion-item {
   justify-content: center;
   align-items: center;
 }
-
-// #altitude-bar {
-//   height: 400px;
-// }
-
-#guage {
-  height: 400px;
-}
-
-// .indicators-container {
-//   position: relative;
-//   width: 100%;
-//   top: 50%;
-//   z-index: 100;
-// }
-
-// .gauge-container {
-//   position: absolute;
-//   right: -70px;
-//   bottom: 15px;
-// }
-
-.altitude-container {
-  position: absolute;
-  left: 15px;
-  bottom: 45px;
-}
-
-.altitude-box {
-  position: relative;
-  width: 30px;
-  height: 150px;
-  border: 2px solid rgba(0, 255, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  position: relative;
-}
-
-.altitude-bar {
-  width: 100%;
-  background: rgba(0, 255, 0, 0.5);
-  transition: height 0.3s ease-in-out;
-}
-
-.altitude-labels {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 100%;
-  width: 100%;
-  font-size: 12px;
-  color: darkgreen;
-  padding: 2px;
-}
-
-.altitude-labels div {
-  text-align: center;
-}
-
-// .list-item-slide {
-//   margin: 5px 0px 5px 10px;
-//   width: 80px;
-//   height: 45px;
-//   background-size: cover;
-//   background-image: var(--bg-image);
-// }
-
-// .scene-shell {
-//   padding-bottom: 16px;
-// }
 
 #confirm {
   --calcite-color-foreground-1: var(--calcite-color-status-success);

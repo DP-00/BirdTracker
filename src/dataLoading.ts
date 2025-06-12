@@ -201,12 +201,10 @@ async function createDefaultLayers(
 
   await setWeather(arcgisScene, secondaryLayer, generalizedLayer, hourLayer);
 
-  await setBirdPerspective(arcgisScene, secondaryLayer);
-
   setCharts(polyline);
 
   // await arcgisScene.addLayers([weatherLayer]);
-  setSingleVis(
+  await setSingleVis(
     arcgisScene,
     primaryLayer,
     secondaryLayer,
@@ -216,7 +214,9 @@ async function createDefaultLayers(
     secondaryValue,
   );
 
-  setTimeSlider(arcgisScene.view, primaryLayer);
+  setTimeSlider(arcgisScene, primaryLayer);
+
+  await setBirdPerspective(arcgisScene, secondaryLayer);
 
   return [primaryLayer, generalizedLayer, secondaryLayer];
 }

@@ -8,125 +8,177 @@ import Graphic from "@arcgis/core/Graphic";
 import FillSymbol3DLayer from "@arcgis/core/symbols/FillSymbol3DLayer";
 import MeshSymbol3D from "@arcgis/core/symbols/MeshSymbol3D";
 import { ArcgisTimeSlider } from "@arcgis/map-components/dist/components/arcgis-time-slider";
-declare var Gauge: any;
 
-const speedOpts = {
-  angle: -0.1,
-  lineWidth: 0.4,
-  radiusScale: 1,
-  pointer: {
-    length: 0.5,
-    strokeWidth: 0.05,
-    color: "#aed8cc",
-  },
-  staticLabels: {
-    font: "14px monospace",
-    labels: [0, 10, 20, 30, 40, 50],
-    color: "#aed8cc",
-    fractionDigits: 0,
-  },
-  renderTicks: {
-    divisions: 5,
-    divWidth: 2,
-    divLength: 0.7,
-    divColor: "#aed8cc",
-    subDivisions: 5,
-    subLength: 0.5,
-    subWidth: 1.5,
-    subColor: "#aed8cc",
-  },
-  staticZones: [],
-  limitMax: true,
-  limitMin: true,
-  highDpiSupport: true,
-  generateGradient: true,
-};
+declare global {
+  interface Window {
+    RadialGauge: any;
+    LinearGauge: any;
+  }
 
-const altitudeOpts = {
-  angle: 0.15,
-  lineWidth: 0.3,
-  radiusScale: 1,
-  pointer: {
-    length: 0.5,
-    strokeWidth: 0.03,
-    color: "#aed8cc",
-  },
-  staticLabels: {
-    font: "10px monospace",
-    labels: [0, 1000, 2000, 3000],
-    color: "#aed8cc",
-    fractionDigits: 0,
-  },
-  renderTicks: {
-    divisions: 30,
-    divWidth: 0.8,
-    divLength: 0.5,
-    divColor: "#aed8cc",
-    subDivisions: 5,
-    subLength: 0.25,
-    subWidth: 0.5,
-    subColor: "#aed8cc",
-  },
-  staticZones: [],
-  limitMax: true,
-  limitMin: true,
-  highDpiSupport: true,
-  generateGradient: true,
-};
+  const RadialGauge: any;
+  const LinearGauge: any;
+}
 
-const compassOpts = {
-  angle: -0.5,
-  lineWidth: 0.3,
-  radiusScale: 1,
-  pointer: {
-    length: 0.3,
-    strokeWidth: 0.05,
-    color: "#aed8cc",
-  },
-  staticLabels: {
-    font: "10px monospace",
-    labels: ["W", "S", "N", "E"],
-    color: "#aed8cc",
-    fractionDigits: 0,
-  },
-  renderTicks: {
-    divisions: 10,
-    divWidth: 0.8,
-    divLength: 0.5,
-    divColor: "#aed8cc",
-    subDivisions: 5,
-    subLength: 0.25,
-    subWidth: 0.5,
-    subColor: "#aed8cc",
-  },
-  staticZones: [],
-  limitMax: true,
-  limitMin: true,
-  highDpiSupport: true,
-  generateGradient: true,
-};
+export {};
+
 // import { PieChartModel } from "https://js.arcgis.com/charts-model/4.32/index.js";
 export async function setBirdPerspective(arcgisScene, pointLayer) {
   // const chartElement = document.getElementById("plot");
+
+  const speedGauge = new RadialGauge({
+    renderTo: "speedGauge",
+    width: 250,
+    height: 250,
+    units: "km/h",
+    title: "Speed",
+    minValue: 0,
+    maxValue: 30,
+    majorTicks: ["0", "5", "10", "15", "20", "25", "30"],
+    minorTicks: 5,
+    valueInt: 1,
+    valueDec: 0,
+    strokeTicks: true,
+    highlights: [],
+    borders: false,
+    fontTitleSize: 30,
+    fontTicksSize: 50,
+    fontUnitsSize: 30,
+    fontValueSize: 50,
+    valueBoxStroke: 0,
+    colorValueText: "#aed8cc",
+    colorValueBoxBackground: false,
+    colorPlate: "#192a276e",
+    colorTitle: "#aed8cc",
+    colorUnits: "#aed8cc",
+    colorNumbers: "#aed8cc",
+    colorMajorTicks: "#aed8cc",
+    colorMinorTicks: "#aed8cc",
+    colorNeedle: "#aed8cc",
+    colorNeedleEnd: "#aed8cc",
+    colorNeedleCircleOuter: "#aed8cc",
+    colorNeedleCircleInner: "#aed8cc",
+    // colorNeedleShadowDown: "#aed8cc",
+    valueTextShadow: true,
+    colorValueTextShadow: "#aed8cc",
+    needleCircleSize: 7,
+    needleCircleOuter: true,
+    needleCircleInner: false,
+    valueBox: true,
+    animationRule: "linear",
+    animationDuration: 500,
+    value: 0,
+  }).draw();
+
+  const headingGauge = new RadialGauge({
+    renderTo: "headingGauge",
+    width: 200,
+    height: 200,
+    minValue: 0,
+    maxValue: 360,
+    majorTicks: ["N", "NE", "E", "SE", "S", "SW", "W", "NW", "N"],
+    minorTicks: 22,
+    ticksAngle: 360,
+    startAngle: 180,
+    valueInt: 1,
+    valueDec: 0,
+    strokeTicks: false,
+    highlights: false,
+    colorPlate: "#192a276e",
+    colorTitle: "#aed8cc",
+    colorMajorTicks: "#aed8cc",
+    colorMinorTicks: "#aed8cc",
+    colorNumbers: "#aed8cc",
+    colorNeedle: "#aed8cc",
+    colorNeedleEnd: "#aed8cc",
+    valueBox: false,
+    valueTextShadow: true,
+    colorValueTextShadow: "#aed8cc",
+    colorCircleInner: "#aed8cc",
+    colorNeedleCircleOuter: "#aed8cc",
+    colorNeedleCircleInner: "#aed8cc",
+    needleCircleSize: 7,
+    needleCircleOuter: true,
+    needleCircleInner: false,
+    animationRule: "linear",
+    needleType: "arrow",
+    needleStart: 60,
+    needleEnd: 80,
+    needleWidth: 5,
+    borders: false,
+    borderInnerWidth: 0,
+    borderMiddleWidth: 0,
+    borderOuterWidth: 10,
+    colorBorderOuter: "#aed8cc",
+    colorBorderOuterEnd: "#aed8cc",
+    // colorNeedleShadowDown: "#aed8cc",
+    borderShadowWidth: 0,
+    animationTarget: "plate",
+    fontTitleSize: 30,
+    fontUnitsSize: 30,
+    fontValueSize: 50,
+    animationDuration: 500,
+    value: 0,
+  }).draw();
+
+  const altitudeGauge = new LinearGauge({
+    renderTo: "altitudeGauge",
+    width: 120,
+    height: 400,
+    title: "Altitude",
+    units: "m.a.s.l.",
+    minValue: 0,
+    maxValue: 5000,
+    majorTicks: [
+      "0",
+      "500",
+      "1500",
+      "2000",
+      "2500",
+      "3000",
+      "3500",
+      "4000",
+      "4500",
+      "5000",
+    ],
+    minorTicks: 5,
+    valueInt: 1,
+    valueDec: 0,
+    strokeTicks: true,
+    highlights: [],
+    barWidth: 20,
+    colorPlate: "#192a276e",
+    borderShadowWidth: 0,
+    borders: false,
+    needleType: "arrow",
+    needleWidth: 2,
+    animationDuration: 500,
+    animationRule: "linear",
+    tickSide: "left",
+    numberSide: "left",
+    needleSide: "left",
+    barStrokeWidth: 0,
+    barBeginCircle: false,
+    valueBoxStroke: 0,
+    colorValueBoxBackground: false,
+    colorTitle: "#aed8cc",
+    colorValueText: "#aed8cc",
+    colorUnits: "#aed8cc",
+    colorNumbers: "#aed8cc",
+    colorMajorTicks: "#aed8cc",
+    colorMinorTicks: "#aed8cc",
+    colorNeedle: "#aed8cc",
+    colorNeedleEnd: "#aed8cc",
+    colorBarProgress: "#aed8cc",
+    colorBar: "#192a276e",
+    value: 0,
+    fontTitleSize: 30,
+    fontUnitsSize: 30,
+    fontValueSize: 50,
+    valueTextShadow: true,
+    colorValueTextShadow: "#aed8cc",
+  }).draw();
+
   const gaugeContainer = document.getElementById("gauges-container");
-
-  const gaugeCanvas = document.getElementById("gauge");
-  const gauge = new Gauge(gaugeCanvas).setOptions(speedOpts);
-  gauge.maxValue = 30;
-  gauge.setMinValue(0);
-  gauge.set(20);
-
-  const gauge2Canvas = document.getElementById("gauge2");
-  const gauge2 = new Gauge(gauge2Canvas).setOptions(altitudeOpts);
-  gauge2.maxValue = 3000;
-  gauge2.setMinValue(0);
-  gauge2.set(1000);
-
-  const gauge3Canvas = document.getElementById("gauge3");
-  const gauge3 = new Gauge(gauge3Canvas).setOptions(compassOpts);
-  gauge3.maxValue = 359;
-  gauge3.setMinValue(0);
-  gauge3.set(30);
 
   const { features } = await pointLayer.queryFeatures();
   const last = features.length - 1;
@@ -171,21 +223,20 @@ export async function setBirdPerspective(arcgisScene, pointLayer) {
   let point = new Point({
     latitude: feature.geometry.latitude,
     longitude: feature.geometry.longitude,
-    z: 10000,
-    // z: feature.attributes.altitude,
+    z: feature.geometry.altitude,
   });
 
-  let paragliderMesh = (
+  let birdMesh = (
     await Mesh.createFromGLTF(point, "./data/flying_crow_color.glb", {
       vertexSpace: "local",
     })
   )
     .scale(80)
-    .rotate(0, 0, 0);
-  await paragliderMesh.load();
-  const initialTransform = paragliderMesh.transform?.clone();
+    .rotate(0, 0, 90);
+  await birdMesh.load();
+  const initialTransform = birdMesh.transform?.clone();
   const animationTarget = new Graphic({
-    geometry: paragliderMesh,
+    geometry: birdMesh,
     symbol: new MeshSymbol3D({
       symbolLayers: [
         new FillSymbol3DLayer({
@@ -198,85 +249,143 @@ export async function setBirdPerspective(arcgisScene, pointLayer) {
   });
 
   await arcgisScene.view.graphics.add(animationTarget);
-  await arcgisScene.view.goTo(point);
 
   const cameraControl = document.getElementById(
     "camera-control",
   ) as HTMLCalciteSegmentedControlElement;
 
+  const cameraBirdControl = document.getElementById(
+    "bird-camera-control",
+  ) as HTMLCalciteSegmentedControlElement;
+
+  const cameraPathControl = document.getElementById(
+    "camera-zoom",
+  ) as HTMLCalciteSegmentedControlElement;
+
+  cameraPathControl.addEventListener("click", async () => {
+    arcgisScene.view.goTo(pointLayer.fullExtent);
+  });
   gaugeContainer!.style.display = "none";
+
   cameraControl?.addEventListener("calciteSegmentedControlChange", async () => {
     if (cameraControl.value == "bird") {
+      const feature = await getLatestVisibleFeature(pointLayer, timeSlider);
+
+      await arcgisScene.view.goTo(feature);
+
       timeSlider.addEventListener(
         "arcgisPropertyChange",
-        handleTimeSliderChange,
+        updateSceneFromTimeSlider,
       );
       gaugeContainer!.style.display = "block";
     } else {
-      timeSlider.removeEventListener(
-        "arcgisPropertyChange",
-        handleTimeSliderChange,
-      );
+      // timeSlider.removeEventListener(
+      //   "arcgisPropertyChange",
+      //   handleTimeSliderChange,
+      // );
       gaugeContainer!.style.display = "none";
 
       arcgisScene.view.goTo(pointLayer.fullExtent);
     }
   });
 
-  function handleTimeSliderChange(event) {
-    updateSceneFromTimeSlider();
-  }
-
-  async function updateSceneFromTimeSlider() {
+  async function updateSceneFromTimeSlider(event: any) {
     const feature = await getLatestVisibleFeature(pointLayer, timeSlider);
+    console.log(feature);
     if (!feature) return;
+
+    let isFront = -1;
+
+    if (cameraBirdControl.value === "bird-camera-back") {
+      isFront = 1;
+    }
 
     const point = new Point({
       latitude: feature.geometry.latitude,
       longitude: feature.geometry.longitude,
-      z: feature.attributes.altitude + 10,
+      z: feature.attributes.altitude + 30,
     });
 
     const mesh = new Mesh({
-      spatialReference: paragliderMesh.spatialReference,
-      vertexSpace: paragliderMesh.vertexSpace,
+      spatialReference: birdMesh.spatialReference,
+      vertexSpace: birdMesh.vertexSpace,
       vertexAttributes: {
-        position: [-10, 0, 10],
+        // position: [0, 0, 500], // top view
+        position: [isFront * 300, 0, 50], // back view
       } as any,
     });
 
     mesh.centerAt(point);
-    mesh.rotate(-feature.attributes.roll, 0, feature.attributes.heading);
+    mesh.rotate(0, 0, feature.attributes.heading);
 
     const cameraMesh = await meshUtils.convertVertexSpace(
       mesh,
       new MeshGeoreferencedVertexSpace(),
     );
 
-    arcgisScene.view.camera = new Camera({
-      position: new Point({
-        spatialReference: cameraMesh.spatialReference,
-        x: cameraMesh.vertexAttributes.position[0],
-        y: cameraMesh.vertexAttributes.position[1],
-        z: cameraMesh.vertexAttributes.position[2],
-      }),
-      tilt: 75,
-      heading: -feature.attributes.heading,
-    });
+    if (cameraControl.value == "bird") {
+      arcgisScene.view.camera = new Camera({
+        position: new Point({
+          spatialReference: cameraMesh.spatialReference,
+          x: cameraMesh.vertexAttributes.position[0],
+          y: cameraMesh.vertexAttributes.position[1],
+          z: cameraMesh.vertexAttributes.position[2],
+        }),
+        tilt: -1 * isFront * 80,
+        // heading: feature.attributes.heading,
+        heading: -feature.attributes.heading + 90,
+      });
+      // arcgisScene.view.camera = new Camera({
+      //   position: point,
+      //   tilt: 75,
+      //   heading: feature.attributes.heading,
+      // });
 
-    paragliderMesh.centerAt(point);
-    paragliderMesh.transform = initialTransform?.clone();
-    paragliderMesh.rotate(
-      -feature.attributes.roll,
-      0,
-      feature.attributes.heading,
-    );
+      // arcgisScene.view.goTo(
+      //   {
+      //     center: point,
+      //     heading: feature.attributes.heading,
+      //     tilt: 75,
+      //     scale: 500,
+      //   },
+      //   {
+      //     speedFactor: 10,
+      //     easing: "linear",
+      //   },
+      // );
 
-    gauge.set(feature.attributes.speed);
-    gauge2.set(feature.attributes.altitude);
+      speedGauge.value = feature.attributes.speed;
+      headingGauge.value = feature.attributes.heading;
+      altitudeGauge.value = feature.attributes.altitude;
 
-    document.getElementById("dashboard-current")!.innerHTML =
-      `Speed: ${feature.attributes.speed}   Altitude: ${feature.attributes.altitude}`;
+      let now = new Date(feature.attributes.timestamp);
+      const hours = String(now.getHours()).padStart(2, "0");
+      const minutes = String(now.getMinutes()).padStart(2, "0");
+      const monthNames = [
+        "JAN",
+        "FEB",
+        "MAR",
+        "APR",
+        "MAY",
+        "JUN",
+        "JUL",
+        "AUG",
+        "SEP",
+        "OCT",
+        "NOV",
+        "DEC",
+      ];
+      document.getElementById("time-dashboard")!.innerText =
+        `${now.getDate()} ${monthNames[now.getMonth()]}   ${hours}:${minutes}`;
+    }
+
+    birdMesh.centerAt(point);
+    birdMesh.transform = initialTransform?.clone();
+    // birdMesh.rotate(-feature.attributes.roll, 0, feature.attributes.heading);
+    birdMesh.rotate(0, 0, feature.attributes.heading);
+
+    console.log(arcgisScene.view.camera.heading);
+    console.log(feature.attributes.heading + 270);
   }
 }
 

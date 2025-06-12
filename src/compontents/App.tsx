@@ -41,6 +41,7 @@ import "@esri/calcite-components/dist/components/calcite-combobox-item";
 import "@esri/calcite-components/dist/components/calcite-dialog";
 import "@esri/calcite-components/dist/components/calcite-handle";
 import "@esri/calcite-components/dist/components/calcite-input";
+import "@esri/calcite-components/dist/components/calcite-input-time-zone";
 import "@esri/calcite-components/dist/components/calcite-label";
 import "@esri/calcite-components/dist/components/calcite-list";
 import "@esri/calcite-components/dist/components/calcite-list-item";
@@ -119,34 +120,48 @@ class App extends Widget<AppProperties> {
               <arcgis-navigation-toggle position="top-left"></arcgis-navigation-toggle>
               <arcgis-compass position="top-left"></arcgis-compass>
               <MapControls></MapControls>
-              <arcgis-placement position="top-right">
-                <div id="gauges-container">
-                  <p id="dashboard-current"></p>
-                  <canvas id="gauge2" class="gauge-canvas"></canvas>
-                  <canvas id="gauge" class="gauge-canvas"></canvas>
-                  <canvas id="gauge3" class="gauge-canvas"></canvas>
-                </div>
-              </arcgis-placement>
-              <arcgis-placement id="time-placement" position="bottom-right">
-                {/* <TimeControls></TimeControls>
-                <arcgis-time-slider
-                  width="100%"
-                  layout="auto"
-                  reference-element="scene-div"
-                  position="bottom-right"
-                  mode="time-window"
-                  play-rate="100"
-                  time-visible="true"
-                  loop
-                  stops-interval-value="1"
-                  stops-interval-unit="minutes"
-                ></arcgis-time-slider> */}
-              </arcgis-placement>
+              <arcgis-placement position="top-right"></arcgis-placement>
+              <arcgis-placement
+                id="time-placement"
+                position="bottom-right"
+              ></arcgis-placement>
             </arcgis-scene>
+            <div id="gauges-container">
+              <calcite-segmented-control
+                id="bird-camera-control"
+                width="full"
+                appearance="outline-fill"
+                scale="m"
+              >
+                <calcite-segmented-control-item
+                  icon-start="chevrons-down"
+                  value="bird-camera-front"
+                >
+                  Front view
+                </calcite-segmented-control-item>
+
+                <calcite-segmented-control-item
+                  icon-start="chevrons-right"
+                  value="bird-camera-side"
+                >
+                  Side view
+                </calcite-segmented-control-item>
+                <calcite-segmented-control-item
+                  icon-start="chevrons-up"
+                  value="bird-camera-back"
+                  checked
+                >
+                  Back view
+                </calcite-segmented-control-item>
+              </calcite-segmented-control>
+              <p id="time-dashboard"></p>
+              <canvas id="speedGauge"></canvas>
+              <canvas id="headingGauge"></canvas>
+              <canvas id="altitudeGauge"></canvas>
+            </div>
             <div id="time-slider">
               <TimeControls></TimeControls>
               <arcgis-time-slider
-                width="100%"
                 layout="auto"
                 reference-element="scene-div"
                 position="bottom-right"
@@ -192,7 +207,7 @@ class App extends Widget<AppProperties> {
                     value="line"
                     checked
                   >
-                    Explore Path
+                    Explore path
                   </calcite-segmented-control-item>
                 </calcite-segmented-control>
               </calcite-label>
@@ -347,83 +362,6 @@ const LoadingPanel = () => {
         </calcite-button>
       </calcite-dialog>
     </div>
-  );
-};
-
-const OverviewDashboard = () => {
-  return (
-    <calcite-tab>
-      <calcite-accordion appearance="transparent" selection-mode="multiple">
-        <calcite-accordion-item
-          id="dashboard-path-details"
-          heading="Path details"
-          icon-start="information-letter"
-          expanded
-        >
-          <p>
-            <b>Bird IDXXX</b>
-          </p>
-          <p>
-            <b>Time: </b>XX.XX-XX.XX <b>Distance: </b>X km
-          </p>
-          <p>
-            <b>Primary variable:</b> XXX
-          </p>
-          <p>
-            <b>Secondary variable:</b> XXXX
-          </p>
-        </calcite-accordion-item>
-        <calcite-accordion-item
-          heading="Camera control"
-          icon-start="video"
-          expanded
-        >
-          <calcite-label>
-            <calcite-segmented-control
-              width="full"
-              appearance="outline-fill"
-              scale="m"
-            >
-              <calcite-segmented-control-item icon-start="gps-on" value="CAD">
-                Follow bird
-              </calcite-segmented-control-item>
-
-              <calcite-segmented-control-item
-                id="camera-zoom"
-                icon-start="line"
-                value="KML"
-              >
-                Show Path
-              </calcite-segmented-control-item>
-              <calcite-segmented-control-item
-                icon-start="explore"
-                value="KML"
-                checked
-              >
-                Explore free
-              </calcite-segmented-control-item>
-            </calcite-segmented-control>
-          </calcite-label>
-        </calcite-accordion-item>
-        <calcite-accordion-item
-          heading="Time control"
-          icon-start="clock"
-          expanded
-        >
-          <TimeControls></TimeControls>
-          <arcgis-time-slider
-            reference-element="scene-div"
-            position="bottom-right"
-            mode="time-window"
-            play-rate="1000000"
-            time-visible="true"
-            loop
-            stops-interval-value="5"
-            stops-interval-unit="minutes"
-          ></arcgis-time-slider>
-        </calcite-accordion-item>
-      </calcite-accordion>
-    </calcite-tab>
   );
 };
 
@@ -679,25 +617,34 @@ const TimeControls = () => {
   return (
     <div id="time-controls">
       <calcite-label layout="inline" scale="s">
+        Timezone:
+        <calcite-input-time-zone
+          mode="offset"
+          offset-style="utc"
+          id="timezone-picker"
+          scale="s"
+        ></calcite-input-time-zone>
+      </calcite-label>
+      <calcite-label layout="inline" scale="s">
         Time Window:
         <calcite-select id="time-window" scale="s">
-          <calcite-option value="1" selected>
-            1h
+          <calcite-option value={1}>1h</calcite-option>
+          <calcite-option value={3}>3h</calcite-option>
+          <calcite-option value={6}>6h</calcite-option>
+          <calcite-option value={12}>12h</calcite-option>
+          <calcite-option value={24} selected>
+            24h
           </calcite-option>
-          <calcite-option value="3">3h</calcite-option>
-          <calcite-option value="6">6h</calcite-option>
-          <calcite-option value="12">12h</calcite-option>
-          <calcite-option value="24">24h</calcite-option>
         </calcite-select>
       </calcite-label>
 
       <calcite-label layout="inline" scale="s">
         Interval:
         <calcite-select id="stops" scale="s">
-          <calcite-option value="minutes">minutes</calcite-option>
-          <calcite-option value="hours" selected>
-            hours
+          <calcite-option value="continuous" selected>
+            continuous
           </calcite-option>
+          <calcite-option value="hours">hours</calcite-option>
           <calcite-option value="days">days</calcite-option>
         </calcite-select>
       </calcite-label>

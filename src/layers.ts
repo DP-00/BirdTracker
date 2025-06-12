@@ -106,7 +106,7 @@ export async function createGeneralizedLineLayer(groupedData: {
 
     const generalizedPolyline = await generalizeOperator.execute(
       polyline,
-      0.005,
+      0.001,
     );
 
     const lineGraphic = new Graphic({ geometry: generalizedPolyline });
@@ -121,11 +121,11 @@ export async function createGeneralizedLineLayer(groupedData: {
     geometryType: "polyline",
     legendEnabled: false,
     elevationInfo: { mode: "on-the-ground" },
-    maxScale: 300000,
+    // maxScale: 300000,
     popupEnabled: false,
     renderer: {
       type: "simple",
-      symbol: { type: "simple-line", color: [70, 70, 70, 0.5], width: 10 },
+      symbol: { type: "simple-line", color: [152, 59, 34, 0.5], width: 20 },
     },
   });
 }
@@ -197,6 +197,7 @@ export async function createLineLayer(
       endField: "timestamp",
       interval: { value: 1, unit: "minutes" },
     },
+    opacity: 0.75,
     renderer: {
       type: "simple",
       symbol: {
@@ -235,6 +236,7 @@ export function createCylinderLayer(graphics: any, birdSummary: any) {
       interval: { value: 1, unit: "minutes" },
     },
     // popupTemplate: popTemplate,
+    opacity: 0.75,
     renderer: {
       type: "simple",
       symbol: {
