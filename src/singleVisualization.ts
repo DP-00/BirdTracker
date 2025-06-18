@@ -1,9 +1,16 @@
 import Point from "@arcgis/core/geometry/Point";
 import Graphic from "@arcgis/core/Graphic";
+
+import Color from "@arcgis/core/Color";
+import histogram from "@arcgis/core/smartMapping/statistics/histogram";
+import * as colorSymbology from "@arcgis/core/smartMapping/symbology/color";
 import { TextSymbol } from "@arcgis/core/symbols";
+import ColorSlider from "@arcgis/core/widgets/smartMapping/ColorSlider";
+
 import { createDynamicPopupTemplate } from "./layers";
 
-export function setSingleVis(
+import * as colorRendererCreator from "@arcgis/core/smartMapping/renderers/color.js";
+export async function setSingleVis(
   arcgisScene: HTMLArcgisSceneElement,
   primaryLayer: __esri.FeatureLayer,
   secondaryLayer: __esri.FeatureLayer,
@@ -18,6 +25,11 @@ export function setSingleVis(
   const secondaryVisSelect = document.getElementById(
     "secondary-vis-select",
   ) as HTMLCalciteSelectElement;
+
+  const primaryLegend = document.getElementById("legend-primary");
+  const secondaryLegend = document.getElementById("legend-secondary");
+  const primaryColorScale = document.getElementById("color-slider-primary");
+  const secondaryColorScale = document.getElementById("color-slider-secondary");
 
   createAttributeSelects(birdSummary, primaryVisSelect, primaryValue);
   createAttributeSelects(birdSummary, secondaryVisSelect, secondaryValue);
@@ -43,6 +55,23 @@ export function setSingleVis(
   updateLayerColorVariables(primaryValue, primaryLayer, birdSummary);
   updateLayerColorVariables(secondaryValue, secondaryLayer, birdSummary);
 
+  primaryLegend.layerInfos = [
+    {
+      layer: primaryLayer,
+    },
+  ];
+
+  secondaryLegend.layerInfos = [
+    {
+      layer: secondaryLayer,
+    },
+  ];
+  await createColorSlider(primaryVisSelect.value, primaryLayer, "primary");
+  await createColorSlider(
+    secondaryVisSelect.value,
+    secondaryLayer,
+    "secondary",
+  );
   primaryVisSelect?.addEventListener("calciteSelectChange", async () => {
     arcgisScene.view.whenLayerView(primaryLayer).then((layerView) => {
       layerView.filter = null;
@@ -52,6 +81,7 @@ export function setSingleVis(
       primaryLayer,
       birdSummary,
     );
+    await createColorSlider(primaryVisSelect.value, primaryLayer, "primary");
     createFilters(
       arcgisScene,
       primaryLayer,
@@ -76,6 +106,11 @@ export function setSingleVis(
       secondaryLayer,
       birdSummary,
     );
+    await createColorSlider(
+      secondaryVisSelect.value,
+      secondaryLayer,
+      "secondary",
+    );
 
     createFilters(
       arcgisScene,
@@ -91,6 +126,233 @@ export function setSingleVis(
       birdSummary,
     );
   });
+
+  function createAttributeSelects(
+    birdSummary: Record<string, any>,
+    select: HTMLCalciteSelectElement,
+    defaultValue: string,
+  ) {
+    select.innerHTML = "";
+    const attributes = Object.keys(birdSummary);
+
+    // if (!attributes.includes("---single color---")) {
+    //   attributes.unshift("---single color---");
+    // }
+
+    attributes.forEach((attribute) => {
+      const option = document.createElement("calcite-option");
+      option.value = option.label = option.textContent = attribute;
+      select.appendChild(option);
+    });
+    select.value = defaultValue;
+  }
+
+  async function createColorSlider(
+    variable,
+    layer: __esri.FeatureLayer,
+    layerType,
+  ) {
+    const summary = birdSummary[variable];
+    const currentRenderer = layer.renderer.clone();
+    let container;
+    let colorScaleContainer;
+    let legendContainer;
+    if (layerType == "primary") {
+      container = "color-slider-primary";
+      colorScaleContainer = primaryColorScale;
+      legendContainer = primaryLegend;
+    } else {
+      container = "color-slider-secondary";
+      colorScaleContainer = secondaryColorScale;
+      legendContainer = secondaryLegend;
+    }
+
+    if (!summary || variable === "---single color---") {
+      legendContainer!.style.display = "block";
+      colorScaleContainer!.style.display = "none";
+      return;
+    } else if (summary.type === "number") {
+      colorScaleContainer.innerHTML = null;
+      legendContainer!.style.display = "none";
+      colorScaleContainer!.style.display = "block";
+    } else {
+      legendContainer!.style.display = "block";
+      colorScaleContainer!.style.display = "none";
+      return;
+    }
+
+    const redAndGreenScheme = colorSymbology.getSchemeByName({
+      basemap: arcgisScene.map.basemap,
+      geometryType: "polygon",
+      theme: "above-and-below",
+      name: "Red and Green 4",
+    });
+
+    // flip the red and green scheme so green is on top
+    // const myScheme = colorSymbology.flipColors(redAndGreenScheme);
+
+    const colorParams = {
+      layer: layer,
+      view: arcgisScene.view,
+      field: variable,
+      theme: "high-to-low",
+      colorScheme: redAndGreenScheme,
+      // edgesType: "solid",
+    };
+
+    const bars = [];
+    let rendererResultOrg = null;
+    let rendererResult = null;
+
+    let vv = null;
+
+    colorRendererCreator
+      .createContinuousRenderer(colorParams)
+      .then((response) => {
+        rendererResult = response;
+        let customSymbol = null;
+        let type = currentRenderer.symbol.type;
+        if (type === "point-3d") {
+          customSymbol = {
+            type: "point-3d",
+            symbolLayers: [
+              {
+                type: "object",
+                resource: {
+                  primitive: "cylinder",
+                },
+                material: { color: [255, 0, 0] },
+                width: 10,
+                height: 3000,
+                tilt: 180,
+              },
+            ],
+          };
+        } else if (type === "line-3d") {
+          customSymbol = {
+            type: "line-3d",
+            symbolLayers: [
+              {
+                type: "line",
+                size: 6,
+                cap: "round",
+                material: { color: [255, 0, 0] },
+              },
+            ],
+          };
+        }
+
+        vv = rendererResult.visualVariable;
+        rendererResult.renderer.classBreakInfos?.forEach((info) => {
+          info.symbol = customSymbol;
+        });
+        layer.renderer = response.renderer;
+
+        return histogram({
+          layer: colorParams.layer,
+          field: colorParams.field,
+          numBins: 60,
+        });
+      })
+      .then((histogramResult) => {
+        const slider = ColorSlider.fromRendererResult(
+          rendererResult,
+          histogramResult,
+        );
+
+        slider.set({
+          primaryHandleEnabled: true,
+          container: container,
+          handlesSyncedToPrimary: false,
+          syncedSegmentsEnabled: true,
+          labelFormatFunction: (value) => {
+            return value.toFixed(0);
+          },
+        });
+        // update the slider bars to match renderer values
+        slider.histogramConfig.barCreatedFunction = (index, element) => {
+          const bin = histogramResult.bins[index];
+          const midValue = (bin.maxValue - bin.minValue) / 2 + bin.minValue;
+          const color = getColorFromValue(vv.stops, midValue);
+          element.setAttribute("fill", color.toHex());
+          bars.push(element);
+        };
+
+        slider.on(
+          [
+            "thumb-change",
+            "thumb-drag",
+            "min-change",
+            "max-change",
+            "segment-drag",
+          ],
+          () => {
+            const renderer = layer.renderer.clone();
+            const colorVariable = renderer.visualVariables[0].clone();
+            colorVariable.stops = slider.stops;
+            renderer.visualVariables = [colorVariable];
+            layer.renderer = renderer;
+
+            // not redrawing otheriwse
+            layer.visible = false;
+            requestAnimationFrame(() => {
+              layer.visible = true;
+            });
+            // update the color of each histogram bar based on the
+            // values of the slider thumbs
+            bars.forEach((bar, index) => {
+              const bin = slider.histogramConfig.bins[index];
+              const midValue = (bin.maxValue - bin.minValue) / 2 + bin.minValue;
+              const color = getColorFromValue(slider.stops, midValue);
+              bar.setAttribute("fill", color.toHex());
+            });
+          },
+        );
+      })
+      .catch((error) => {
+        console.log("Color slider error: ", error);
+      });
+
+    // infers the color for a given value
+    // based on the stops from a ColorVariable
+    function getColorFromValue(stops, value) {
+      let minStop = stops[0];
+      let maxStop = stops[stops.length - 1];
+
+      const minStopValue = minStop.value;
+      const maxStopValue = maxStop.value;
+
+      if (value < minStopValue) {
+        return minStop.color;
+      }
+
+      if (value > maxStopValue) {
+        return maxStop.color;
+      }
+
+      const exactMatches = stops.filter((stop) => {
+        return stop.value === value;
+      });
+
+      if (exactMatches.length > 0) {
+        return exactMatches[0].color;
+      }
+
+      minStop = null;
+      maxStop = null;
+      stops.forEach((stop, i) => {
+        if (!minStop && !maxStop && stop.value >= value) {
+          minStop = stops[i - 1];
+          maxStop = stop;
+        }
+      });
+
+      const weightedPosition =
+        (value - minStop.value) / (maxStop.value - minStop.value);
+
+      return Color.blendColors(minStop.color, maxStop.color, weightedPosition);
+    }
+  }
 }
 
 //src: chatGPT based on given requirements
@@ -197,6 +459,8 @@ export function generateLayerFields(birdSummary: any) {
     { name: "timestamp", type: "date" },
     { name: "altitude", type: "double" },
     { name: "speed", type: "double" },
+    { name: "heading", type: "double" },
+    { name: "roll", type: "double" },
   ];
 
   const specialKeys = new Set(fields.map((f) => f.name));
@@ -212,26 +476,6 @@ export function generateLayerFields(birdSummary: any) {
   }
 
   return fields;
-}
-
-function createAttributeSelects(
-  birdSummary: Record<string, any>,
-  select: HTMLCalciteSelectElement,
-  defaultValue: string,
-) {
-  select.innerHTML = "";
-  const attributes = Object.keys(birdSummary);
-
-  if (!attributes.includes("---single color---")) {
-    attributes.unshift("---single color---");
-  }
-
-  attributes.forEach((attribute) => {
-    const option = document.createElement("calcite-option");
-    option.value = option.label = option.textContent = attribute;
-    select.appendChild(option);
-  });
-  select.value = defaultValue;
 }
 
 export function createFilters(
@@ -250,7 +494,7 @@ export function createFilters(
       slider.maxValue = summary.max;
       slider.min = summary.min;
       slider.max = summary.max;
-      slider.style = "width:250px";
+      // slider.style = "width:250px";
       slider.setAttribute("label-handles", "");
       slider.addEventListener("calciteSliderChange", async () => {
         const minValue = slider.minValue;
@@ -309,13 +553,13 @@ export function updateArrowLayer(
   const arrows = [
     {
       location: summary.minLocation,
-      icon: "\ue60a", // Down arrow
+      icon: "\ue608", // Down arrow
       label: summary.min.toFixed(0),
       color: [255, 0, 0],
     },
     {
       location: summary.maxLocation,
-      icon: "\ue60d", // Up arrow
+      icon: "\ue609", // Up arrow
       label: summary.max.toFixed(0),
     },
   ];
@@ -332,8 +576,8 @@ export function updateArrowLayer(
       geometry: point,
       symbol: new TextSymbol({
         text: `${label}\n${icon}`,
-        color: [30, 30, 30],
-        haloColor: [150, 150, 150, 0.5],
+        color: [14, 22, 21],
+        haloColor: [125, 149, 139, 0.5],
         haloSize: 2,
         font: {
           size: 24,
@@ -360,16 +604,16 @@ export function updateLayerColorVariables(variable, layer, birdSummary) {
     return;
   }
 
-  if (summary.type === "number") {
-    layer.renderer = createVisualVariablesRenderer(
-      variable,
-      summary,
-      currentRenderer,
-    );
-  } else {
+  if (summary.type === "other") {
     layer.renderer = createUniqueValueRenderer(
       variable,
       summary.values,
+      currentRenderer,
+    );
+  } else {
+    layer.renderer = createVisualVariablesRenderer(
+      variable,
+      summary,
       currentRenderer,
     );
   }
@@ -380,10 +624,12 @@ function createUniqueValueRenderer(variable, uniqueValues, currentRenderer) {
   let type;
   if (currentRenderer.type === "unique-value") {
     type = currentRenderer.uniqueValueInfos[0].symbol.type;
+  } else if (currentRenderer.type === "class-breaks") {
+    type = currentRenderer.classBreakInfos?.[0]?.symbol?.type;
   } else {
     type = currentRenderer.symbol.type;
   }
-  currentRenderer.symbol;
+  // currentRenderer.symbol;
 
   const uniqueValueInfos = uniqueValues.map((val, i) => {
     if (type === "point-3d") {
@@ -422,8 +668,6 @@ function createUniqueValueRenderer(variable, uniqueValues, currentRenderer) {
     };
   });
 
-  console.log("uniqr", uniqueValueInfos);
-
   return {
     type: "unique-value",
     field: variable,
@@ -434,12 +678,16 @@ function createUniqueValueRenderer(variable, uniqueValues, currentRenderer) {
 function createVisualVariablesRenderer(variable, summary, currentRenderer) {
   let symbol;
   let type;
+  console.log("type", currentRenderer.type);
   if (currentRenderer.type === "unique-value") {
     type = currentRenderer.uniqueValueInfos[0].symbol.type;
+  } else if (currentRenderer.type === "class-breaks") {
+    type = currentRenderer.classBreakInfos?.[0]?.symbol?.type;
   } else {
     type = currentRenderer.symbol.type;
   }
-  currentRenderer.symbol;
+
+  // currentRenderer.symbol;
   const { min, max } = summary;
 
   const step = (max - min) / 4;
@@ -496,10 +744,12 @@ function createSimpleRenderer(variable, summary, currentRenderer) {
   let type;
   if (currentRenderer.type === "unique-value") {
     type = currentRenderer.uniqueValueInfos[0].symbol.type;
+  } else if (currentRenderer.type === "class-breaks") {
+    type = currentRenderer.classBreakInfos?.[0]?.symbol?.type;
   } else {
     type = currentRenderer.symbol.type;
   }
-  currentRenderer.symbol;
+  // currentRenderer.symbol;
 
   if (type === "point-3d") {
     symbol = {

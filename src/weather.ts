@@ -5,8 +5,10 @@ import Polygon from "@arcgis/core/geometry/Polygon";
 import * as webMercatorUtils from "@arcgis/core/geometry/support/webMercatorUtils";
 import Graphic from "@arcgis/core/Graphic";
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
+import { ArcgisLegend } from "@arcgis/map-components/dist/components/arcgis-legend";
 import { ArcgisTimeSlider } from "@arcgis/map-components/dist/components/arcgis-time-slider";
 import { fetchWeatherApi } from "openmeteo";
+
 const fields = [
   {
     name: "ObjectID",
@@ -99,17 +101,26 @@ const fields = [
 ];
 
 // Esri color ramps - Purple 4
+// const colors = [
+//   "rgba(247, 252, 253, 1)",
+//   "rgba(224, 236, 244, 1)",
+//   "rgba(191, 211, 230, 1)",
+//   "rgba(158, 188, 218, 1)",
+//   "rgba(140, 150, 198, 1)",
+//   "rgba(140, 107, 177, 1)",
+//   "rgba(136, 65, 157, 1)",
+//   "rgba(129, 15, 124, 1)",
+//   "rgba(104, 0, 102, 1)",
+//   "rgba(63, 1, 63, 1)",
+// ];
+
+// Esri color ramps - Esri Purple and Gray 1
 const colors = [
-  "rgba(247, 252, 253, 1)",
-  "rgba(224, 236, 244, 1)",
-  "rgba(191, 211, 230, 1)",
-  "rgba(158, 188, 218, 1)",
-  "rgba(140, 150, 198, 1)",
-  "rgba(140, 107, 177, 1)",
-  "rgba(136, 65, 157, 1)",
-  "rgba(129, 15, 124, 1)",
-  "rgba(104, 0, 102, 1)",
-  "rgba(63, 1, 63, 1)",
+  "rgba(244, 239, 250, 0.7)",
+  "rgba(222, 206, 247, 0.7)",
+  "rgba(152, 122, 195, 0.7)",
+  "rgba(105, 64, 161, 0.7)",
+  "rgba(78, 44, 126, 0.7)",
 ];
 
 const blankRenderer = {
@@ -145,20 +156,51 @@ const temperatureRenderer = {
       type: "color",
       field: "temperature",
       stops: [
-        { value: -30, color: "rgba(5, 48, 97, 0.7)" },
-        { value: -20, color: "rgba(33, 102, 172, 0.7)" },
-        { value: -15, color: "rgba(67, 147, 195, 0.7)" },
-        { value: -10, color: "rgba(146, 197, 222, 0.7)" },
-        { value: -5, color: "rgba(209, 229, 240, 0.7)" },
-        { value: 0, color: "rgba(253, 219, 199, 0.7)" },
-        { value: 5, color: "rgba(244, 165, 130, 0.7)" },
-        { value: 10, color: "rgba(214, 96, 77, 0.7)" },
-        { value: 20, color: "rgba(178, 24, 43, 0.7)" },
-        { value: 30, color: "rgba(103, 0, 31, 0.7)" },
+        { value: -30, color: "rgba(64, 64, 64, 0.7)" },
+        { value: -20, color: "rgba(102, 102, 102, 0.7)" },
+        { value: -15, color: "rgba(153, 153, 153, 0.7)" },
+        { value: -10, color: "rgba(183, 182, 185, 0.7)" },
+        { value: -5, color: "rgba(214, 210, 218, 0.7)" },
+        { value: 0, color: "rgba(244, 239, 250, 0.7)" },
+        { value: 5, color: "rgba(222, 206, 247, 0.7)" },
+        { value: 10, color: "rgba(152, 122, 195, 0.7)" },
+        { value: 20, color: "rgba(105, 64, 161, 0.7)" },
+        { value: 30, color: "rgba(78, 44, 126, 0.7)" },
       ],
     },
   ],
 };
+
+// const temperatureRenderer = {
+//   type: "simple",
+//   symbol: {
+//     type: "polygon-3d",
+//     symbolLayers: [
+//       {
+//         type: "fill",
+//         material: { color: [0, 0, 0, 0.5] },
+//       },
+//     ],
+//   },
+//   visualVariables: [
+//     {
+//       type: "color",
+//       field: "temperature",
+//       stops: [
+//         { value: -30, color: "rgba(5, 48, 97, 0.7)" },
+//         { value: -20, color: "rgba(33, 102, 172, 0.7)" },
+//         { value: -15, color: "rgba(67, 147, 195, 0.7)" },
+//         { value: -10, color: "rgba(146, 197, 222, 0.7)" },
+//         { value: -5, color: "rgba(209, 229, 240, 0.7)" },
+//         { value: 0, color: "rgba(253, 219, 199, 0.7)" },
+//         { value: 5, color: "rgba(244, 165, 130, 0.7)" },
+//         { value: 10, color: "rgba(214, 96, 77, 0.7)" },
+//         { value: 20, color: "rgba(178, 24, 43, 0.7)" },
+//         { value: 30, color: "rgba(103, 0, 31, 0.7)" },
+//       ],
+//     },
+//   ],
+// };
 
 // https://www.baranidesign.com/faq-articles/2020/1/19/rain-rate-intensity-classification
 const precipitationRenderer = {
@@ -178,10 +220,10 @@ const precipitationRenderer = {
       field: "precipitation",
       stops: [
         { value: 0, color: colors[0] },
-        { value: 1, color: colors[2] },
-        { value: 3, color: colors[4] },
-        { value: 8, color: colors[6] },
-        { value: 50, color: colors[8] },
+        { value: 1, color: colors[1] },
+        { value: 3, color: colors[2] },
+        { value: 8, color: colors[3] },
+        { value: 50, color: colors[4] },
       ],
     },
   ],
@@ -205,16 +247,11 @@ const pressureRenderer = {
       type: "color",
       field: "pressure",
       stops: [
-        { value: 600, color: colors[0] },
+        { value: 650, color: colors[0] },
         { value: 750, color: colors[1] },
-        { value: 700, color: colors[2] },
-        { value: 750, color: colors[3] },
-        { value: 800, color: colors[4] },
-        { value: 850, color: colors[5] },
-        { value: 900, color: colors[6] },
-        { value: 950, color: colors[7] },
-        { value: 1000, color: colors[8] },
-        { value: 1050, color: colors[9] },
+        { value: 850, color: colors[2] },
+        { value: 950, color: colors[3] },
+        { value: 1050, color: colors[4] },
       ],
     },
   ],
@@ -253,16 +290,11 @@ const windRenderer = {
       type: "color",
       field: "windSpeed10",
       stops: [
-        { value: 1, color: colors[0] },
-        { value: 3, color: colors[1] },
-        { value: 5, color: colors[2] },
-        { value: 10, color: colors[3] },
+        { value: 0, color: colors[0] },
+        { value: 5, color: colors[1] },
+        { value: 10, color: colors[2] },
+        { value: 15, color: colors[3] },
         { value: 20, color: colors[4] },
-        { value: 30, color: colors[5] },
-        { value: 40, color: colors[6] },
-        { value: 50, color: colors[7] },
-        { value: 60, color: colors[8] },
-        { value: 70, color: colors[9] },
       ],
     },
     {
@@ -340,18 +372,29 @@ export async function setWeather(
   const timeSlider = document.querySelector(
     "arcgis-time-slider",
   )! as ArcgisTimeSlider;
+  const weatherLegend = document.getElementById(
+    "weather-legend",
+  )! as ArcgisLegend;
+  const weatherHidden = document.getElementById("weather-hidden")!;
+
   let weatherLayer: FeatureLayer;
   let tiles: any;
 
   weatherLayer = await createWeatherLayer(arcgisScene);
+
+  weatherLegend.layerInfos = [
+    {
+      layer: weatherLayer,
+      title: "Legend",
+    },
+  ];
   buttonTiles?.addEventListener("click", async () => {
     tiles = await generateWeatherExtent(
       arcgisScene,
       secondaryLayer,
       polylineLayer,
     );
-
-    console.log("t", tiles);
+    weatherHidden.style.display = "none";
   });
   buttonWeather?.addEventListener("click", async () => {
     updateWeatherLayer();
@@ -407,9 +450,11 @@ export async function setWeather(
       });
 
       if (weatherDistance.value == 0 || weatherSize.value == 0) {
-        buttonWeather.disabled = true;
-        weatherSelect.disabled = true;
-        weatherTimeSwitch.disabled = true;
+        // buttonWeather.disabled = true;
+        // weatherSelect.disabled = true;
+        // weatherTimeSwitch.disabled = true;
+        weatherHidden.style.display = "none";
+
         buttonWeather.innerText = `Get weather`;
         buttonTiles.loading = false;
         return;
@@ -669,8 +714,9 @@ export async function setWeather(
     if (isUpdated) {
       createTimeControl();
 
-      weatherSelect.disabled = false;
-      weatherTimeSwitch.disabled = false;
+      // weatherSelect.disabled = false;
+      // weatherTimeSwitch.disabled = false;
+      weatherHidden.style.display = "grid";
 
       await setWeatherLayerTime();
       updateWeatherRenderer();
@@ -1038,6 +1084,24 @@ export async function setWeather(
   }
 
   function formatDateShort(d) {
-    return `${d.getHours()}h ${d.getDate()}/${d.getMonth() + 1}`;
+    const hours = String(d.getHours()).padStart(2, "0");
+    const monthNames = [
+      "JAN",
+      "FEB",
+      "MAR",
+      "APR",
+      "MAY",
+      "JUN",
+      "JUL",
+      "AUG",
+      "SEP",
+      "OCT",
+      "NOV",
+      "DEC",
+    ];
+
+    `${d.getDate()}   ${hours}`;
+
+    return `${d.getDate()} ${monthNames[d.getMonth()]} ${d.getHours()}:00`;
   }
 }

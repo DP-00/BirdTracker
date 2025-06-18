@@ -1,5 +1,11 @@
+import * as geodeticLengthOperator from "@arcgis/core/geometry/operators/geodeticLengthOperator";
+import Polyline from "@arcgis/core/geometry/Polyline";
+import Graphic from "@arcgis/core/Graphic";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
+
 import Papa from "papaparse";
+import { setBirdPerspective } from "./birdPerspective";
+import { setCharts } from "./charts";
 import {
   createCylinderLayer,
   createGeneralizedLineLayer,
@@ -7,7 +13,7 @@ import {
   createLineLayer,
   createTimeLayer,
 } from "./layers";
-import { setCameraControl, setTimeSlider } from "./mapControls";
+import { setTimeSlider } from "./mapControls";
 import { setSingleVis, summarizeData } from "./singleVisualization";
 import { setWeather } from "./weather";
 
@@ -179,8 +185,8 @@ async function createDefaultLayers(
   });
 
   await arcgisScene.addLayers([
-    primaryLayer,
     generalizedLayer,
+    primaryLayer,
     secondaryLayer,
     arrowLayer,
     hourLayer,
@@ -190,10 +196,15 @@ async function createDefaultLayers(
   await arcgisScene.view.goTo(primaryLayer.fullExtent);
 
   await secondaryLayer.when();
+
+  let polyline = await createPolylineAndDashboardInfo(birdPath);
+
   await setWeather(arcgisScene, secondaryLayer, generalizedLayer, hourLayer);
 
+  setCharts(polyline);
+
   // await arcgisScene.addLayers([weatherLayer]);
-  setSingleVis(
+  await setSingleVis(
     arcgisScene,
     primaryLayer,
     secondaryLayer,
@@ -203,10 +214,44 @@ async function createDefaultLayers(
     secondaryValue,
   );
 
-  setTimeSlider(arcgisScene.view, primaryLayer);
-  setCameraControl(arcgisScene.view, primaryLayer);
+  setTimeSlider(arcgisScene, primaryLayer);
+
+  await setBirdPerspective(arcgisScene, secondaryLayer);
 
   return [primaryLayer, generalizedLayer, secondaryLayer];
+}
+
+async function createPolylineAndDashboardInfo(birdData) {
+  const polyline = new Polyline({
+    spatialReference: { wkid: 4326 },
+    paths: birdData.map(
+      (pt: { longitude: any; latitude: any; altitude: any }) => [
+        pt.longitude,
+        pt.latitude,
+        pt.altitude,
+      ],
+    ),
+  });
+
+  if (!geodeticLengthOperator.isLoaded()) {
+    await geodeticLengthOperator.load();
+  }
+
+  const length = geodeticLengthOperator.execute(polyline);
+
+  const startTime = new Date(birdData[0].timestamp).getTime();
+  const endTime = new Date(birdData[birdData.length - 1].timestamp).getTime();
+  let durationSeconds = (endTime - startTime) / 1000;
+  const days = Math.floor(durationSeconds / (3600 * 24));
+  durationSeconds -= days * 3600 * 24;
+  const hours = Math.floor(durationSeconds / 3600);
+
+  document.getElementById("dashboard-birdid")!.innerText = birdData[0].birdid;
+  document.getElementById("dashboard-duration")!.innerHTML =
+    `Traveled <b style="font-weight:800;">${(length / 1000).toFixed(2)} km</b> for <b style="font-weight:800;">${days} days and ${hours} hours</b>`;
+
+  const lineGraphic = new Graphic({ geometry: polyline });
+  return lineGraphic;
 }
 
 function createColumnSelects(
@@ -284,8 +329,6 @@ function processCSV(
             birdid,
             longitude,
             latitude,
-            // altitude: parseFloat(row[getCol("altitude")]),
-            // speed: parseFloat(row[getCol("speed")]),
             altitude: parseFloat(
               parseFloat(row[getCol("altitude")]).toFixed(3),
             ),

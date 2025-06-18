@@ -8,17 +8,6 @@ import Slide from "@arcgis/core/webscene/Slide";
 import LocalBasemapsSource from "@arcgis/core/widgets/BasemapGallery/support/LocalBasemapsSource";
 import { ArcgisTimeSlider } from "@arcgis/map-components/dist/components/arcgis-time-slider";
 
-export function setCameraControl(
-  view: __esri.SceneView,
-  layer: __esri.FeatureLayer,
-) {
-  document
-    .getElementById("camera-zoom")!
-    .addEventListener("click", function () {
-      view.goTo(layer.fullExtent);
-    });
-}
-
 export function setBasemaps() {
   const customBasemaps = [
     Basemap.fromId("topo-3d"),
@@ -159,20 +148,45 @@ export async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
     item.title.toLowerCase().includes("visualization");
   document.querySelector("arcgis-layer-list")!.filterPredicate = (item) =>
     !item.title.toLowerCase().includes("visualization");
+
+  console.log();
+
+  document.getElementById("thematic-layers-legend")!.layerInfos =
+    arcgisScene.map.layers
+      .filter(
+        (layer) =>
+          layer.title && !layer.title.toLowerCase().includes("visualization"),
+      )
+      .map((layer) => ({
+        layer,
+        title: layer.title,
+      }));
 }
 
 export function setTimeSlider(
-  view: __esri.SceneView,
+  arcgisScene: HTMLArcgisSceneElement,
   layer: __esri.FeatureLayer,
 ) {
   const timeSlider = document.querySelector(
     "arcgis-time-slider",
   )! as ArcgisTimeSlider;
 
-  timeSlider.view = view;
+  timeSlider.view = arcgisScene.view;
+
   timeSlider.fullTimeExtent = layer.timeInfo?.fullTimeExtent;
+
+  const start = new Date(timeSlider.fullTimeExtent.start);
+
+  let end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+  timeSlider.timeExtent = new TimeExtent({ start, end });
+  timeSlider.stops = { count: 10000 };
+  // timeSlider.stops = null;
+
+  // timeSlider.stops = { interval: { value: 2, unit: "minutes" } };
   timeSlider.addEventListener("arcgisPropertyChange", (event) => {
-    view.environment.lighting.date = new Date(timeSlider.timeExtent.end);
+    arcgisScene.view.environment.lighting.date = new Date(
+      timeSlider.timeExtent.end,
+    );
   });
 
   document
@@ -180,7 +194,7 @@ export function setTimeSlider(
     .addEventListener("calciteSelectChange", (e) => {
       const hours = parseInt(e.target.value);
       const end = new Date(timeSlider.timeExtent.end);
-      let start = new Date(end.getTime() - hours * 3600000);
+      let start = new Date(end.getTime() - hours * 60 * 60 * 1000);
       if (start < new Date(timeSlider.fullTimeExtent.start)) {
         start = new Date(timeSlider.fullTimeExtent.start);
       }
@@ -195,8 +209,20 @@ export function setTimeSlider(
   document
     .getElementById("stops")!
     .addEventListener("calciteSelectChange", (e) => {
-      timeSlider.stops = { interval: { value: 1, unit: e.target.value } };
+      if (e.target.value === "continous") {
+        timeSlider.stops = { count: 10000 };
+      } else {
+        timeSlider.stops = { interval: { value: 1, unit: e.target.value } };
+      }
     });
+
+  const timezonePicker = document.getElementById("timezone-picker");
+  timezonePicker.addEventListener("calciteInputTimeZoneChange", () => {
+    console.log("azone", arcgisScene.map);
+    // arcgisMap.timeZone = timezonePicker.value; // original
+    // arcgisScene.timeZone = timezonePicker.value; // X
+    // arcgisScene.map.timeZone = timezonePicker.value; // X
+  });
 }
 
 export function setSlides(arcgisScene: HTMLArcgisSceneElement) {

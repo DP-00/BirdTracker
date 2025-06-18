@@ -106,7 +106,7 @@ export async function createGeneralizedLineLayer(groupedData: {
 
     const generalizedPolyline = await generalizeOperator.execute(
       polyline,
-      0.005,
+      0.001,
     );
 
     const lineGraphic = new Graphic({ geometry: generalizedPolyline });
@@ -119,12 +119,13 @@ export async function createGeneralizedLineLayer(groupedData: {
     source: lineGraphics,
     objectIdField: "ObjectID",
     geometryType: "polyline",
+    legendEnabled: false,
     elevationInfo: { mode: "on-the-ground" },
-    maxScale: 300000,
+    // maxScale: 300000,
     popupEnabled: false,
     renderer: {
       type: "simple",
-      symbol: { type: "simple-line", color: [70, 70, 70, 0.5], width: 10 },
+      symbol: { type: "simple-line", color: [152, 59, 34, 0.5], width: 20 },
     },
   });
 }
@@ -183,7 +184,7 @@ export async function createLineLayer(
 
   const featureLayer = new FeatureLayer({
     id: "primaryLayer",
-    title: "Primary visualization",
+    title: "Line visualization",
     source: lineGraphics,
     objectIdField: "ObjectID",
     geometryType: "polyline",
@@ -196,6 +197,7 @@ export async function createLineLayer(
       endField: "timestamp",
       interval: { value: 1, unit: "minutes" },
     },
+    opacity: 0.75,
     renderer: {
       type: "simple",
       symbol: {
@@ -218,7 +220,7 @@ export async function createLineLayer(
 export function createCylinderLayer(graphics: any, birdSummary: any) {
   const featureLayer = new FeatureLayer({
     id: "secondaryLayer",
-    title: "Secondary visualization",
+    title: "Cylinder visualization",
     source: graphics,
     objectIdField: "ObjectID",
     geometryType: "point",
@@ -234,6 +236,7 @@ export function createCylinderLayer(graphics: any, birdSummary: any) {
       interval: { value: 1, unit: "minutes" },
     },
     // popupTemplate: popTemplate,
+    opacity: 0.75,
     renderer: {
       type: "simple",
       symbol: {
@@ -311,8 +314,9 @@ export async function createTimeLayer(graphics) {
         let hours = Math.floor((durationInSeconds % 86400) / 3600);
         let text =
           label === "Hour"
-            ? `${days}d ${hours}h \ue63f +${Math.round(distanceFromLast)} (${Math.round(accumulatedDistance)})km`
-            : `${days} \ue63f +${Math.round(distanceFromLast)} (${Math.round(accumulatedDistance)})km`;
+            ? `${days}d ${hours}h | +${Math.round(distanceFromLast)} km`
+            : // : `${days} \ue64e +${Math.round(distanceFromLast)} (${Math.round(accumulatedDistance)}) km`;
+              `${days}d | +${Math.round(distanceFromLast)} km`;
 
         graphicsArray.push(
           new Graphic({
@@ -320,8 +324,8 @@ export async function createTimeLayer(graphics) {
             attributes: { timestamp: currentTimestamp },
             symbol: new TextSymbol({
               text,
-              color: [30, 30, 30],
-              haloColor: [150, 150, 150, 0.5],
+              color: [14, 22, 21],
+              haloColor: [125, 149, 139, 0.5],
               haloSize: 1.5,
               font: {
                 size: 10,
