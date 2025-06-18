@@ -184,7 +184,7 @@ export async function createLineLayer(
 
   const featureLayer = new FeatureLayer({
     id: "primaryLayer",
-    title: "Primary visualization",
+    title: "Line visualization",
     source: lineGraphics,
     objectIdField: "ObjectID",
     geometryType: "polyline",
@@ -220,7 +220,7 @@ export async function createLineLayer(
 export function createCylinderLayer(graphics: any, birdSummary: any) {
   const featureLayer = new FeatureLayer({
     id: "secondaryLayer",
-    title: "Secondary visualization",
+    title: "Cylinder visualization",
     source: graphics,
     objectIdField: "ObjectID",
     geometryType: "point",
@@ -314,9 +314,9 @@ export async function createTimeLayer(graphics) {
         let hours = Math.floor((durationInSeconds % 86400) / 3600);
         let text =
           label === "Hour"
-            ? `${days}d ${hours}h: +${Math.round(distanceFromLast)} km`
+            ? `${days}d ${hours}h | +${Math.round(distanceFromLast)} km`
             : // : `${days} \ue64e +${Math.round(distanceFromLast)} (${Math.round(accumulatedDistance)}) km`;
-              `${days} \ue64e +${Math.round(distanceFromLast)} km`;
+              `${days}d | +${Math.round(distanceFromLast)} km`;
 
         graphicsArray.push(
           new Graphic({

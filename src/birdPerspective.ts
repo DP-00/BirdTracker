@@ -27,8 +27,8 @@ export async function setBirdPerspective(arcgisScene, pointLayer) {
 
   const speedGauge = new RadialGauge({
     renderTo: "speedGauge",
-    width: 250,
-    height: 250,
+    width: 270,
+    height: 270,
     units: "km/h",
     title: "Speed",
     minValue: 0,
@@ -71,8 +71,8 @@ export async function setBirdPerspective(arcgisScene, pointLayer) {
 
   const headingGauge = new RadialGauge({
     renderTo: "headingGauge",
-    width: 200,
-    height: 200,
+    width: 230,
+    height: 230,
     minValue: 0,
     maxValue: 360,
     majorTicks: ["N", "NE", "E", "SE", "S", "SW", "W", "NW", "N"],
@@ -122,8 +122,8 @@ export async function setBirdPerspective(arcgisScene, pointLayer) {
 
   const altitudeGauge = new LinearGauge({
     renderTo: "altitudeGauge",
-    width: 120,
-    height: 400,
+    width: 150,
+    height: 450,
     title: "Altitude",
     units: "m.a.s.l.",
     minValue: 0,

@@ -213,8 +213,8 @@ class App extends Widget<AppProperties> {
               </calcite-label>
             </p>
             <div id="dashboard-info">
-              <p>Primary visualization:</p>
-              <p> Secondary visualization:</p>
+              <p>Line visualization:</p>
+              <p> Cylinder visualization:</p>
               <calcite-select id="primary-vis-select"></calcite-select>
               <calcite-select id="secondary-vis-select"></calcite-select>
               <div id="prim-filter-container"></div>
@@ -224,7 +224,7 @@ class App extends Widget<AppProperties> {
             <calcite-tabs layout="center">
               <calcite-tab-nav slot="title-group">
                 <calcite-tab-title icon-start="palette" selected>
-                  Color scale
+                  Symbolization
                 </calcite-tab-title>
                 <calcite-tab-title icon-start="graph-time-series">
                   Charts
@@ -243,8 +243,8 @@ class App extends Widget<AppProperties> {
               <calcite-tab>
                 {/* <arcgis-legend reference-element="scene-div"></arcgis-legend> */}
                 <div id="color-scale-container">
-                  <p>Primary color scale</p>
-                  <p>Secondary color scale</p>
+                  <p>Line color scale</p>
+                  <p>Cylinder color scale</p>
                   <div id="color-slider-primary"></div>
                   <arcgis-legend
                     id="legend-primary"
@@ -299,7 +299,7 @@ const LoadingPanel = () => {
         escape-disabled="true"
         outside-close-disabled="true"
         id="loading-dialog"
-        heading="Welcome to the app!"
+        heading="Welcome to the BirdTracker app!"
       >
         <calcite-tabs>
           <calcite-tab-nav slot="title-group">
@@ -421,26 +421,11 @@ const VisDashboard = () => {
               icon-start="multiple-variables"
               heading="Variable selection"
               expanded
-            >
-              {/* <calcite-label layout="inline">
-                Primary visualization:
-                <calcite-select id="primary-vis-select"></calcite-select>
-              </calcite-label>
-              <calcite-label layout="inline">
-                Secondary visualization:
-                <calcite-select id="secondary-vis-select"></calcite-select>
-              </calcite-label> */}
-            </calcite-accordion-item>
-            <calcite-accordion-item icon-start="filter" heading="Filter">
-              {/* <calcite-label layout="inline">
-                Primary visualization:
-                <div id="prim-filter-container"></div>
-              </calcite-label>
-              <calcite-label layout="inline">
-                Secondary visualization:
-                <div id="sec-filter-container"></div>
-              </calcite-label> */}
-            </calcite-accordion-item>
+            ></calcite-accordion-item>
+            <calcite-accordion-item
+              icon-start="filter"
+              heading="Filter"
+            ></calcite-accordion-item>
           </calcite-accordion>
         </calcite-accordion-item>
         <WeatherControls></WeatherControls>
@@ -456,6 +441,12 @@ const VisDashboard = () => {
 const WeatherControls = () => {
   return (
     <div>
+      <calcite-notice icon="information" open>
+        <div slot="message">
+          Due to the weather API call limit: daily (10 000) and hourly (600) set
+          the grid first to get only necessary data
+        </div>
+      </calcite-notice>
       <div id="weather-container">
         <p>Size of tile (km)</p>
         <calcite-slider
@@ -506,9 +497,12 @@ const WeatherControls = () => {
             </calcite-select>
           </calcite-label>
           <calcite-label layout="inline">
-            Snap to closest
-            <calcite-switch id="weather-time-switch"></calcite-switch>
-            Control time
+            Temporal mapping:
+            <calcite-label layout="inline">
+              Along path
+              <calcite-switch id="weather-time-switch"></calcite-switch>
+              Constant
+            </calcite-label>
           </calcite-label>
           <calcite-label layout="inline">
             <div id="weather-time-container"></div>
