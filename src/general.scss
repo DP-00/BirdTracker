@@ -41,6 +41,7 @@
 }
 
 .esri-widget {
+  --calcite-color-brand-hover: #aed8cc;
   font-weight: 500;
 }
 
@@ -139,6 +140,48 @@ b {
   height: 12px;
   top: -6px;
   left: -12px;
+}
+
+.esri-elevation-profile {
+  --chart-height: 250px;
+}
+
+.esri-elevation-profile-legend-item__content {
+  display: block;
+}
+
+.filters-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0 0 3rem;
+}
+
+.filter-container {
+  flex: 1;
+}
+
+.layer-label {
+  margin: auto;
+  padding-top: 1rem;
+}
+
+.layer-label span {
+  font-weight: 800;
+}
+
+.legend-label {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem 0 0 0;
+}
+
+#generalize-legend {
+  background-color: rgba(84, 17, 17, 0.75);
+  width: 100px;
+  height: 10px;
+  border-radius: 10rem;
 }
 
 input {
@@ -267,24 +310,21 @@ calcite-segmented-control-item[checked] {
   display: grid;
   grid-template-columns: auto auto;
   gap: 3px;
+  overflow-x: clip;
+  padding-bottom: 3rem;
 }
 
-// .esri-color-slider
-//   esri-widget
-//   esri-widget--panel
-//   esri-color-slider--primary-handle {
-//   width: 18rem;
-// }
-// .esri-color-slider__slider-container {
-//   width: 18rem;
-// }
-// .esri-color-slider .esri-slider .esri-slider__content {
-//   margin: 0;
-// }
+.esri-color-slider .esri-slider .esri-slider__min {
+  padding: 0;
+  margin: 3px auto;
+  pointer-events: none;
+}
 
-// .esri-slider--vertical .esri-slider__content {
-//   width: 18rem;
-// }
+.esri-color-slider .esri-slider .esri-slider__max {
+  padding: 0;
+  margin: 3px auto;
+  pointer-events: none;
+}
 
 #legend-primary {
   display: none;
@@ -294,25 +334,25 @@ calcite-segmented-control-item[checked] {
   display: none;
 }
 
-// .gauge-canvas {
-//   width: 200px;
-//   height: 200px;
-// }
-
-#weather-container {
+.two-col-grid {
   display: grid;
   grid-template-columns: auto auto;
   gap: 10px;
+  padding: 0.2rem;
 }
 
-#weather-hidden {
+// #weather-tiles-container {
+//   display: grid;
+//   grid-template-columns: auto auto;
+//   gap: 10px;
+// }
+
+#weather-symbology-container {
   display: none;
   // display: grid;
-  grid-template-columns: auto auto;
-  gap: 10px;
-  padding-bottom: 2rem;
-  border: #090e0d solid 5px;
-  padding: 1rem;
+  // grid-template-columns: auto auto;
+  // gap: 10px;
+  // padding: 1rem;
   // background-color: #090e0d;
 }
 

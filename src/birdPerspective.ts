@@ -227,7 +227,7 @@ export async function setBirdPerspective(arcgisScene, pointLayer) {
   });
 
   let birdMesh = (
-    await Mesh.createFromGLTF(point, "./data/flying_crow_color.glb", {
+    await Mesh.createFromGLTF(point, "./flying_crow_color.glb", {
       vertexSpace: "local",
     })
   )

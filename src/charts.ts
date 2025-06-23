@@ -15,4 +15,11 @@ export async function setCharts(path) {
       viewVisualizationEnabled: false,
     },
   ];
+
+  // console.log(
+  //   document.querySelector(
+  //     ".esri-elevation-profile-legend-item__collapse-toggle",
+  //   ),
+  // );
+  // .click();
 }

@@ -36,22 +36,27 @@ const fields = [
   },
   {
     name: "temperature",
+    alias: "Temperature (°C)",
     type: "double",
   },
   {
     name: "pressure",
+    alias: "Pressure (hPa)",
     type: "double",
   },
   {
     name: "precipitation",
+    alias: "Precipitation (mm)",
     type: "double",
   },
   {
     name: "windSpeed10",
+    alias: "Wind Speed (km/h)",
     type: "double",
   },
   {
     name: "windDirection10",
+    alias: "Wind Direction (°)",
     type: "double",
   },
   {
@@ -363,6 +368,9 @@ export async function setWeather(
   const buttonTiles = document.getElementById(
     "tiles-button",
   )! as HTMLCalciteButtonElement;
+  const buttonNewTiles = document.getElementById(
+    "new-tiles-button",
+  )! as HTMLCalciteButtonElement;
   const weatherTimeSwitch = document.getElementById(
     "weather-time-switch",
   )! as HTMLCalciteSwitchElement;
@@ -375,7 +383,15 @@ export async function setWeather(
   const weatherLegend = document.getElementById(
     "weather-legend",
   )! as ArcgisLegend;
-  const weatherHidden = document.getElementById("weather-hidden")!;
+  const weatherTimeContainer = document.getElementById(
+    "weather-time-container",
+  ) as HTMLElement;
+  const weatherTilesContainer = document.getElementById(
+    "weather-tiles-container",
+  )!;
+  const weatherSymbologyContainer = document.getElementById(
+    "weather-symbology-container",
+  )!;
 
   let weatherLayer: FeatureLayer;
   let tiles: any;
@@ -385,19 +401,24 @@ export async function setWeather(
   weatherLegend.layerInfos = [
     {
       layer: weatherLayer,
-      title: "Legend",
+      title: "",
     },
   ];
+
   buttonTiles?.addEventListener("click", async () => {
     tiles = await generateWeatherExtent(
       arcgisScene,
       secondaryLayer,
       polylineLayer,
     );
-    weatherHidden.style.display = "none";
   });
   buttonWeather?.addEventListener("click", async () => {
     updateWeatherLayer();
+
+    // weatherSelect.disabled = false;
+    // weatherTimeSwitch.disabled = false;
+    weatherTilesContainer.style.display = "none";
+    weatherSymbologyContainer.style.display = "block";
   });
 
   weatherSelect?.addEventListener("calciteSelectChange", async () => {
@@ -410,7 +431,33 @@ export async function setWeather(
     setWeatherLayerTime();
   });
 
+  buttonNewTiles?.addEventListener("click", async () => {
+    weatherSymbologyContainer.style.display = "none";
+    weatherTilesContainer.style.display = "block";
+  });
+
   async function createWeatherLayer(arcgisScene) {
+    const renderer = {
+      type: "heatmap",
+      colorStops: [
+        { color: "rgba(63, 40, 102, 0)", ratio: 0 },
+        { color: "#472b77", ratio: 0.083 },
+        { color: "#4e2d87", ratio: 0.166 },
+        { color: "#563098", ratio: 0.249 },
+        { color: "#5d32a8", ratio: 0.332 },
+        { color: "#6735be", ratio: 0.415 },
+        { color: "#7139d4", ratio: 0.498 },
+        { color: "#7b3ce9", ratio: 0.581 },
+        { color: "#853fff", ratio: 0.664 },
+        { color: "#a46fbf", ratio: 0.747 },
+        { color: "#c29f80", ratio: 0.83 },
+        { color: "#e0cf40", ratio: 0.913 },
+        { color: "#ffff00", ratio: 1 },
+      ],
+      maxDensity: 0.01,
+      minDensity: 0,
+    };
+
     let weatherLayer = new FeatureLayer({
       id: "weatherLayer",
       title: "Weather visualization",
@@ -419,14 +466,6 @@ export async function setWeather(
       geometryType: "polygon",
       spatialReference: { wkid: 3857 },
       fields: fields,
-      // timeInfo: {
-      //   startField: "timestamp",
-      //   endField: "timestamp",
-      //   interval: {
-      //     value: 1,
-      //     unit: "minutes",
-      //   },
-      // },
       popupTemplate: {},
       elevationInfo: {
         mode: "on-the-ground",
@@ -453,7 +492,8 @@ export async function setWeather(
         // buttonWeather.disabled = true;
         // weatherSelect.disabled = true;
         // weatherTimeSwitch.disabled = true;
-        weatherHidden.style.display = "none";
+        weatherSymbologyContainer.style.display = "none";
+        weatherTilesContainer.style.display = "block";
 
         buttonWeather.innerText = `Get weather`;
         buttonTiles.loading = false;
@@ -714,10 +754,6 @@ export async function setWeather(
     if (isUpdated) {
       createTimeControl();
 
-      // weatherSelect.disabled = false;
-      // weatherTimeSwitch.disabled = false;
-      weatherHidden.style.display = "grid";
-
       await setWeatherLayerTime();
       updateWeatherRenderer();
     }
@@ -730,10 +766,6 @@ export async function setWeather(
   }
 
   function createTimeControl() {
-    const weatherTimeContainer = document.getElementById(
-      "weather-time-container",
-    ) as HTMLElement;
-
     let timeArray = tiles[0].attributes.timestampAll;
     weatherTimeContainer.innerHTML = "";
     const slider = document.createElement("calcite-slider");
@@ -837,14 +869,14 @@ export async function setWeather(
     weatherLayer.renderer = weatherRenderer;
 
     const fieldInfos = [
-      "temperature",
-      "pressure",
-      "precipitation",
-      "windSpeed10",
-      "windDirection10",
-      "windSpeed100",
-      "windDirection100",
-    ].map((f) => ({ fieldName: f }));
+      { fieldName: "temperature", label: "Temperature (°C)" },
+      { fieldName: "pressure", label: "Pressure (hPa)" },
+      { fieldName: "precipitation", label: "Precipitation (mm)" },
+      { fieldName: "windSpeed10", label: "Wind Speed @10m (km/h)" },
+      { fieldName: "windDirection10", label: "Wind Direction @10m (°)" },
+      { fieldName: "windSpeed100", label: "Wind Speed @100m (km/h)" },
+      { fieldName: "windDirection100", label: "Wind Direction @100m (°)" },
+    ];
 
     weatherLayer.popupTemplate = {
       title: popupText,

@@ -14,7 +14,10 @@ export async function setSingleVis(
   arcgisScene: HTMLArcgisSceneElement,
   primaryLayer: __esri.FeatureLayer,
   secondaryLayer: __esri.FeatureLayer,
+  generalizedLayer,
   arrowLayer: __esri.GraphicsLayer,
+  hourLayer,
+  dayLayer,
   birdSummary: Record<string, any>,
   primaryValue: string,
   secondaryValue: string,
@@ -30,6 +33,14 @@ export async function setSingleVis(
   const secondaryLegend = document.getElementById("legend-secondary");
   const primaryColorScale = document.getElementById("color-slider-primary");
   const secondaryColorScale = document.getElementById("color-slider-secondary");
+  const lineVisibility = document.getElementById("visibility-line");
+  const cylinderVisibility = document.getElementById("visibility-cylinders");
+  const lgeneralizedVisibility = document.getElementById(
+    "visibility-generalized",
+  );
+  const timeMarksVisibility = document.getElementById("visibility-timemarks");
+
+  setLayerVisibility();
 
   createAttributeSelects(birdSummary, primaryVisSelect, primaryValue);
   createAttributeSelects(birdSummary, secondaryVisSelect, secondaryValue);
@@ -50,6 +61,14 @@ export async function setSingleVis(
     document.getElementById("sec-filter-container")!,
     secondaryValue,
   );
+
+  console.log(document.getElementById("line-variable"), primaryVisSelect.value);
+  document.getElementById("line-variable")!.innerText =
+    primaryVisSelect.value.charAt(0).toUpperCase() +
+    primaryVisSelect.value.slice(1);
+  document.getElementById("cylinder-variable")!.innerText =
+    secondaryVisSelect.value.charAt(0).toUpperCase() +
+    secondaryVisSelect.value.slice(1);
 
   updateArrowLayer(arrowLayer, primaryValue, birdSummary);
   updateLayerColorVariables(primaryValue, primaryLayer, birdSummary);
@@ -76,6 +95,18 @@ export async function setSingleVis(
     arcgisScene.view.whenLayerView(primaryLayer).then((layerView) => {
       layerView.filter = null;
     });
+
+    console.log(
+      document.getElementById("line-variable"),
+      primaryVisSelect.value.charAt(0).toUpperCase(),
+    );
+    document.getElementById("line-variable")!.innerText =
+      primaryVisSelect.value.charAt(0).toUpperCase() +
+      primaryVisSelect.value.slice(1);
+    document.getElementById("cylinder-variable")!.innerText =
+      secondaryVisSelect.value.charAt(0).toUpperCase() +
+      secondaryVisSelect.value.slice(1);
+
     updateLayerColorVariables(
       primaryVisSelect.value,
       primaryLayer,
@@ -126,6 +157,25 @@ export async function setSingleVis(
       birdSummary,
     );
   });
+
+  function setLayerVisibility() {
+    lineVisibility?.addEventListener("calciteCheckboxChange", async () => {
+      primaryLayer.visible = !primaryLayer.visible;
+    });
+    cylinderVisibility?.addEventListener("calciteCheckboxChange", async () => {
+      secondaryLayer.visible = !secondaryLayer.visible;
+    });
+    lgeneralizedVisibility?.addEventListener(
+      "calciteCheckboxChange",
+      async () => {
+        generalizedLayer.visible = !generalizedLayer.visible;
+      },
+    );
+    timeMarksVisibility?.addEventListener("calciteCheckboxChange", async () => {
+      hourLayer.visible = !hourLayer.visible;
+      dayLayer.visible = !dayLayer.visible;
+    });
+  }
 
   function createAttributeSelects(
     birdSummary: Record<string, any>,
@@ -494,6 +544,8 @@ export function createFilters(
       slider.maxValue = summary.max;
       slider.min = summary.min;
       slider.max = summary.max;
+      slider.minLabel = summary.min;
+      slider.maxLabel = summary.max;
       // slider.style = "width:250px";
       slider.setAttribute("label-handles", "");
       slider.addEventListener("calciteSliderChange", async () => {
@@ -510,7 +562,7 @@ export function createFilters(
     } else {
       const combobox = document.createElement("calcite-combobox");
       combobox.setAttribute("selection-display", "fit");
-      combobox.setAttribute("overlay-positioning", "fix");
+      // combobox.setAttribute("overlay-positioning", "fix");
 
       let categories = summary.values;
       categories.forEach((category) => {

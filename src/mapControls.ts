@@ -3,6 +3,7 @@ import ImageryLayer from "@arcgis/core/layers/ImageryLayer";
 import ImageryTileLayer from "@arcgis/core/layers/ImageryTileLayer";
 import * as rasterFunctionUtils from "@arcgis/core/layers/support/rasterFunctionUtils";
 import TileLayer from "@arcgis/core/layers/TileLayer";
+import VectorTileLayer from "@arcgis/core/layers/VectorTileLayer";
 import TimeExtent from "@arcgis/core/time/TimeExtent";
 import Slide from "@arcgis/core/webscene/Slide";
 import LocalBasemapsSource from "@arcgis/core/widgets/BasemapGallery/support/LocalBasemapsSource";
@@ -132,6 +133,39 @@ export async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
     visible: false,
   });
 
+  const protectedLayer = new VectorTileLayer({
+    title: "Protected areas",
+    opacity: 0.7,
+    visible: false,
+    style: {
+      layers: [
+        {
+          id: "WDPA_poly_Latest",
+          type: "fill",
+          source: "WDPA_World_Database_of_Protected_Areas_VTS",
+          "source-layer": "WDPA_poly_Latest",
+          layout: {},
+          paint: {
+            "fill-color": "#71a970",
+            "fill-outline-color": "#3d5c3d",
+          },
+        },
+      ],
+
+      glyphs:
+        "https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer/resources/fonts/{fontstack}/{range}.pbf",
+      version: 8,
+      sprite:
+        "https://www.arcgis.com/sharing/rest/content/items/7675d44bb1e4428aa2c30a9b68f97822/resources/sprites/sprite",
+      sources: {
+        WDPA_World_Database_of_Protected_Areas_VTS: {
+          url: "https://vectortileservices5.arcgis.com/Mj0hjvkNtV7NRhA7/arcgis/rest/services/WDPA_World_Database_of_Protected_Areas_VTS/VectorTileServer",
+          type: "vector",
+        },
+      },
+    },
+  });
+
   await arcgisScene.addLayers([
     footprintLayer,
     biointactnessLayer,
@@ -142,14 +176,11 @@ export async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
     windspeedLayer,
     DEMLayer,
     slopeLayer,
+    protectedLayer,
   ]);
 
-  document.getElementById("vis-layers")!.filterPredicate = (item) =>
-    item.title.toLowerCase().includes("visualization");
   document.querySelector("arcgis-layer-list")!.filterPredicate = (item) =>
     !item.title.toLowerCase().includes("visualization");
-
-  console.log();
 
   document.getElementById("thematic-layers-legend")!.layerInfos =
     arcgisScene.map.layers

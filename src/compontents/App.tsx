@@ -78,8 +78,6 @@ class App extends Widget<AppProperties> {
   store = new AppStore();
 
   @property()
-  webSceneId = params.get("webscene") || "91b46c2b162c48dba264b2190e1dbcff";
-
   private async bindView(arcgisScene: HTMLArcgisSceneElement) {
     const view = arcgisScene.view;
     view.theme = {
@@ -92,15 +90,9 @@ class App extends Widget<AppProperties> {
     setSlides(arcgisScene);
     setBasemaps();
     setThematicLayers(arcgisScene);
-    let myLayer = view.map.layers.find(function (layer) {
-      return layer.id === "primaryLayer";
-    });
-    // console.log("l", view.map.layers, myLayer);
   }
 
   render() {
-    // const store = this.store;
-
     return (
       <div>
         <LoadingPanel></LoadingPanel>
@@ -217,53 +209,121 @@ class App extends Widget<AppProperties> {
               <p> Cylinder visualization:</p>
               <calcite-select id="primary-vis-select"></calcite-select>
               <calcite-select id="secondary-vis-select"></calcite-select>
-              <div id="prim-filter-container"></div>
-              <div id="sec-filter-container"></div>
             </div>
 
             <calcite-tabs layout="center">
               <calcite-tab-nav slot="title-group">
                 <calcite-tab-title icon-start="palette" selected>
-                  Symbolization
+                  Path<br></br>symbolization
                 </calcite-tab-title>
                 <calcite-tab-title icon-start="graph-time-series">
-                  Charts
+                  Values<br></br>over time
+                </calcite-tab-title>
+                <calcite-tab-title icon-start="altitude">
+                  Elevation<br></br>profile
                 </calcite-tab-title>
 
-                <calcite-tab-title icon-start="view-visible">
-                  Visibility
-                </calcite-tab-title>
                 <calcite-tab-title icon-start="partly-cloudy">
-                  Weather
+                  Weather<br></br>settings
                 </calcite-tab-title>
               </calcite-tab-nav>
-              {/* <OverviewDashboard></OverviewDashboard> */}
-              {/* <VisDashboard></VisDashboard> */}
 
               <calcite-tab>
-                {/* <arcgis-legend reference-element="scene-div"></arcgis-legend> */}
                 <div id="color-scale-container">
-                  <p>Line color scale</p>
-                  <p>Cylinder color scale</p>
-                  <div id="color-slider-primary"></div>
-                  <arcgis-legend
-                    id="legend-primary"
-                    reference-element="scene-div"
-                  ></arcgis-legend>
-                  <div id="color-slider-secondary"></div>
-                  <arcgis-legend
-                    id="legend-secondary"
-                    reference-element="scene-div"
-                  ></arcgis-legend>
+                  <calcite-label layout="inline" class="layer-label">
+                    <calcite-checkbox
+                      id="visibility-line"
+                      checked
+                    ></calcite-checkbox>
+                    <span id="line-variable"></span> (Line layer)
+                  </calcite-label>
+                  <calcite-label layout="inline" class="layer-label">
+                    <calcite-checkbox
+                      id="visibility-cylinders"
+                      checked
+                    ></calcite-checkbox>
+                    <span id="cylinder-variable"></span> (Cylinder layer)
+                  </calcite-label>
+
+                  <div>
+                    <div id="color-slider-primary"></div>
+                    <arcgis-legend
+                      id="legend-primary"
+                      reference-element="scene-div"
+                    ></arcgis-legend>
+                    <div class="filters-container">
+                      <calcite-icon icon="filter" scale="m" />
+                      <div
+                        id="prim-filter-container"
+                        class="filter-container"
+                      ></div>
+                    </div>
+                    {/* <calcite-label
+                      layout="inline-space-between"
+                      class="extremums"
+                    >
+                      Mark extremums
+                      <calcite-switch checked></calcite-switch>
+                    </calcite-label> */}
+                  </div>
+
+                  <div>
+                    <div id="color-slider-secondary"></div>
+                    <arcgis-legend
+                      id="legend-secondary"
+                      reference-element="scene-div"
+                    ></arcgis-legend>
+                    <div class="filters-container">
+                      <calcite-icon icon="filter" scale="m" />
+                      <div
+                        id="sec-filter-container"
+                        class="filter-container"
+                      ></div>
+                    </div>
+                    {/* <calcite-label
+                      layout="inline-space-between"
+                      class="extremums"
+                    >
+                      Mark extremums
+                      <calcite-switch checked></calcite-switch>
+                    </calcite-label> */}
+                  </div>
+                </div>
+                <div class="legend-label">
+                  <calcite-label layout="inline">
+                    {" "}
+                    <calcite-checkbox
+                      id="visibility-generalized"
+                      checked
+                    ></calcite-checkbox>
+                    Generalized line
+                    <span id="generalize-legend"></span>
+                  </calcite-label>
+                </div>
+                <div class="legend-label">
+                  <calcite-label layout="inline">
+                    {" "}
+                    <calcite-checkbox
+                      id="visibility-timemarks"
+                      checked
+                    ></calcite-checkbox>
+                    Time marks along path
+                  </calcite-label>
                 </div>
               </calcite-tab>
-              <ChartsDashboard></ChartsDashboard>
-
               <calcite-tab>
-                <arcgis-layer-list
-                  id="vis-layers"
+                <ChartsDashboard></ChartsDashboard>
+              </calcite-tab>
+              <calcite-tab>
+                <arcgis-elevation-profile
+                  label="test"
                   reference-element="scene-div"
-                ></arcgis-layer-list>
+                  hideClearButton={true}
+                  hideSelectButton={true}
+                  hideSettingsButton={true}
+                  hideSketchButton={true}
+                  highlightEnabled={false}
+                ></arcgis-elevation-profile>
               </calcite-tab>
               <calcite-tab>
                 <WeatherControls></WeatherControls>
@@ -366,152 +426,97 @@ const LoadingPanel = () => {
 };
 
 const ChartsDashboard = () => {
-  return (
-    <calcite-tab>
-      <calcite-accordion appearance="transparent" selection-mode="multiple">
-        <calcite-accordion-item
-          heading="Elevation profile"
-          icon-start="altitude"
-          expanded
-        >
-          <arcgis-elevation-profile
-            label="test"
-            reference-element="scene-div"
-            hideClearButton={true}
-            hideSelectButton={true}
-            hideSettingsButton={true}
-            hideSketchButton={true}
-            highlightEnabled={false}
-          ></arcgis-elevation-profile>
-        </calcite-accordion-item>
-
-        <calcite-accordion-item
-          heading="Values over time"
-          icon-start="graph-time-series"
-        ></calcite-accordion-item>
-        <calcite-accordion-item
-          heading="Distribution of values"
-          icon-start="graph-bar"
-        ></calcite-accordion-item>
-      </calcite-accordion>
-    </calcite-tab>
-  );
-};
-
-const VisDashboard = () => {
-  return (
-    <calcite-tab>
-      <calcite-accordion appearance="transparent" selection-mode="multiple">
-        <calcite-accordion-item
-          icon-start="line"
-          heading="Path setting"
-          expanded
-        >
-          <calcite-accordion appearance="transparent" selection-mode="multiple">
-            <calcite-accordion-item
-              icon-start="view-visible"
-              heading="Layer visibility"
-            >
-              <arcgis-layer-list
-                id="vis-layers"
-                reference-element="scene-div"
-              ></arcgis-layer-list>
-            </calcite-accordion-item>
-            <calcite-accordion-item
-              icon-start="multiple-variables"
-              heading="Variable selection"
-              expanded
-            ></calcite-accordion-item>
-            <calcite-accordion-item
-              icon-start="filter"
-              heading="Filter"
-            ></calcite-accordion-item>
-          </calcite-accordion>
-        </calcite-accordion-item>
-        <WeatherControls></WeatherControls>
-
-        <calcite-accordion-item heading="Legend" icon-start="legend">
-          <arcgis-legend reference-element="scene-div"></arcgis-legend>
-        </calcite-accordion-item>
-      </calcite-accordion>
-    </calcite-tab>
-  );
+  return <div>chart</div>;
 };
 
 const WeatherControls = () => {
   return (
     <div>
-      <calcite-notice icon="information" open>
-        <div slot="message">
-          Due to the weather API call limit: daily (10 000) and hourly (600) set
-          the grid first to get only necessary data
+      <div id="weather-tiles-container">
+        <h3>Generate weather tiles</h3>
+        <calcite-notice icon="information" open>
+          <div slot="message">
+            Due to the weather API call limit: daily (10 000) and hourly (600)
+            set the grid first to get only necessary data
+          </div>
+        </calcite-notice>
+
+        <div class="two-col-grid">
+          <p>Size of tile (km)</p>
+          <calcite-slider
+            id="weather-size"
+            value="20"
+            max={50}
+            min={0}
+            label-handles="true"
+            style="width:250px"
+          ></calcite-slider>
+
+          <p>Maximum distance from path (km)</p>
+          <calcite-slider
+            id="weather-distance"
+            value="4"
+            max={30}
+            min={1}
+            label-handles="true"
+            style="width:250px"
+          ></calcite-slider>
+
+          <calcite-button id="tiles-button" kind="neutral" appearance="solid">
+            Generate tiles
+          </calcite-button>
+          <calcite-button
+            id="weather-button"
+            kind="neutral"
+            appearance="solid"
+            disabled
+          >
+            Get weather
+          </calcite-button>
         </div>
-      </calcite-notice>
-      <div id="weather-container">
-        <p>Size of tile (km)</p>
-        <calcite-slider
-          id="weather-size"
-          value="20"
-          max={50}
-          min={0}
-          label-handles="true"
-          style="width:250px"
-        ></calcite-slider>
-
-        <p>Maximum distance from path (km)</p>
-        <calcite-slider
-          id="weather-distance"
-          value="4"
-          max={30}
-          min={1}
-          label-handles="true"
-          style="width:250px"
-        ></calcite-slider>
-
-        <calcite-button id="tiles-button" kind="neutral" appearance="solid">
-          Generate tiles
-        </calcite-button>
-        <calcite-button
-          id="weather-button"
-          kind="neutral"
-          appearance="solid"
-          disabled
-        >
-          Get weather
-        </calcite-button>
       </div>
-      <div id="weather-hidden">
-        <div>
-          <h3>Weather settings</h3>
-          <calcite-label layout="inline">
-            Variable:
-            <calcite-select id="weather-select">
-              <calcite-option value="Temperature">Temperature</calcite-option>
-              <calcite-option value="Pressure">Pressure</calcite-option>
-              <calcite-option value="Precipitation">
-                Precipitation
-              </calcite-option>
-              <calcite-option value="Wind" selected>
-                Wind
-              </calcite-option>
-            </calcite-select>
-          </calcite-label>
-          <calcite-label layout="inline">
-            Temporal mapping:
+      <div id="weather-symbology-container">
+        <h3>Weather symbology</h3>
+        <div class="two-col-grid">
+          <div>
             <calcite-label layout="inline">
-              Along path
-              <calcite-switch id="weather-time-switch"></calcite-switch>
-              Constant
+              Visible:
+              <calcite-switch checked></calcite-switch>
             </calcite-label>
-          </calcite-label>
-          <calcite-label layout="inline">
-            <div id="weather-time-container"></div>
-          </calcite-label>
+            <calcite-label layout="inline">
+              Variable:
+              <calcite-select id="weather-select">
+                <calcite-option value="Temperature" selected>
+                  Temperature
+                </calcite-option>
+                <calcite-option value="Pressure">Pressure</calcite-option>
+                <calcite-option value="Precipitation">
+                  Precipitation
+                </calcite-option>
+                <calcite-option value="Wind">Wind</calcite-option>
+              </calcite-select>
+            </calcite-label>
+            <calcite-label layout="inline">
+              Temporal mapping:
+              <calcite-label layout="inline">
+                Along path
+                <calcite-switch id="weather-time-switch"></calcite-switch>
+                Constant
+              </calcite-label>
+            </calcite-label>
+            <calcite-label layout="inline">
+              <div id="weather-time-container"></div>
+            </calcite-label>
+          </div>
+          <arcgis-legend
+            id="weather-legend"
+            reference-element="scene-div"
+            style="classic"
+          ></arcgis-legend>
         </div>
-        <arcgis-legend
-          id="weather-legend"
-          reference-element="scene-div"
-        ></arcgis-legend>
+        <calcite-button id="new-tiles-button" kind="neutral" appearance="solid">
+          Generate new tiles
+        </calcite-button>
       </div>
       <calcite-alert
         id="weather-alert-600"
@@ -549,15 +554,6 @@ const WeatherControls = () => {
           request.
         </div>
       </calcite-alert>
-    </div>
-  );
-};
-
-const Gauges = () => {
-  return (
-    <div id="gauges">
-      <canvas id="gauge"></canvas>
-      <canvas id="gauge2"></canvas>
     </div>
   );
 };
