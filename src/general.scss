@@ -8,7 +8,7 @@
   --calcite-color-background: #233935 !important;
   --calcite-action-background-color-press: #090e0d !important;
   --calcite-button-background-color: #090e0d !important;
-  --calcite-button-text-color: #aed8cc !important;
+  --calcite-button-text-color: oklch(84.887% 0.04707 175.961) !important;
   --calcite-panel-background-color: #233935 !important;
   --calcite-action-background-color: #233935 !important;
   --calcite-color-brand-press: #090e0d;
@@ -142,8 +142,11 @@ b {
   left: -12px;
 }
 
+arcgis-chart {
+  height: 20rem;
+}
 .esri-elevation-profile {
-  --chart-height: 250px;
+  --chart-height: 20rem;
 }
 
 .esri-elevation-profile-legend-item__content {

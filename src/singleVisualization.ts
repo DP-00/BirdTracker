@@ -62,7 +62,6 @@ export async function setSingleVis(
     secondaryValue,
   );
 
-  console.log(document.getElementById("line-variable"), primaryVisSelect.value);
   document.getElementById("line-variable")!.innerText =
     primaryVisSelect.value.charAt(0).toUpperCase() +
     primaryVisSelect.value.slice(1);
@@ -96,16 +95,9 @@ export async function setSingleVis(
       layerView.filter = null;
     });
 
-    console.log(
-      document.getElementById("line-variable"),
-      primaryVisSelect.value.charAt(0).toUpperCase(),
-    );
     document.getElementById("line-variable")!.innerText =
       primaryVisSelect.value.charAt(0).toUpperCase() +
       primaryVisSelect.value.slice(1);
-    document.getElementById("cylinder-variable")!.innerText =
-      secondaryVisSelect.value.charAt(0).toUpperCase() +
-      secondaryVisSelect.value.slice(1);
 
     updateLayerColorVariables(
       primaryVisSelect.value,
@@ -132,6 +124,10 @@ export async function setSingleVis(
     arcgisScene.view.whenLayerView(secondaryLayer).then((layerView) => {
       layerView.filter = null;
     });
+
+    document.getElementById("cylinder-variable")!.innerText =
+      secondaryVisSelect.value.charAt(0).toUpperCase() +
+      secondaryVisSelect.value.slice(1);
     updateLayerColorVariables(
       secondaryVisSelect.value,
       secondaryLayer,

@@ -426,7 +426,18 @@ const LoadingPanel = () => {
 };
 
 const ChartsDashboard = () => {
-  return <div>chart</div>;
+  return (
+    <div class="chart-container">
+      <arcgis-chart id="chart"></arcgis-chart>
+      {/* <arcgis-charts-action-bar
+        slot="action-bar"
+        chartElement="chart"
+      ></arcgis-charts-action-bar> */}
+      <calcite-button id="set-chart">Set chart</calcite-button>
+      {/* <calcite-button id="zoom-chart">zoom chart</calcite-button>
+      <calcite-button id="select-chart">select chart</calcite-button> */}
+    </div>
+  );
 };
 
 const WeatherControls = () => {
