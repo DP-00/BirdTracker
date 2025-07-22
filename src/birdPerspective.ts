@@ -1,6 +1,7 @@
 // import "@arcgis/charts-components/dist/components/arcgis-charts-config-line-chart";
 import Camera from "@arcgis/core/Camera";
 import Mesh from "@arcgis/core/geometry/Mesh";
+import * as geodeticDistanceOperator from "@arcgis/core/geometry/operators/geodeticDistanceOperator";
 import Point from "@arcgis/core/geometry/Point";
 import MeshGeoreferencedVertexSpace from "@arcgis/core/geometry/support/MeshGeoreferencedVertexSpace";
 import * as meshUtils from "@arcgis/core/geometry/support/meshUtils";
@@ -273,10 +274,6 @@ export async function setBirdPerspective(arcgisScene, pointLayer) {
 
       await arcgisScene.view.goTo(feature);
 
-      timeSlider.addEventListener(
-        "arcgisPropertyChange",
-        updateSceneFromTimeSlider,
-      );
       gaugeContainer!.style.display = "block";
     } else {
       // timeSlider.removeEventListener(
@@ -289,13 +286,44 @@ export async function setBirdPerspective(arcgisScene, pointLayer) {
     }
   });
 
+  timeSlider.addEventListener(
+    "arcgisPropertyChange",
+    updateSceneFromTimeSlider,
+  );
+
   async function updateSceneFromTimeSlider(event: any) {
     const feature = await getLatestVisibleFeature(pointLayer, timeSlider);
+    const firstFeature = await getFirstVisibleFeature(pointLayer, timeSlider);
     console.log(feature);
     if (!feature) return;
+    if (!firstFeature) return;
+    const startTime = new Date(firstFeature.attributes.timestamp).getTime();
+    const endTime = new Date(feature.attributes.timestamp).getTime();
+    console.log("startTime", startTime, endTime);
+    let durationSeconds = (endTime - startTime) / 1000;
+    const daysSelected = Math.floor(durationSeconds / (3600 * 24));
+    durationSeconds -= daysSelected * 3600 * 24;
+    const hoursSelected = Math.floor(durationSeconds / 3600);
+    const sumHoursSelected = daysSelected * 24 + hoursSelected;
+    const verticalDiff = Math.abs(
+      feature.attributes.altitude - firstFeature.attributes.altitude,
+    );
+    if (!geodeticDistanceOperator.isLoaded()) {
+      await geodeticDistanceOperator.load();
+    }
+
+    let distanceToLine = geodeticDistanceOperator.execute(
+      feature.geometry,
+      firstFeature.geometry,
+    );
+
+    document.getElementById("dashboard-duration-selected")!.innerHTML =
+      `Selected path: <b style="font-weight:800;">${(distanceToLine / 1000).toFixed(2)} km</b> for <b style="font-weight:800;">${daysSelected} days and ${hoursSelected} hours</b>
+    <br> Horizontal speed: <b style="font-weight:800;">${(distanceToLine / 1000 / sumHoursSelected).toFixed(2)} km/h</b>
+    Vertical speed: <b style="font-weight:800;">${(verticalDiff / 1000 / sumHoursSelected).toFixed(2)} km/h</b>
+    `;
 
     let isFront = -1;
-
     if (cameraBirdControl.value === "bird-camera-back") {
       isFront = 1;
     }
@@ -401,6 +429,30 @@ async function getLatestVisibleFeature(pointLayer, timeSlider) {
   query.timeExtent = timeExtent;
   query.outFields = ["*"];
   query.orderByFields = ["timestamp DESC"];
+  query.returnGeometry = true;
+  query.num = 1; // Get only the latest one
+
+  try {
+    const result = await pointLayer.queryFeatures(query);
+    if (result.features.length > 0) {
+      return result.features[0];
+    } else {
+      console.log("No feature found in time range");
+      return null;
+    }
+  } catch (err) {
+    console.error("Query failed: ", err);
+    return null;
+  }
+}
+
+async function getFirstVisibleFeature(pointLayer, timeSlider) {
+  const timeExtent = timeSlider.timeExtent;
+  const query = pointLayer.createQuery();
+  query.where = "1=1";
+  query.timeExtent = timeExtent;
+  query.outFields = ["*"];
+  query.orderByFields = ["timestamp ASC"];
   query.returnGeometry = true;
   query.num = 1; // Get only the latest one
 

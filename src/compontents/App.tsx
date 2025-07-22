@@ -5,24 +5,24 @@ import {
 
 import { tsx } from "@arcgis/core/widgets/support/widget";
 
-import "@arcgis/map-components/dist/components/arcgis-area-measurement-3d";
-import "@arcgis/map-components/dist/components/arcgis-basemap-gallery";
-import "@arcgis/map-components/dist/components/arcgis-compass";
-import "@arcgis/map-components/dist/components/arcgis-daylight";
-import "@arcgis/map-components/dist/components/arcgis-directline-measurement-3d";
-import "@arcgis/map-components/dist/components/arcgis-elevation-profile";
-import "@arcgis/map-components/dist/components/arcgis-expand";
-import "@arcgis/map-components/dist/components/arcgis-features";
-import "@arcgis/map-components/dist/components/arcgis-fullscreen";
-import "@arcgis/map-components/dist/components/arcgis-home";
-import "@arcgis/map-components/dist/components/arcgis-layer-list";
-import "@arcgis/map-components/dist/components/arcgis-legend";
-import "@arcgis/map-components/dist/components/arcgis-navigation-toggle";
-import "@arcgis/map-components/dist/components/arcgis-placement";
-import "@arcgis/map-components/dist/components/arcgis-scene";
-import "@arcgis/map-components/dist/components/arcgis-search";
-import "@arcgis/map-components/dist/components/arcgis-time-slider";
-import "@arcgis/map-components/dist/components/arcgis-zoom";
+import "@arcgis/map-components/components/arcgis-area-measurement-3d";
+import "@arcgis/map-components/components/arcgis-basemap-gallery";
+import "@arcgis/map-components/components/arcgis-compass";
+import "@arcgis/map-components/components/arcgis-daylight";
+import "@arcgis/map-components/components/arcgis-direct-line-measurement-3d";
+import "@arcgis/map-components/components/arcgis-elevation-profile";
+import "@arcgis/map-components/components/arcgis-expand";
+import "@arcgis/map-components/components/arcgis-features";
+import "@arcgis/map-components/components/arcgis-fullscreen";
+import "@arcgis/map-components/components/arcgis-home";
+import "@arcgis/map-components/components/arcgis-layer-list";
+import "@arcgis/map-components/components/arcgis-legend";
+import "@arcgis/map-components/components/arcgis-navigation-toggle";
+import "@arcgis/map-components/components/arcgis-placement";
+import "@arcgis/map-components/components/arcgis-scene";
+import "@arcgis/map-components/components/arcgis-search";
+import "@arcgis/map-components/components/arcgis-time-slider";
+import "@arcgis/map-components/components/arcgis-zoom";
 
 import AppStore from "../stores/AppStore";
 import { Widget } from "./Widget";
@@ -167,6 +167,30 @@ class App extends Widget<AppProperties> {
             </div>
           </div>
           <div id="dashboard" class="esri-widget">
+            <calcite-label>
+              <calcite-segmented-control
+                id="camera-control"
+                width="full"
+                appearance="outline-fill"
+                scale="m"
+              >
+                <calcite-segmented-control-item
+                  icon-start="gps-on"
+                  value="bird"
+                >
+                  Follow bird
+                </calcite-segmented-control-item>
+
+                <calcite-segmented-control-item
+                  id="camera-zoom"
+                  icon-start="line"
+                  value="line"
+                  checked
+                >
+                  Explore path
+                </calcite-segmented-control-item>
+              </calcite-segmented-control>
+            </calcite-label>
             <p>
               <h2>
                 Bird <span id="dashboard-birdid"></span>
@@ -179,30 +203,7 @@ class App extends Widget<AppProperties> {
                 ></calcite-button>
               </h2>
               <p id="dashboard-duration"></p>
-              <calcite-label>
-                <calcite-segmented-control
-                  id="camera-control"
-                  width="full"
-                  appearance="outline-fill"
-                  scale="m"
-                >
-                  <calcite-segmented-control-item
-                    icon-start="gps-on"
-                    value="bird"
-                  >
-                    Follow bird
-                  </calcite-segmented-control-item>
-
-                  <calcite-segmented-control-item
-                    id="camera-zoom"
-                    icon-start="line"
-                    value="line"
-                    checked
-                  >
-                    Explore path
-                  </calcite-segmented-control-item>
-                </calcite-segmented-control>
-              </calcite-label>
+              <p id="dashboard-duration-selected"></p>
             </p>
             <div id="dashboard-info">
               <p>Line visualization:</p>
@@ -289,9 +290,15 @@ class App extends Widget<AppProperties> {
                     </calcite-label> */}
                   </div>
                 </div>
-                <div class="legend-label">
-                  <calcite-label layout="inline">
-                    {" "}
+                <div class="legend-label-container">
+                  <calcite-label layout="inline" alignment="center">
+                    <calcite-checkbox
+                      id="visibility-extremums"
+                      checked
+                    ></calcite-checkbox>
+                    Extremums along line visualization
+                  </calcite-label>
+                  <calcite-label layout="inline" alignment="center">
                     <calcite-checkbox
                       id="visibility-generalized"
                       checked
@@ -299,10 +306,7 @@ class App extends Widget<AppProperties> {
                     Generalized line
                     <span id="generalize-legend"></span>
                   </calcite-label>
-                </div>
-                <div class="legend-label">
-                  <calcite-label layout="inline">
-                    {" "}
+                  <calcite-label layout="inline" alignment="center">
                     <calcite-checkbox
                       id="visibility-timemarks"
                       checked
@@ -426,7 +430,65 @@ const LoadingPanel = () => {
 };
 
 const ChartsDashboard = () => {
-  return <div>chart</div>;
+  return (
+    <div class="chart-container">
+      <arcgis-chart id="line-chart"></arcgis-chart>
+      <arcgis-chart id="bar-chart"></arcgis-chart>
+
+      {/* <calcite-button id="set-line-chart">Set chart</calcite-button>
+      <calcite-button id="set-bar-chart">Set bar chart</calcite-button> */}
+      <calcite-label id="set-time-chart" layout="inline">
+        Time binning:
+        <calcite-segmented-control>
+          <calcite-segmented-control-item
+            id="chart-time-days"
+            icon-start="calendar"
+          >
+            Days
+          </calcite-segmented-control-item>
+          <calcite-segmented-control-item
+            id="chart-time-hours"
+            icon-start="date-time"
+          >
+            Hours
+          </calcite-segmented-control-item>
+          <calcite-segmented-control-item
+            id="chart-time-minutes"
+            icon-start="clock"
+            checked
+          >
+            Minutes
+          </calcite-segmented-control-item>
+        </calcite-segmented-control>
+      </calcite-label>
+      <calcite-label layout="inline" id="chart-cursor-mode">
+        Cursor mode
+        <calcite-segmented-control>
+          <calcite-segmented-control-item
+            id="chart-selection-map"
+            icon-start="cursor-selection"
+            checked
+          >
+            Selection with Map Sync
+          </calcite-segmented-control-item>
+          <calcite-segmented-control-item
+            id="chart-selection"
+            icon-start="select"
+          >
+            Selection
+          </calcite-segmented-control-item>
+          <calcite-segmented-control-item
+            id="chart-zoom"
+            icon-start="magnifying-glass"
+          >
+            Zoom
+          </calcite-segmented-control-item>
+        </calcite-segmented-control>
+      </calcite-label>
+      {/* <calcite-button id="zoom-chart">zoom chart</calcite-button>
+      <calcite-button id="select-chart">select chart</calcite-button> */}
+    </div>
+  );
 };
 
 const WeatherControls = () => {

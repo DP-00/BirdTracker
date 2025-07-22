@@ -35,9 +35,10 @@ export async function setSingleVis(
   const secondaryColorScale = document.getElementById("color-slider-secondary");
   const lineVisibility = document.getElementById("visibility-line");
   const cylinderVisibility = document.getElementById("visibility-cylinders");
-  const lgeneralizedVisibility = document.getElementById(
+  const generalizedVisibility = document.getElementById(
     "visibility-generalized",
   );
+  const extremumsVisibility = document.getElementById("visibility-extremums");
   const timeMarksVisibility = document.getElementById("visibility-timemarks");
 
   setLayerVisibility();
@@ -62,7 +63,6 @@ export async function setSingleVis(
     secondaryValue,
   );
 
-  console.log(document.getElementById("line-variable"), primaryVisSelect.value);
   document.getElementById("line-variable")!.innerText =
     primaryVisSelect.value.charAt(0).toUpperCase() +
     primaryVisSelect.value.slice(1);
@@ -72,6 +72,7 @@ export async function setSingleVis(
 
   updateArrowLayer(arrowLayer, primaryValue, birdSummary);
   updateLayerColorVariables(primaryValue, primaryLayer, birdSummary);
+
   updateLayerColorVariables(secondaryValue, secondaryLayer, birdSummary);
 
   primaryLegend.layerInfos = [
@@ -96,16 +97,9 @@ export async function setSingleVis(
       layerView.filter = null;
     });
 
-    console.log(
-      document.getElementById("line-variable"),
-      primaryVisSelect.value.charAt(0).toUpperCase(),
-    );
     document.getElementById("line-variable")!.innerText =
       primaryVisSelect.value.charAt(0).toUpperCase() +
       primaryVisSelect.value.slice(1);
-    document.getElementById("cylinder-variable")!.innerText =
-      secondaryVisSelect.value.charAt(0).toUpperCase() +
-      secondaryVisSelect.value.slice(1);
 
     updateLayerColorVariables(
       primaryVisSelect.value,
@@ -126,12 +120,39 @@ export async function setSingleVis(
       primaryVisSelect.value,
       birdSummary,
     );
+
+    const summary = birdSummary[primaryVisSelect.value];
+    if (summary.type == "number") {
+      const lineChartElement = document.getElementById("line-chart")!;
+      await lineChartElement.model.setNumericFields([primaryVisSelect.value]);
+      lineChartElement.model.setTemporalBinningUnit("seconds");
+      lineChartElement.model.setYAxisTitleText(
+        primaryVisSelect.value.charAt(0).toUpperCase() +
+          primaryVisSelect.value.slice(1),
+      );
+      lineChartElement.refresh();
+      document.getElementById("line-chart")!.style.display = "block";
+      document.getElementById("bar-chart")!.style.display = "none";
+      document.getElementById("set-time-chart")!.style.display = "none";
+      document.getElementById("chart-cursor-mode")!.style.display = "block";
+    } else {
+      const barChartElement = document.getElementById("bar-chart")!;
+      barChartElement.refresh();
+      document.getElementById("line-chart")!.style.display = "none";
+      document.getElementById("bar-chart")!.style.display = "block";
+      document.getElementById("set-time-chart")!.style.display = "block";
+      document.getElementById("chart-cursor-mode")!.style.display = "none";
+    }
   });
 
   secondaryVisSelect?.addEventListener("calciteSelectChange", async () => {
     arcgisScene.view.whenLayerView(secondaryLayer).then((layerView) => {
       layerView.filter = null;
     });
+
+    document.getElementById("cylinder-variable")!.innerText =
+      secondaryVisSelect.value.charAt(0).toUpperCase() +
+      secondaryVisSelect.value.slice(1);
     updateLayerColorVariables(
       secondaryVisSelect.value,
       secondaryLayer,
@@ -165,12 +186,15 @@ export async function setSingleVis(
     cylinderVisibility?.addEventListener("calciteCheckboxChange", async () => {
       secondaryLayer.visible = !secondaryLayer.visible;
     });
-    lgeneralizedVisibility?.addEventListener(
+    generalizedVisibility?.addEventListener(
       "calciteCheckboxChange",
       async () => {
         generalizedLayer.visible = !generalizedLayer.visible;
       },
     );
+    extremumsVisibility?.addEventListener("calciteCheckboxChange", async () => {
+      arrowLayer.visible = !arrowLayer.visible;
+    });
     timeMarksVisibility?.addEventListener("calciteCheckboxChange", async () => {
       hourLayer.visible = !hourLayer.visible;
       dayLayer.visible = !dayLayer.visible;
