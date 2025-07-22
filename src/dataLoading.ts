@@ -216,7 +216,7 @@ async function createDefaultLayers(
   );
 
   setTimeSlider(arcgisScene, primaryLayer);
-  await setCharts(polyline, secondaryLayer, arcgisScene);
+  await setCharts(polyline, secondaryLayer, arcgisScene, birdSummary);
 
   await setBirdPerspective(arcgisScene, secondaryLayer);
 
@@ -250,7 +250,7 @@ async function createPolylineAndDashboardInfo(birdData) {
 
   document.getElementById("dashboard-birdid")!.innerText = birdData[0].birdid;
   document.getElementById("dashboard-duration")!.innerHTML =
-    `Traveled <b style="font-weight:800;">${(length / 1000).toFixed(2)} km</b> for <b style="font-weight:800;">${days} days and ${hours} hours</b>`;
+    `Whole path: <b style="font-weight:800;">${(length / 1000).toFixed(2)} km</b> for <b style="font-weight:800;">${days} days and ${hours} hours</b>`;
 
   const lineGraphic = new Graphic({ geometry: polyline });
   return lineGraphic;

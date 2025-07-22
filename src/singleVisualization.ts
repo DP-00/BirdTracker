@@ -35,9 +35,10 @@ export async function setSingleVis(
   const secondaryColorScale = document.getElementById("color-slider-secondary");
   const lineVisibility = document.getElementById("visibility-line");
   const cylinderVisibility = document.getElementById("visibility-cylinders");
-  const lgeneralizedVisibility = document.getElementById(
+  const generalizedVisibility = document.getElementById(
     "visibility-generalized",
   );
+  const extremumsVisibility = document.getElementById("visibility-extremums");
   const timeMarksVisibility = document.getElementById("visibility-timemarks");
 
   setLayerVisibility();
@@ -71,6 +72,7 @@ export async function setSingleVis(
 
   updateArrowLayer(arrowLayer, primaryValue, birdSummary);
   updateLayerColorVariables(primaryValue, primaryLayer, birdSummary);
+
   updateLayerColorVariables(secondaryValue, secondaryLayer, birdSummary);
 
   primaryLegend.layerInfos = [
@@ -161,12 +163,15 @@ export async function setSingleVis(
     cylinderVisibility?.addEventListener("calciteCheckboxChange", async () => {
       secondaryLayer.visible = !secondaryLayer.visible;
     });
-    lgeneralizedVisibility?.addEventListener(
+    generalizedVisibility?.addEventListener(
       "calciteCheckboxChange",
       async () => {
         generalizedLayer.visible = !generalizedLayer.visible;
       },
     );
+    extremumsVisibility?.addEventListener("calciteCheckboxChange", async () => {
+      arrowLayer.visible = !arrowLayer.visible;
+    });
     timeMarksVisibility?.addEventListener("calciteCheckboxChange", async () => {
       hourLayer.visible = !hourLayer.visible;
       dayLayer.visible = !dayLayer.visible;

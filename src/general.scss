@@ -8,8 +8,8 @@
   --calcite-color-background: #233935 !important;
   --calcite-action-background-color-press: #090e0d !important;
   --calcite-button-background-color: #090e0d !important;
-  --calcite-button-text-color: oklch(84.887% 0.04707 175.961) !important;
-  --calcite-panel-background-color: #233935 !important;
+  --calcite-button-text-color: rgb(174, 216, 204) !important;
+  --calcite-panel-background-color: rgb(35, 57, 53) !important;
   --calcite-action-background-color: #233935 !important;
   --calcite-color-brand-press: #090e0d;
   --calcite-color-brand-hover: #090e0d;
@@ -173,18 +173,24 @@ arcgis-chart {
   font-weight: 800;
 }
 
-.legend-label {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 0.5rem 0 0 0;
+.legend-label-container {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  gap: 1rem;
+  padding-left: 0.5rem;
 }
+
+// .legend-label-container > calcite-label {
+//   max-width: 10rem;
+// }
 
 #generalize-legend {
   background-color: rgba(84, 17, 17, 0.75);
-  width: 100px;
+  max-width: 100px;
+  min-width: 50px;
   height: 10px;
   border-radius: 10rem;
+  padding-right: 1rem;
 }
 
 input {
@@ -274,7 +280,7 @@ calcite-segmented-control-item[checked] {
   z-index: 1;
   font-size: 50px;
   font-weight: 800;
-  top: 1rem;
+  // top: 1rem;
   left: 50%;
   transform: translateX(-50%);
 }
@@ -296,7 +302,7 @@ calcite-segmented-control-item[checked] {
 
 #dashboard {
   flex: 1;
-  padding: 1.5rem;
+  padding: 0.5rem;
   font-weight: 36;
   text-align: center;
   max-width: 40rem;
@@ -307,6 +313,16 @@ calcite-segmented-control-item[checked] {
   grid-template-columns: auto auto;
   gap: 10px;
   padding-bottom: 2rem;
+  padding: 1.5rem;
+}
+
+#dashboard-info p {
+  padding: 0;
+  margin: 0;
+}
+
+calcite-tab {
+  padding: 1.5rem;
 }
 
 #color-scale-container {
