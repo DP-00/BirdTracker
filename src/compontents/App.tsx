@@ -5,24 +5,24 @@ import {
 
 import { tsx } from "@arcgis/core/widgets/support/widget";
 
-import "@arcgis/map-components/dist/components/arcgis-area-measurement-3d";
-import "@arcgis/map-components/dist/components/arcgis-basemap-gallery";
-import "@arcgis/map-components/dist/components/arcgis-compass";
-import "@arcgis/map-components/dist/components/arcgis-daylight";
-import "@arcgis/map-components/dist/components/arcgis-directline-measurement-3d";
-import "@arcgis/map-components/dist/components/arcgis-elevation-profile";
-import "@arcgis/map-components/dist/components/arcgis-expand";
-import "@arcgis/map-components/dist/components/arcgis-features";
-import "@arcgis/map-components/dist/components/arcgis-fullscreen";
-import "@arcgis/map-components/dist/components/arcgis-home";
-import "@arcgis/map-components/dist/components/arcgis-layer-list";
-import "@arcgis/map-components/dist/components/arcgis-legend";
-import "@arcgis/map-components/dist/components/arcgis-navigation-toggle";
-import "@arcgis/map-components/dist/components/arcgis-placement";
-import "@arcgis/map-components/dist/components/arcgis-scene";
-import "@arcgis/map-components/dist/components/arcgis-search";
-import "@arcgis/map-components/dist/components/arcgis-time-slider";
-import "@arcgis/map-components/dist/components/arcgis-zoom";
+import "@arcgis/map-components/components/arcgis-area-measurement-3d";
+import "@arcgis/map-components/components/arcgis-basemap-gallery";
+import "@arcgis/map-components/components/arcgis-compass";
+import "@arcgis/map-components/components/arcgis-daylight";
+import "@arcgis/map-components/components/arcgis-direct-line-measurement-3d";
+import "@arcgis/map-components/components/arcgis-elevation-profile";
+import "@arcgis/map-components/components/arcgis-expand";
+import "@arcgis/map-components/components/arcgis-features";
+import "@arcgis/map-components/components/arcgis-fullscreen";
+import "@arcgis/map-components/components/arcgis-home";
+import "@arcgis/map-components/components/arcgis-layer-list";
+import "@arcgis/map-components/components/arcgis-legend";
+import "@arcgis/map-components/components/arcgis-navigation-toggle";
+import "@arcgis/map-components/components/arcgis-placement";
+import "@arcgis/map-components/components/arcgis-scene";
+import "@arcgis/map-components/components/arcgis-search";
+import "@arcgis/map-components/components/arcgis-time-slider";
+import "@arcgis/map-components/components/arcgis-zoom";
 
 import AppStore from "../stores/AppStore";
 import { Widget } from "./Widget";
@@ -435,15 +435,14 @@ const ChartsDashboard = () => {
       <arcgis-chart id="line-chart"></arcgis-chart>
       <arcgis-chart id="bar-chart"></arcgis-chart>
 
-      <calcite-button id="set-line-chart">Set chart</calcite-button>
-      <calcite-button id="set-bar-chart">Set bar chart</calcite-button>
+      {/* <calcite-button id="set-line-chart">Set chart</calcite-button>
+      <calcite-button id="set-bar-chart">Set bar chart</calcite-button> */}
       <calcite-label id="set-time-chart" layout="inline">
         Time binning:
         <calcite-segmented-control>
           <calcite-segmented-control-item
             id="chart-time-days"
             icon-start="calendar"
-            checked
           >
             Days
           </calcite-segmented-control-item>
@@ -456,6 +455,7 @@ const ChartsDashboard = () => {
           <calcite-segmented-control-item
             id="chart-time-minutes"
             icon-start="clock"
+            checked
           >
             Minutes
           </calcite-segmented-control-item>

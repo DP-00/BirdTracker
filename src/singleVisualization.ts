@@ -120,6 +120,29 @@ export async function setSingleVis(
       primaryVisSelect.value,
       birdSummary,
     );
+
+    const summary = birdSummary[primaryVisSelect.value];
+    if (summary.type == "number") {
+      const lineChartElement = document.getElementById("line-chart")!;
+      await lineChartElement.model.setNumericFields([primaryVisSelect.value]);
+      lineChartElement.model.setTemporalBinningUnit("seconds");
+      lineChartElement.model.setYAxisTitleText(
+        primaryVisSelect.value.charAt(0).toUpperCase() +
+          primaryVisSelect.value.slice(1),
+      );
+      lineChartElement.refresh();
+      document.getElementById("line-chart")!.style.display = "block";
+      document.getElementById("bar-chart")!.style.display = "none";
+      document.getElementById("set-time-chart")!.style.display = "none";
+      document.getElementById("chart-cursor-mode")!.style.display = "block";
+    } else {
+      const barChartElement = document.getElementById("bar-chart")!;
+      barChartElement.refresh();
+      document.getElementById("line-chart")!.style.display = "none";
+      document.getElementById("bar-chart")!.style.display = "block";
+      document.getElementById("set-time-chart")!.style.display = "block";
+      document.getElementById("chart-cursor-mode")!.style.display = "none";
+    }
   });
 
   secondaryVisSelect?.addEventListener("calciteSelectChange", async () => {

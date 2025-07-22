@@ -413,6 +413,13 @@ calcite-accordion-item {
   align-items: center;
 }
 
+#bar-chart {
+  display: none;
+}
+#set-time-chart {
+  display: none;
+}
+
 #confirm {
   --calcite-color-foreground-1: var(--calcite-color-status-success);
   --calcite-color-foreground-2: var(--calcite-color-status-success-hover);
