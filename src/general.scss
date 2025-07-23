@@ -274,7 +274,7 @@ calcite-segmented-control-item[checked] {
   right: 0;
 }
 
-#bird-camera-control {
+#camera-side {
   position: absolute;
   pointer-events: auto;
   z-index: 1;
@@ -294,6 +294,15 @@ calcite-segmented-control-item[checked] {
   left: 50%;
   transform: translateX(-50%);
   text-shadow: #192a27 0 0 10px;
+}
+
+#play-animation {
+  position: absolute;
+  z-index: 3;
+  bottom: 3rem;
+  left: 45%;
+  transform: translateX(-45%);
+  pointer-events: auto;
 }
 
 // #scene-div {
@@ -425,4 +434,15 @@ calcite-accordion-item {
   --calcite-color-foreground-2: var(--calcite-color-status-success-hover);
   --calcite-color-foreground-3: var(--calcite-color-status-success-press);
   --calcite-ui-icon-color: var(--calcite-color-text-inverse);
+}
+
+.esri-slider__thumb {
+  box-sizing: border-box;
+  z-index: 1;
+  touch-action: none;
+  // background-color: #17bd27;
+  // border: 2px solid #551f1f;
+  border-radius: 16px;
+  width: 16px;
+  height: 16px;
 }

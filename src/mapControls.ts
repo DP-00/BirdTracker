@@ -202,7 +202,7 @@ export function setTimeSlider(
     "arcgis-time-slider",
   )! as ArcgisTimeSlider;
 
-  timeSlider.view = arcgisScene.view;
+  // timeSlider.view = arcgisScene.view;
 
   timeSlider.fullTimeExtent = layer.timeInfo?.fullTimeExtent;
 

@@ -1,10 +1,8 @@
 // import "@arcgis/charts-components/dist/components/arcgis-charts-config-line-chart";
 import Camera from "@arcgis/core/Camera";
 import Mesh from "@arcgis/core/geometry/Mesh";
-import * as geodeticDistanceOperator from "@arcgis/core/geometry/operators/geodeticDistanceOperator";
 import Point from "@arcgis/core/geometry/Point";
-import MeshGeoreferencedVertexSpace from "@arcgis/core/geometry/support/MeshGeoreferencedVertexSpace";
-import * as meshUtils from "@arcgis/core/geometry/support/meshUtils";
+import * as webMercatorUtils from "@arcgis/core/geometry/support/webMercatorUtils";
 import Graphic from "@arcgis/core/Graphic";
 import FillSymbol3DLayer from "@arcgis/core/symbols/FillSymbol3DLayer";
 import MeshSymbol3D from "@arcgis/core/symbols/MeshSymbol3D";
@@ -25,7 +23,7 @@ export {};
 // import { PieChartModel } from "https://js.arcgis.com/charts-model/4.32/index.js";
 export async function setBirdPerspective(arcgisScene, pointLayer) {
   // const chartElement = document.getElementById("plot");
-
+  const view = arcgisScene.view;
   const speedGauge = new RadialGauge({
     renderTo: "speedGauge",
     width: 270,
@@ -66,7 +64,7 @@ export async function setBirdPerspective(arcgisScene, pointLayer) {
     needleCircleInner: false,
     valueBox: true,
     animationRule: "linear",
-    animationDuration: 500,
+    animationDuration: 40,
     value: 0,
   }).draw();
 
@@ -117,7 +115,7 @@ export async function setBirdPerspective(arcgisScene, pointLayer) {
     fontTitleSize: 30,
     fontUnitsSize: 30,
     fontValueSize: 50,
-    animationDuration: 500,
+    animationDuration: 40,
     value: 0,
   }).draw();
 
@@ -152,7 +150,7 @@ export async function setBirdPerspective(arcgisScene, pointLayer) {
     borders: false,
     needleType: "arrow",
     needleWidth: 2,
-    animationDuration: 500,
+    animationDuration: 40,
     animationRule: "linear",
     tickSide: "left",
     numberSide: "left",
@@ -180,61 +178,47 @@ export async function setBirdPerspective(arcgisScene, pointLayer) {
   }).draw();
 
   const gaugeContainer = document.getElementById("gauges-container");
+  gaugeContainer!.style.display = "none";
+  const cameraControl = document.getElementById(
+    "camera-control",
+  ) as HTMLCalciteSegmentedControlElement;
 
-  const { features } = await pointLayer.queryFeatures();
-  const last = features.length - 1;
-  const updatedFeatures = [];
-  features.forEach((graphic, index) => {
-    const geometry = graphic.geometry as Point;
-    if (index === 0 || index === last) {
-      return;
-    }
-
-    const a = features[index - 1].geometry as Point;
-    const b = features[index + 1].geometry as Point;
-
-    const ga = heading(geometry, a);
-    const gb = heading(b, geometry);
-    let roll = ga - gb;
-    if (roll < -90 || 90 < roll) {
-      roll = (roll % 90) * -1;
-    }
-
-    if (!isFinite(roll)) {
-      roll = 0;
-    }
-
-    graphic.attributes["roll"] = Math.floor(roll);
-
-    graphic.attributes["heading"] = Math.floor(heading(b, a));
-
-    updatedFeatures.push(graphic);
-  });
-
-  // somehow corrupt displaying cylinders
-  // await pointLayer.applyEdits({
-  //   updateFeatures: updatedFeatures,
-  // });
-
+  const cameraPathControl = document.getElementById(
+    "camera-zoom",
+  ) as HTMLCalciteSegmentedControlElement;
   const timeSlider = document.querySelector(
     "arcgis-time-slider",
   )! as ArcgisTimeSlider;
-  let feature = await getLatestVisibleFeature(pointLayer, timeSlider);
-
-  let point = new Point({
-    latitude: feature.geometry.latitude,
-    longitude: feature.geometry.longitude,
-    z: feature.geometry.altitude,
+  let animationSwitch = document.getElementById("play-animation")!;
+  let animationPlayRate = document.getElementById("animation-playrate");
+  let timeInfo = document.getElementById("time-info");
+  let cameraSide = document.getElementById("camera-side");
+  const timeStep = 40;
+  let isPlaying = false;
+  const query = pointLayer.createQuery();
+  query.returnGeometry = true;
+  query.returnZ = true;
+  query.outFields = ["*"];
+  query.orderByFields = ["timestamp"];
+  const { features } = await pointLayer.queryFeatures(query);
+  const timeDates = [];
+  features.forEach((feature) => {
+    timeDates.push(new Date(feature.attributes.timestamp));
   });
 
+  // SET MODEL
+  // const modelUrl = "./flying_crow_color.glb";
+  const modelUrl =
+    "https://raw.githubusercontent.com/RalucaNicola/bird-migration/refs/heads/main/public/assets/flying_crow_color.glb";
+  // const modelUrl =
+  // "https://raw.githubusercontent.com/DP-00/BirdTracker/refs/heads/main/public/flying_crow_color.glb";
+
   let birdMesh = (
-    await Mesh.createFromGLTF(point, "./flying_crow_color.glb", {
+    await Mesh.createFromGLTF(features[0].geometry, modelUrl, {
       vertexSpace: "local",
     })
-  )
-    .scale(80)
-    .rotate(0, 0, 90);
-  await birdMesh.load();
+  ).scale(30);
+  // .offset(0, 0, 100);
   const initialTransform = birdMesh.transform?.clone();
   const animationTarget = new Graphic({
     geometry: birdMesh,
@@ -248,224 +232,228 @@ export async function setBirdPerspective(arcgisScene, pointLayer) {
       ],
     }),
   });
-
-  await arcgisScene.view.graphics.add(animationTarget);
-
-  const cameraControl = document.getElementById(
-    "camera-control",
-  ) as HTMLCalciteSegmentedControlElement;
-
-  const cameraBirdControl = document.getElementById(
-    "bird-camera-control",
-  ) as HTMLCalciteSegmentedControlElement;
-
-  const cameraPathControl = document.getElementById(
-    "camera-zoom",
-  ) as HTMLCalciteSegmentedControlElement;
+  view.graphics.add(animationTarget);
 
   cameraPathControl.addEventListener("click", async () => {
     arcgisScene.view.goTo(pointLayer.fullExtent);
   });
-  gaugeContainer!.style.display = "none";
 
   cameraControl?.addEventListener("calciteSegmentedControlChange", async () => {
     if (cameraControl.value == "bird") {
-      const feature = await getLatestVisibleFeature(pointLayer, timeSlider);
-
-      await arcgisScene.view.goTo(feature);
-
+      await arcgisScene.view.goTo(animationTarget);
       gaugeContainer!.style.display = "block";
+      // timeSlider.mode = "cumulative-from-start";
     } else {
-      // timeSlider.removeEventListener(
-      //   "arcgisPropertyChange",
-      //   handleTimeSliderChange,
-      // );
+      isPlaying = false;
       gaugeContainer!.style.display = "none";
-
       arcgisScene.view.goTo(pointLayer.fullExtent);
+      // timeSlider.mode = "time-window";
     }
   });
 
-  timeSlider.addEventListener(
-    "arcgisPropertyChange",
-    updateSceneFromTimeSlider,
-  );
-
-  async function updateSceneFromTimeSlider(event: any) {
-    const feature = await getLatestVisibleFeature(pointLayer, timeSlider);
-    const firstFeature = await getFirstVisibleFeature(pointLayer, timeSlider);
-    console.log(feature);
-    if (!feature) return;
-    if (!firstFeature) return;
-    const startTime = new Date(firstFeature.attributes.timestamp).getTime();
-    const endTime = new Date(feature.attributes.timestamp).getTime();
-    console.log("startTime", startTime, endTime);
-    let durationSeconds = (endTime - startTime) / 1000;
-    const daysSelected = Math.floor(durationSeconds / (3600 * 24));
-    durationSeconds -= daysSelected * 3600 * 24;
-    const hoursSelected = Math.floor(durationSeconds / 3600);
-    const sumHoursSelected = daysSelected * 24 + hoursSelected;
-    const verticalDiff = Math.abs(
-      feature.attributes.altitude - firstFeature.attributes.altitude,
-    );
-    if (!geodeticDistanceOperator.isLoaded()) {
-      await geodeticDistanceOperator.load();
+  animationSwitch.addEventListener("click", () => {
+    isPlaying = !isPlaying;
+    if (isPlaying) {
+      animationSwitch.icon = "pause-f";
+      updateVisualization(timeSlider.timeExtent.end);
+    } else {
+      animationSwitch.icon = "play-f";
     }
-
-    let distanceToLine = geodeticDistanceOperator.execute(
-      feature.geometry,
-      firstFeature.geometry,
-    );
-
-    document.getElementById("dashboard-duration-selected")!.innerHTML =
-      `Selected path: <b style="font-weight:800;">${(distanceToLine / 1000).toFixed(2)} km</b> for <b style="font-weight:800;">${daysSelected} days and ${hoursSelected} hours</b>
-    <br> Horizontal speed: <b style="font-weight:800;">${(distanceToLine / 1000 / sumHoursSelected).toFixed(2)} km/h</b>
-    Vertical speed: <b style="font-weight:800;">${(verticalDiff / 1000 / sumHoursSelected).toFixed(2)} km/h</b>
-    `;
-
-    let isFront = -1;
-    if (cameraBirdControl.value === "bird-camera-back") {
-      isFront = 1;
-    }
-
-    const point = new Point({
-      latitude: feature.geometry.latitude,
-      longitude: feature.geometry.longitude,
-      z: feature.attributes.altitude + 30,
-    });
-
-    const mesh = new Mesh({
-      spatialReference: birdMesh.spatialReference,
-      vertexSpace: birdMesh.vertexSpace,
-      vertexAttributes: {
-        // position: [0, 0, 500], // top view
-        position: [isFront * 300, 0, 50], // back view
-      } as any,
-    });
-
-    mesh.centerAt(point);
-    mesh.rotate(0, 0, feature.attributes.heading);
-
-    const cameraMesh = await meshUtils.convertVertexSpace(
-      mesh,
-      new MeshGeoreferencedVertexSpace(),
-    );
-
-    if (cameraControl.value == "bird") {
-      arcgisScene.view.camera = new Camera({
-        position: new Point({
-          spatialReference: cameraMesh.spatialReference,
-          x: cameraMesh.vertexAttributes.position[0],
-          y: cameraMesh.vertexAttributes.position[1],
-          z: cameraMesh.vertexAttributes.position[2],
-        }),
-        tilt: -1 * isFront * 80,
-        // heading: feature.attributes.heading,
-        heading: -feature.attributes.heading + 90,
+  });
+  const updateVisualization = (time) => {
+    if (isPlaying) {
+      requestAnimationFrame(() => {
+        const playRate = animationPlayRate.value;
+        let currentTime =
+          timeSlider.timeExtent.end.getTime() + timeStep * playRate;
+        if (currentTime >= timeSlider.fullTimeExtent.end) {
+          currentTime = timeSlider.fullTimeExtent.start;
+        }
+        timeSlider.timeExtent.end = currentTime;
+        let now = new Date(currentTime);
+        const hours = String(now.getHours()).padStart(2, "0");
+        const minutes = String(now.getMinutes()).padStart(2, "0");
+        const monthNames = [
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL",
+          "AUG",
+          "SEP",
+          "OCT",
+          "NOV",
+          "DEC",
+        ];
+        // document.getElementById("time-dashboard")!.innerText =
+        //   `${now.getDate()} ${monthNames[now.getMonth()]}   ${hours}:${minutes}`;
+        updateBirdAndCameraPosition(currentTime, timeDates, arcgisScene);
+        updateVisualization(currentTime);
       });
-      // arcgisScene.view.camera = new Camera({
-      //   position: point,
-      //   tilt: 75,
-      //   heading: feature.attributes.heading,
-      // });
-
-      // arcgisScene.view.goTo(
-      //   {
-      //     center: point,
-      //     heading: feature.attributes.heading,
-      //     tilt: 75,
-      //     scale: 500,
-      //   },
-      //   {
-      //     speedFactor: 10,
-      //     easing: "linear",
-      //   },
-      // );
-
-      speedGauge.value = feature.attributes.speed;
-      headingGauge.value = feature.attributes.heading;
-      altitudeGauge.value = feature.attributes.altitude;
-
-      let now = new Date(feature.attributes.timestamp);
-      const hours = String(now.getHours()).padStart(2, "0");
-      const minutes = String(now.getMinutes()).padStart(2, "0");
-      const monthNames = [
-        "JAN",
-        "FEB",
-        "MAR",
-        "APR",
-        "MAY",
-        "JUN",
-        "JUL",
-        "AUG",
-        "SEP",
-        "OCT",
-        "NOV",
-        "DEC",
-      ];
-      document.getElementById("time-dashboard")!.innerText =
-        `${now.getDate()} ${monthNames[now.getMonth()]}   ${hours}:${minutes}`;
     }
+  };
+  async function updateBirdAndCameraPosition(time, timeDates, arcgisScene) {
+    let isFollowing = cameraSide.value === "bird-camera-free" ? true : false;
+    let isFront =
+      cameraSide.value === "bird-camera-back" ||
+      cameraSide.value === "bird-camera-left"
+        ? -1
+        : 1;
+    let cameraSideOffset =
+      cameraSide.value === "bird-camera-right" ||
+      cameraSide.value === "bird-camera-left"
+        ? 120
+        : 0;
+    let i = 0;
+    while (i <= timeDates.length - 1 && time > timeDates[i + 1]) {
+      i++;
+    }
+    const t = (time - timeDates[i]) / (timeDates[i + 1] - timeDates[i]);
+    const p1 = features[i].geometry;
+    const p2 = features[i + 1].geometry;
+    const point = interpolate(p1, p2, t);
+    let heading = getHeading(p1, point);
+    let altitude = Math.floor(lerp(p1.z, p2.z, t));
+    let speed = Math.floor(
+      lerp(features[i].attributes.speed, features[i + 1].attributes.speed, t),
+    );
+
+    // const mesh = new Mesh({
+    //   spatialReference: birdMesh.spatialReference,
+    //   vertexSpace: birdMesh.vertexSpace,
+    //   vertexAttributes: {
+    //     position: [0, isFront * (-120 - cameraSideOffset), 60],
+    //   },
+    // });
 
     birdMesh.centerAt(point);
     birdMesh.transform = initialTransform?.clone();
-    // birdMesh.rotate(-feature.attributes.roll, 0, feature.attributes.heading);
-    birdMesh.rotate(0, 0, feature.attributes.heading);
+    birdMesh.offset(0, 0, 10);
+    birdMesh.rotate(0, 0, -heading);
 
-    console.log(arcgisScene.view.camera.heading);
-    console.log(feature.attributes.heading + 270);
-  }
-}
-
-function heading(a: Point, b: Point) {
-  const atan2 = Math.atan2(b.y - a.y, b.x - a.x);
-  return 180 - (atan2 * 180) / Math.PI;
-}
-
-async function getLatestVisibleFeature(pointLayer, timeSlider) {
-  const timeExtent = timeSlider.timeExtent;
-  const query = pointLayer.createQuery();
-  query.where = "1=1";
-  query.timeExtent = timeExtent;
-  query.outFields = ["*"];
-  query.orderByFields = ["timestamp DESC"];
-  query.returnGeometry = true;
-  query.num = 1; // Get only the latest one
-
-  try {
-    const result = await pointLayer.queryFeatures(query);
-    if (result.features.length > 0) {
-      return result.features[0];
-    } else {
-      console.log("No feature found in time range");
-      return null;
+    const birdOrigin = webMercatorUtils.geographicToWebMercator(
+      birdMesh.origin,
+    ) as Point;
+    console.log("bOrg", birdOrigin);
+    const x =
+      birdOrigin.x -
+      isFront *
+        (40 + cameraSideOffset) *
+        Math.sin(((heading - cameraSideOffset) * Math.PI) / 180);
+    const y =
+      birdOrigin.y -
+      isFront *
+        (40 + cameraSideOffset) *
+        Math.cos(((heading - cameraSideOffset) * Math.PI) / 180);
+    const z = birdOrigin.z + 5;
+    if (!isFollowing) {
+      arcgisScene.view.camera = new Camera({
+        position: new Point({
+          spatialReference: birdOrigin.spatialReference,
+          x,
+          y,
+          z,
+        }),
+        heading: heading - cameraSideOffset,
+        tilt: isFront * 90,
+        fov: 105,
+      });
     }
-  } catch (err) {
-    console.error("Query failed: ", err);
-    return null;
+
+    // if (!geodeticDistanceOperator.isLoaded()) {
+    //   await geodeticDistanceOperator.load();
+    // }
+
+    // let distanceToLine = geodeticDistanceOperator.execute(
+    //   birdMesh.origin,
+    //   point,
+    // );
+    // console.log(distanceToLine);
+    // mesh.centerAt(point);
+    // mesh.rotate(0, 0, heading + cameraSideOffset);
+    // const cameraMesh = await meshUtils.convertVertexSpace(
+    //   mesh,
+    //   new MeshGeoreferencedVertexSpace(),
+    // );
+    // if (!isFollowing) {
+    //   arcgisScene.view.camera = new Camera({
+    //     position: new Point({
+    //       spatialReference: cameraMesh.spatialReference,
+    //       x: cameraMesh.vertexAttributes.position[0],
+    //       y: cameraMesh.vertexAttributes.position[1],
+    //       z: cameraMesh.vertexAttributes.position[2],
+    //     }),
+    //     heading: -heading - cameraSideOffset,
+    //     tilt: isFront * 90,
+    //     fov: 105,
+    //   });
+    // }
+
+    speedGauge.value = speed;
+    headingGauge.value = heading;
+    altitudeGauge.value = altitude;
   }
 }
 
-async function getFirstVisibleFeature(pointLayer, timeSlider) {
-  const timeExtent = timeSlider.timeExtent;
-  const query = pointLayer.createQuery();
-  query.where = "1=1";
-  query.timeExtent = timeExtent;
-  query.outFields = ["*"];
-  query.orderByFields = ["timestamp ASC"];
-  query.returnGeometry = true;
-  query.num = 1; // Get only the latest one
+// async function updateSceneFromTimeSlider(event: any) {
+//   const feature = await getLatestVisibleFeature(pointLayer, timeSlider);
+//   const firstFeature = await getFirstVisibleFeature(pointLayer, timeSlider);
+//   console.log(feature);
+//   if (!feature) return;
+//   if (!firstFeature) return;
+//   const startTime = new Date(firstFeature.attributes.timestamp).getTime();
+//   const endTime = new Date(feature.attributes.timestamp).getTime();
+//   console.log("startTime", startTime, endTime);
+//   let durationSeconds = (endTime - startTime) / 1000;
+//   const daysSelected = Math.floor(durationSeconds / (3600 * 24));
+//   durationSeconds -= daysSelected * 3600 * 24;
+//   const hoursSelected = Math.floor(durationSeconds / 3600);
+//   const sumHoursSelected = daysSelected * 24 + hoursSelected;
+//   const verticalDiff = Math.abs(
+//     feature.attributes.altitude - firstFeature.attributes.altitude,
+//   );
+//   if (!geodeticDistanceOperator.isLoaded()) {
+//     await geodeticDistanceOperator.load();
+//   }
 
-  try {
-    const result = await pointLayer.queryFeatures(query);
-    if (result.features.length > 0) {
-      return result.features[0];
-    } else {
-      console.log("No feature found in time range");
-      return null;
+//   let distanceToLine = geodeticDistanceOperator.execute(
+//     feature.geometry,
+//     firstFeature.geometry,
+//   );
+
+//   document.getElementById("dashboard-duration-selected")!.innerHTML =
+//     `Selected path: <b style="font-weight:800;">${(distanceToLine / 1000).toFixed(2)} km</b> for <b style="font-weight:800;">${daysSelected} days and ${hoursSelected} hours</b>
+//   <br> Horizontal speed: <b style="font-weight:800;">${(distanceToLine / 1000 / sumHoursSelected).toFixed(2)} km/h</b>
+//   Vertical speed: <b style="font-weight:800;">${(verticalDiff / 1000 / sumHoursSelected).toFixed(2)} km/h</b>
+//   `;
+
+// }
+
+function getHeading(a, b) {
+  const atan2 = Math.PI / 2 - Math.atan2(b.y - a.y, b.x - a.x);
+  return (atan2 * 180) / Math.PI;
+}
+// ALL ARG NUMBERS
+const lerp = (a, b, t, modulo) => {
+  let d = b - a;
+  if (modulo) {
+    if (d > modulo / 2) {
+      d = -d + modulo;
+    } else if (d < -modulo / 2) {
+      d = d + modulo;
     }
-  } catch (err) {
-    console.error("Query failed: ", err);
-    return null;
   }
-}
+  return a + d * t;
+};
+// A, B - GRAPHIC geometry, T - NUMBER
+const interpolate = (a, b, t) => {
+  const origin = new Point({
+    spatialReference: a.spatialReference,
+    x: lerp(a.x, b.x, t),
+    y: lerp(a.y, b.y, t),
+    z: lerp(a.z, b.z, t),
+  });
+  return origin;
+};

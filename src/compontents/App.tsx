@@ -39,6 +39,7 @@ import "@esri/calcite-components/dist/components/calcite-button";
 import "@esri/calcite-components/dist/components/calcite-combobox";
 import "@esri/calcite-components/dist/components/calcite-combobox-item";
 import "@esri/calcite-components/dist/components/calcite-dialog";
+import "@esri/calcite-components/dist/components/calcite-fab";
 import "@esri/calcite-components/dist/components/calcite-handle";
 import "@esri/calcite-components/dist/components/calcite-input";
 import "@esri/calcite-components/dist/components/calcite-input-time-zone";
@@ -119,33 +120,45 @@ class App extends Widget<AppProperties> {
               ></arcgis-placement>
             </arcgis-scene>
             <div id="gauges-container">
-              <calcite-segmented-control
-                id="bird-camera-control"
-                width="full"
-                appearance="outline-fill"
-                scale="m"
-              >
+              <calcite-segmented-control id="camera-side" width="full">
                 <calcite-segmented-control-item
-                  icon-start="chevrons-down"
                   value="bird-camera-front"
+                  icon-start="chevrons-up"
+                  checked
                 >
                   Front view
                 </calcite-segmented-control-item>
-
                 <calcite-segmented-control-item
+                  value="bird-camera-left"
                   icon-start="chevrons-right"
-                  value="bird-camera-side"
                 >
-                  Side view
+                  Left side view
                 </calcite-segmented-control-item>
                 <calcite-segmented-control-item
-                  icon-start="chevrons-up"
+                  value="bird-camera-right"
+                  icon-start="chevrons-left"
+                >
+                  Right side view
+                </calcite-segmented-control-item>
+                <calcite-segmented-control-item
                   value="bird-camera-back"
-                  checked
+                  icon-start="chevrons-down"
                 >
                   Back view
                 </calcite-segmented-control-item>
+                <calcite-segmented-control-item
+                  value="bird-camera-free"
+                  icon-start="move"
+                >
+                  Free view
+                </calcite-segmented-control-item>
               </calcite-segmented-control>
+
+              <calcite-fab
+                id="play-animation"
+                icon="play-f"
+                scale="l"
+              ></calcite-fab>
               <p id="time-dashboard"></p>
               <canvas id="speedGauge"></canvas>
               <canvas id="headingGauge"></canvas>
@@ -155,7 +168,7 @@ class App extends Widget<AppProperties> {
               <TimeControls></TimeControls>
               <arcgis-time-slider
                 layout="auto"
-                reference-element="scene-div"
+                // reference-element="scene-div"
                 position="bottom-right"
                 mode="time-window"
                 play-rate="100"
@@ -510,7 +523,9 @@ const WeatherControls = () => {
             value="20"
             max={50}
             min={0}
+            ticks={50}
             label-handles="true"
+            label-ticks="true"
             style="width:250px"
           ></calcite-slider>
 
@@ -520,7 +535,9 @@ const WeatherControls = () => {
             value="4"
             max={30}
             min={1}
+            ticks={30}
             label-handles="true"
+            label-ticks="true"
             style="width:250px"
           ></calcite-slider>
 
@@ -711,6 +728,20 @@ const TimeControls = () => {
           <calcite-option value={100}>fast</calcite-option>
         </calcite-select>
       </calcite-label>
+      <calcite-segmented-control id="animation-playrate">
+        <calcite-segmented-control-item value={1}>
+          x1
+        </calcite-segmented-control-item>
+        <calcite-segmented-control-item value={10}>
+          x10
+        </calcite-segmented-control-item>
+        <calcite-segmented-control-item value={100} checked>
+          x100
+        </calcite-segmented-control-item>
+        <calcite-segmented-control-item value={1000}>
+          x1000
+        </calcite-segmented-control-item>
+      </calcite-segmented-control>
     </div>
   );
 };

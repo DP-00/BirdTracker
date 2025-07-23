@@ -44,7 +44,7 @@ export async function setCharts(
   const lineChartElement = document.getElementById("line-chart")!;
   const barChartElement = document.getElementById("bar-chart")!;
 
-  await setLineChart();
+  // await setLineChart();
   async function setLineChart() {
     const layerView = await arcgisScene.view.whenLayerView(secondaryLayer);
     const lineChartModel = await createModel({
@@ -143,7 +143,7 @@ export async function setCharts(
     }
   }
 
-  await setBarChart();
+  // await setBarChart();
   async function setBarChart() {
     let variable = "altitude";
     let timeBinning = "esriTimeUnitsHours";
