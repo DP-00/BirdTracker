@@ -103,6 +103,10 @@ b {
   background-color: #0d1a1500;
 }
 
+.esri-time-slider__time-extent {
+  color: #aed8cc !important;
+}
+
 .esri-slider__track {
   background-color: #4d6f66;
 }
@@ -283,6 +287,7 @@ calcite-segmented-control-item[checked] {
   // top: 1rem;
   left: 50%;
   transform: translateX(-50%);
+  --calcite-segmented-control-border-color: #f0ffff00;
 }
 
 #time-dashboard {
@@ -396,14 +401,41 @@ calcite-tab {
   max-height: 50vh;
 }
 
-#time-controls {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
+// #time-controls {
+//   display: flex;
+//   gap: 1rem;
+//   top: 0;
+//   // margin-top: 1rem;
+// }
+
+#animation-playrate {
+  position: absolute;
+  z-index: 1;
+  top: 0.1rem;
+  right: 0;
+  // width: 10rem;
+  --calcite-select-border-color: rgba(0, 0, 0, 0);
+  --calcite-segmented-control-background-color: rgba(0, 0, 0, 0);
+  --calcite-combobox-input-border-color: rgba(0, 0, 0, 0);
+  --calcite-combobox-input-background-color: rgba(0, 0, 0, 0);
+}
+
+#play-group-animation {
+  position: absolute;
+  z-index: 1;
+  bottom: 0.1rem;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 #timezone-picker {
-  width: 7rem;
+  width: 20%;
+  position: absolute;
+  z-index: 1;
+  top: 0.1rem;
+  left: 0;
+  --calcite-combobox-input-border-color: rgba(0, 0, 0, 0);
+  --calcite-combobox-input-background-color: rgba(0, 0, 0, 0);
 }
 
 calcite-accordion-item {
@@ -445,4 +477,27 @@ calcite-accordion-item {
   border-radius: 16px;
   width: 16px;
   height: 16px;
+}
+
+.esri-time-slider__play {
+  display: none !important;
+}
+
+.esri-time-slider__previous {
+  display: none !important;
+}
+
+.esri-time-slider__next {
+  display: none !important;
+}
+
+calcite-tab-title {
+  font-weight: 600;
+}
+
+#bird-list {
+  max-height: 45%;
+  overflow-y: auto;
+  max-width: 90%;
+  margin: auto;
 }

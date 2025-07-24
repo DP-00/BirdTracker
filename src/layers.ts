@@ -1,4 +1,5 @@
 import * as geodeticDistanceOperator from "@arcgis/core/geometry/operators/geodeticDistanceOperator";
+import * as geodeticLengthOperator from "@arcgis/core/geometry/operators/geodeticLengthOperator";
 
 import * as generalizeOperator from "@arcgis/core/geometry/operators/generalizeOperator";
 import Polyline from "@arcgis/core/geometry/Polyline";
@@ -8,6 +9,16 @@ import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import TextSymbol from "@arcgis/core/symbols/TextSymbol";
 
 import { generateLayerFields } from "./singleVisualization";
+
+// Esri color ramps - Falling Leaves
+const colors = [
+  "rgba(115, 36, 31, 1)",
+  "rgba(68, 73, 139, 1)",
+  "rgba(92, 152, 202, 1)",
+  "rgba(62, 117, 109, 1)",
+  "rgba(217, 215, 140, 1)",
+  "rgba(184, 107, 83, 1)",
+];
 
 // Create the popupTemplate dynamically
 export function createDynamicPopupTemplate(
@@ -92,9 +103,16 @@ export async function createGeneralizedLineLayer(groupedData: {
 }) {
   const lineGraphics = [];
 
+  let i = 0;
   for (const birdid in groupedData) {
     const data = groupedData[birdid];
     if (data.length < 2) continue;
+
+    let startDate = new Date(data[0].timestamp).getTime();
+    let endDate = new Date(data[data.length - 1].timestamp).getTime();
+    let color = colors[i % colors.length];
+
+    console.log(startDate);
 
     const polyline = new Polyline({
       spatialReference: { wkid: 4326 },
@@ -104,14 +122,37 @@ export async function createGeneralizedLineLayer(groupedData: {
       ]),
     });
 
+    if (!geodeticLengthOperator.isLoaded()) {
+      await geodeticLengthOperator.load();
+    }
+
+    const length = Math.floor(geodeticLengthOperator.execute(polyline) / 1000);
+
     const generalizedPolyline = await generalizeOperator.execute(
       polyline,
       0.001,
     );
 
-    const lineGraphic = new Graphic({ geometry: generalizedPolyline });
+    console.log("birdid", birdid);
+    const lineGraphic = new Graphic({
+      geometry: generalizedPolyline,
+      attributes: {
+        birdid,
+        startDate,
+        endDate,
+        length,
+        color,
+      },
+      symbol: {
+        type: "simple-line",
+        color: color,
+        width: 5,
+      },
+    });
+    console.log("birdidLine", lineGraphic);
 
     lineGraphics.push(lineGraphic);
+    i++;
   }
 
   return new FeatureLayer({
@@ -120,67 +161,94 @@ export async function createGeneralizedLineLayer(groupedData: {
     objectIdField: "ObjectID",
     geometryType: "polyline",
     legendEnabled: false,
+    outFields: ["*"],
+    fields: [
+      { name: "ObjectID", type: "oid" },
+      { name: "birdid", type: "string", alias: "Bird ID" },
+      { name: "length", type: "integer", alias: "Path length (km)" },
+      { name: "startDate", type: "date", alias: "Starting date" },
+      { name: "endDate", type: "date", alias: "Finishing date" },
+      { name: "color", type: "string" },
+    ],
+    popupTemplate: {
+      title: "Bird {birdid}",
+      outFields: ["*"],
+      content: [
+        // {
+        //   type: "custom",
+        //   creator: createWeatherChartPopup(value),
+        // },
+        {
+          type: "fields",
+          fieldInfos: [
+            { fieldName: "length", label: "Path length" },
+            { fieldName: "startDate", label: "Starting date" },
+            { fieldName: "endDate", label: "Finishing date" },
+          ],
+        },
+      ],
+    },
     elevationInfo: { mode: "on-the-ground" },
-    // maxScale: 300000,
-    popupEnabled: false,
     renderer: {
       type: "simple",
-      symbol: { type: "simple-line", color: [152, 59, 34, 0.5], width: 20 },
+      symbol: { type: "simple-line", color: [80, 80, 80, 1], width: 4 },
     },
   });
 }
 
 export async function createLineLayer(
-  groupedData: { [x: string]: any },
+  // groupedData: { [x: string]: any },
+  data,
   birdSummary: any,
 ) {
   const lineGraphics = [];
   let idCounter = 1;
-  const firstBirdId = Object.keys(groupedData)[0];
-  const allKeys = Object.keys(groupedData[firstBirdId][0]);
+  // const firstBirdId = Object.keys(groupedData)[0];
+  // const allKeys = Object.keys(groupedData[firstBirdId][0]);
+  const allKeys = Object.keys(data[0]);
 
-  for (const birdid in groupedData) {
-    const data = groupedData[birdid];
+  // for (const birdid in groupedData) {
+  // const data = groupedData[birdid];
 
-    for (let i = 0; i < data.length - 1; i++) {
-      const startPoint = data[i];
-      const endPoint = data[i + 1];
-      if (!startPoint || !endPoint) continue;
+  for (let i = 0; i < data.length - 1; i++) {
+    const startPoint = data[i];
+    const endPoint = data[i + 1];
+    if (!startPoint || !endPoint) continue;
 
-      const altitude = (startPoint.altitude + endPoint.altitude) / 2;
+    const altitude = (startPoint.altitude + endPoint.altitude) / 2;
 
-      const attributes: any = {
-        ObjectID: idCounter++,
-        birdid,
-        altitude,
-        speed: startPoint.speed,
-        timestamp: new Date(startPoint.timestamp).getTime(),
-        longitude: startPoint.longitude,
-        latitude: startPoint.latitude,
-      };
+    const attributes: any = {
+      ObjectID: idCounter++,
+      birdid: startPoint.birdid,
+      altitude,
+      speed: startPoint.speed,
+      timestamp: new Date(startPoint.timestamp).getTime(),
+      longitude: startPoint.longitude,
+      latitude: startPoint.latitude,
+    };
 
-      for (const key of allKeys) {
-        if (!specialKeys.has(key)) {
-          attributes[key] = startPoint[key];
-        }
+    for (const key of allKeys) {
+      if (!specialKeys.has(key)) {
+        attributes[key] = startPoint[key];
       }
-
-      const lineGraphic = new Graphic({
-        geometry: {
-          type: "polyline",
-          paths: [
-            [
-              [startPoint.longitude, startPoint.latitude, startPoint.altitude],
-              [endPoint.longitude, endPoint.latitude, endPoint.altitude],
-            ],
-          ],
-          spatialReference: { wkid: 4326 },
-        },
-        attributes,
-      });
-      lineGraphics.push(lineGraphic);
     }
+
+    const lineGraphic = new Graphic({
+      geometry: {
+        type: "polyline",
+        paths: [
+          [
+            [startPoint.longitude, startPoint.latitude, startPoint.altitude],
+            [endPoint.longitude, endPoint.latitude, endPoint.altitude],
+          ],
+        ],
+        spatialReference: { wkid: 4326 },
+      },
+      attributes,
+    });
+    lineGraphics.push(lineGraphic);
   }
+  // }
 
   const featureLayer = new FeatureLayer({
     id: "primaryLayer",

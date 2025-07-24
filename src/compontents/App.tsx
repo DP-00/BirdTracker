@@ -86,7 +86,9 @@ class App extends Widget<AppProperties> {
       textColor: "green",
     };
     view.popup!.defaultPopupTemplateEnabled = true;
-
+    view.timeZone = "Etc/UTC";
+    //@ts-ignore
+    view.qualitySettings.bloom = true;
     await loadData(arcgisScene);
     setSlides(arcgisScene);
     setBasemaps();
@@ -154,21 +156,58 @@ class App extends Widget<AppProperties> {
                 </calcite-segmented-control-item>
               </calcite-segmented-control>
 
-              <calcite-fab
-                id="play-animation"
-                icon="play-f"
-                scale="l"
-              ></calcite-fab>
               <p id="time-dashboard"></p>
               <canvas id="speedGauge"></canvas>
               <canvas id="headingGauge"></canvas>
               <canvas id="altitudeGauge"></canvas>
             </div>
             <div id="time-slider">
-              <TimeControls></TimeControls>
+              {/* <TimeControls></TimeControls> */}
+              <calcite-button
+                id="play-group-animation"
+                icon-start="play-f"
+                scale="l"
+                appearance="transparent"
+                kind="info"
+              ></calcite-button>
+              <calcite-input-time-zone
+                mode="name"
+                offset-style="utc"
+                id="timezone-picker"
+                scale="s"
+              ></calcite-input-time-zone>
+              <calcite-combobox
+                id="animation-playrate"
+                placeholder="Animation speed"
+                clear-disabled="true"
+                selection-mode="single"
+                selection-display="all"
+              >
+                <calcite-combobox-item
+                  value={1}
+                  heading="x 1"
+                  selected
+                ></calcite-combobox-item>
+                <calcite-combobox-item
+                  value={10}
+                  heading="x 10"
+                ></calcite-combobox-item>
+                <calcite-combobox-item
+                  value={100}
+                  heading="x 100"
+                ></calcite-combobox-item>
+                <calcite-combobox-item
+                  value={1000}
+                  heading="x 1000"
+                ></calcite-combobox-item>
+                <calcite-combobox-item
+                  value={10000}
+                  heading="x 10 000"
+                ></calcite-combobox-item>
+              </calcite-combobox>
               <arcgis-time-slider
-                layout="auto"
-                // reference-element="scene-div"
+                layout="compact"
+                reference-element="scene-div"
                 position="bottom-right"
                 mode="time-window"
                 play-rate="100"
@@ -209,15 +248,20 @@ class App extends Widget<AppProperties> {
                 Bird <span id="dashboard-birdid"></span>
                 <calcite-button
                   appearance="transparent"
-                  icon-start="information"
+                  icon-start="home"
                   kind="neutral"
                   round
-                  scale="s"
+                  scale="l"
                 ></calcite-button>
               </h2>
               <p id="dashboard-duration"></p>
               <p id="dashboard-duration-selected"></p>
             </p>
+            <p>
+              Birds paths (<span id="nr-of-paths"></span>):
+            </p>
+            <calcite-list id="bird-list" label="Bird list"></calcite-list>
+
             <div id="dashboard-info">
               <p>Line visualization:</p>
               <p> Cylinder visualization:</p>
@@ -272,13 +316,6 @@ class App extends Widget<AppProperties> {
                         class="filter-container"
                       ></div>
                     </div>
-                    {/* <calcite-label
-                      layout="inline-space-between"
-                      class="extremums"
-                    >
-                      Mark extremums
-                      <calcite-switch checked></calcite-switch>
-                    </calcite-label> */}
                   </div>
 
                   <div>
@@ -294,13 +331,6 @@ class App extends Widget<AppProperties> {
                         class="filter-container"
                       ></div>
                     </div>
-                    {/* <calcite-label
-                      layout="inline-space-between"
-                      class="extremums"
-                    >
-                      Mark extremums
-                      <calcite-switch checked></calcite-switch>
-                    </calcite-label> */}
                   </div>
                 </div>
                 <div class="legend-label-container">
@@ -347,6 +377,47 @@ class App extends Widget<AppProperties> {
               </calcite-tab>
             </calcite-tabs>
           </div>
+          {/* <div id="dashboard" class="esri-widget">
+            <p>
+              <h2>
+                BirdTracker
+                <calcite-button
+                  appearance="transparent"
+                  icon-start="home"
+                  kind="neutral"
+                  round
+                  scale="s"
+                ></calcite-button>
+              </h2>
+              <p>
+                <span id="dashboard-bird-nr">23</span> tracks
+              </p>
+            </p>
+            <calcite-list label="Park features">
+              <calcite-list-item
+                label="Hiking trails"
+                description="Designated routes for hikers to use."
+                value="hiking-trails"
+              >
+                <calcite-action
+                  slot="actions-end"
+                  icon="layer"
+                  text="Trails layer"
+                ></calcite-action>
+              </calcite-list-item>
+              <calcite-list-item
+                label="Waterfalls"
+                description="Vertical drops from a river."
+                value="waterfalls"
+              >
+                <calcite-action
+                  slot="actions-end"
+                  icon="layer"
+                  text="Waterfalls layer"
+                ></calcite-action>
+              </calcite-list-item>
+            </calcite-list>
+          </div> */}
         </div>
       </div>
     );
@@ -728,20 +799,6 @@ const TimeControls = () => {
           <calcite-option value={100}>fast</calcite-option>
         </calcite-select>
       </calcite-label>
-      <calcite-segmented-control id="animation-playrate">
-        <calcite-segmented-control-item value={1}>
-          x1
-        </calcite-segmented-control-item>
-        <calcite-segmented-control-item value={10}>
-          x10
-        </calcite-segmented-control-item>
-        <calcite-segmented-control-item value={100} checked>
-          x100
-        </calcite-segmented-control-item>
-        <calcite-segmented-control-item value={1000}>
-          x1000
-        </calcite-segmented-control-item>
-      </calcite-segmented-control>
     </div>
   );
 };

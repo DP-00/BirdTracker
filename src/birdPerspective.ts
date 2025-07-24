@@ -1,12 +1,8 @@
 // import "@arcgis/charts-components/dist/components/arcgis-charts-config-line-chart";
 import Camera from "@arcgis/core/Camera";
-import Mesh from "@arcgis/core/geometry/Mesh";
 import Point from "@arcgis/core/geometry/Point";
 import * as webMercatorUtils from "@arcgis/core/geometry/support/webMercatorUtils";
-import Graphic from "@arcgis/core/Graphic";
-import FillSymbol3DLayer from "@arcgis/core/symbols/FillSymbol3DLayer";
-import MeshSymbol3D from "@arcgis/core/symbols/MeshSymbol3D";
-import { ArcgisTimeSlider } from "@arcgis/map-components/dist/components/arcgis-time-slider";
+import { getHeading, interpolate, lerp } from "./utils";
 
 declare global {
   interface Window {
@@ -18,11 +14,7 @@ declare global {
   const LinearGauge: any;
 }
 
-export {};
-
-// import { PieChartModel } from "https://js.arcgis.com/charts-model/4.32/index.js";
 export async function setBirdPerspective(arcgisScene, pointLayer) {
-  // const chartElement = document.getElementById("plot");
   const view = arcgisScene.view;
   const speedGauge = new RadialGauge({
     renderTo: "speedGauge",
@@ -176,225 +168,82 @@ export async function setBirdPerspective(arcgisScene, pointLayer) {
     valueTextShadow: true,
     colorValueTextShadow: "#aed8cc",
   }).draw();
+}
 
-  const gaugeContainer = document.getElementById("gauges-container");
-  gaugeContainer!.style.display = "none";
-  const cameraControl = document.getElementById(
-    "camera-control",
-  ) as HTMLCalciteSegmentedControlElement;
-
-  const cameraPathControl = document.getElementById(
-    "camera-zoom",
-  ) as HTMLCalciteSegmentedControlElement;
-  const timeSlider = document.querySelector(
-    "arcgis-time-slider",
-  )! as ArcgisTimeSlider;
-  let animationSwitch = document.getElementById("play-animation")!;
-  let animationPlayRate = document.getElementById("animation-playrate");
-  let timeInfo = document.getElementById("time-info");
+export async function updateBirdAndCameraPosition(
+  time,
+  arcgisScene,
+  features,
+  birdMesh,
+  initialTransform,
+) {
   let cameraSide = document.getElementById("camera-side");
-  const timeStep = 40;
-  let isPlaying = false;
-  const query = pointLayer.createQuery();
-  query.returnGeometry = true;
-  query.returnZ = true;
-  query.outFields = ["*"];
-  query.orderByFields = ["timestamp"];
-  const { features } = await pointLayer.queryFeatures(query);
-  const timeDates = [];
-  features.forEach((feature) => {
-    timeDates.push(new Date(feature.attributes.timestamp));
-  });
-
-  // SET MODEL
-  // const modelUrl = "./flying_crow_color.glb";
-  const modelUrl =
-    "https://raw.githubusercontent.com/RalucaNicola/bird-migration/refs/heads/main/public/assets/flying_crow_color.glb";
-  // const modelUrl =
-  // "https://raw.githubusercontent.com/DP-00/BirdTracker/refs/heads/main/public/flying_crow_color.glb";
-
-  let birdMesh = (
-    await Mesh.createFromGLTF(features[0].geometry, modelUrl, {
-      vertexSpace: "local",
-    })
-  ).scale(30);
-  // .offset(0, 0, 100);
-  const initialTransform = birdMesh.transform?.clone();
-  const animationTarget = new Graphic({
-    geometry: birdMesh,
-    symbol: new MeshSymbol3D({
-      symbolLayers: [
-        new FillSymbol3DLayer({
-          material: {
-            color: [255, 255, 255],
-          },
-        }),
-      ],
-    }),
-  });
-  view.graphics.add(animationTarget);
-
-  cameraPathControl.addEventListener("click", async () => {
-    arcgisScene.view.goTo(pointLayer.fullExtent);
-  });
-
-  cameraControl?.addEventListener("calciteSegmentedControlChange", async () => {
-    if (cameraControl.value == "bird") {
-      await arcgisScene.view.goTo(animationTarget);
-      gaugeContainer!.style.display = "block";
-      // timeSlider.mode = "cumulative-from-start";
-    } else {
-      isPlaying = false;
-      gaugeContainer!.style.display = "none";
-      arcgisScene.view.goTo(pointLayer.fullExtent);
-      // timeSlider.mode = "time-window";
-    }
-  });
-
-  animationSwitch.addEventListener("click", () => {
-    isPlaying = !isPlaying;
-    if (isPlaying) {
-      animationSwitch.icon = "pause-f";
-      updateVisualization(timeSlider.timeExtent.end);
-    } else {
-      animationSwitch.icon = "play-f";
-    }
-  });
-  const updateVisualization = (time) => {
-    if (isPlaying) {
-      requestAnimationFrame(() => {
-        const playRate = animationPlayRate.value;
-        let currentTime =
-          timeSlider.timeExtent.end.getTime() + timeStep * playRate;
-        if (currentTime >= timeSlider.fullTimeExtent.end) {
-          currentTime = timeSlider.fullTimeExtent.start;
-        }
-        timeSlider.timeExtent.end = currentTime;
-        let now = new Date(currentTime);
-        const hours = String(now.getHours()).padStart(2, "0");
-        const minutes = String(now.getMinutes()).padStart(2, "0");
-        const monthNames = [
-          "JAN",
-          "FEB",
-          "MAR",
-          "APR",
-          "MAY",
-          "JUN",
-          "JUL",
-          "AUG",
-          "SEP",
-          "OCT",
-          "NOV",
-          "DEC",
-        ];
-        // document.getElementById("time-dashboard")!.innerText =
-        //   `${now.getDate()} ${monthNames[now.getMonth()]}   ${hours}:${minutes}`;
-        updateBirdAndCameraPosition(currentTime, timeDates, arcgisScene);
-        updateVisualization(currentTime);
-      });
-    }
-  };
-  async function updateBirdAndCameraPosition(time, timeDates, arcgisScene) {
-    let isFollowing = cameraSide.value === "bird-camera-free" ? true : false;
-    let isFront =
-      cameraSide.value === "bird-camera-back" ||
-      cameraSide.value === "bird-camera-left"
-        ? -1
-        : 1;
-    let cameraSideOffset =
-      cameraSide.value === "bird-camera-right" ||
-      cameraSide.value === "bird-camera-left"
-        ? 120
-        : 0;
-    let i = 0;
-    while (i <= timeDates.length - 1 && time > timeDates[i + 1]) {
-      i++;
-    }
-    const t = (time - timeDates[i]) / (timeDates[i + 1] - timeDates[i]);
-    const p1 = features[i].geometry;
-    const p2 = features[i + 1].geometry;
-    const point = interpolate(p1, p2, t);
-    let heading = getHeading(p1, point);
-    let altitude = Math.floor(lerp(p1.z, p2.z, t));
-    let speed = Math.floor(
-      lerp(features[i].attributes.speed, features[i + 1].attributes.speed, t),
-    );
-
-    // const mesh = new Mesh({
-    //   spatialReference: birdMesh.spatialReference,
-    //   vertexSpace: birdMesh.vertexSpace,
-    //   vertexAttributes: {
-    //     position: [0, isFront * (-120 - cameraSideOffset), 60],
-    //   },
-    // });
-
-    birdMesh.centerAt(point);
-    birdMesh.transform = initialTransform?.clone();
-    birdMesh.offset(0, 0, 10);
-    birdMesh.rotate(0, 0, -heading);
-
-    const birdOrigin = webMercatorUtils.geographicToWebMercator(
-      birdMesh.origin,
-    ) as Point;
-    console.log("bOrg", birdOrigin);
-    const x =
-      birdOrigin.x -
-      isFront *
-        (40 + cameraSideOffset) *
-        Math.sin(((heading - cameraSideOffset) * Math.PI) / 180);
-    const y =
-      birdOrigin.y -
-      isFront *
-        (40 + cameraSideOffset) *
-        Math.cos(((heading - cameraSideOffset) * Math.PI) / 180);
-    const z = birdOrigin.z + 5;
-    if (!isFollowing) {
-      arcgisScene.view.camera = new Camera({
-        position: new Point({
-          spatialReference: birdOrigin.spatialReference,
-          x,
-          y,
-          z,
-        }),
-        heading: heading - cameraSideOffset,
-        tilt: isFront * 90,
-        fov: 105,
-      });
-    }
-
-    // if (!geodeticDistanceOperator.isLoaded()) {
-    //   await geodeticDistanceOperator.load();
-    // }
-
-    // let distanceToLine = geodeticDistanceOperator.execute(
-    //   birdMesh.origin,
-    //   point,
-    // );
-    // console.log(distanceToLine);
-    // mesh.centerAt(point);
-    // mesh.rotate(0, 0, heading + cameraSideOffset);
-    // const cameraMesh = await meshUtils.convertVertexSpace(
-    //   mesh,
-    //   new MeshGeoreferencedVertexSpace(),
-    // );
-    // if (!isFollowing) {
-    //   arcgisScene.view.camera = new Camera({
-    //     position: new Point({
-    //       spatialReference: cameraMesh.spatialReference,
-    //       x: cameraMesh.vertexAttributes.position[0],
-    //       y: cameraMesh.vertexAttributes.position[1],
-    //       z: cameraMesh.vertexAttributes.position[2],
-    //     }),
-    //     heading: -heading - cameraSideOffset,
-    //     tilt: isFront * 90,
-    //     fov: 105,
-    //   });
-    // }
-
-    speedGauge.value = speed;
-    headingGauge.value = heading;
-    altitudeGauge.value = altitude;
+  let isFollowing = cameraSide.value === "bird-camera-free" ? true : false;
+  let isFront =
+    cameraSide.value === "bird-camera-back" ||
+    cameraSide.value === "bird-camera-left"
+      ? -1
+      : 1;
+  let cameraSideOffset =
+    cameraSide.value === "bird-camera-right" ||
+    cameraSide.value === "bird-camera-left"
+      ? 120
+      : 0;
+  let i = 0;
+  while (
+    i <= features.length - 1 &&
+    time > features[i + 1].attributes.timestamp
+  ) {
+    i++;
   }
+  const t =
+    (time - features[i].attributes.timestamp) /
+    (features[i + 1].attributes.timestamp - features[i].attributes.timestamp);
+  const p1 = features[i].geometry;
+  const p2 = features[i + 1].geometry;
+  const point = interpolate(p1, p2, t);
+  let heading = getHeading(p1, point);
+  let altitude = Math.floor(lerp(p1.z, p2.z, t));
+  let speed = Math.floor(
+    lerp(features[i].attributes.speed, features[i + 1].attributes.speed, t),
+  );
+
+  birdMesh.centerAt(point);
+  birdMesh.transform = initialTransform?.clone();
+  birdMesh.offset(0, 0, 10);
+  birdMesh.rotate(0, 0, -heading);
+
+  const birdOrigin = webMercatorUtils.geographicToWebMercator(
+    birdMesh.origin,
+  ) as Point;
+  const x =
+    birdOrigin.x -
+    isFront *
+      (40 + cameraSideOffset) *
+      Math.sin(((heading - cameraSideOffset) * Math.PI) / 180);
+  const y =
+    birdOrigin.y -
+    isFront *
+      (40 + cameraSideOffset) *
+      Math.cos(((heading - cameraSideOffset) * Math.PI) / 180);
+  const z = birdOrigin.z + 5;
+  if (!isFollowing) {
+    arcgisScene.view.camera = new Camera({
+      position: new Point({
+        spatialReference: birdOrigin.spatialReference,
+        x,
+        y,
+        z,
+      }),
+      heading: heading - cameraSideOffset,
+      tilt: isFront * 90,
+      fov: 105,
+    });
+  }
+
+  document.gauges.get("speedGauge").value = speed;
+  document.gauges.get("headingGauge").value = heading;
+  document.gauges.get("altitudeGauge").value = altitude;
 }
 
 // async function updateSceneFromTimeSlider(event: any) {
@@ -430,30 +279,3 @@ export async function setBirdPerspective(arcgisScene, pointLayer) {
 //   `;
 
 // }
-
-function getHeading(a, b) {
-  const atan2 = Math.PI / 2 - Math.atan2(b.y - a.y, b.x - a.x);
-  return (atan2 * 180) / Math.PI;
-}
-// ALL ARG NUMBERS
-const lerp = (a, b, t, modulo) => {
-  let d = b - a;
-  if (modulo) {
-    if (d > modulo / 2) {
-      d = -d + modulo;
-    } else if (d < -modulo / 2) {
-      d = d + modulo;
-    }
-  }
-  return a + d * t;
-};
-// A, B - GRAPHIC geometry, T - NUMBER
-const interpolate = (a, b, t) => {
-  const origin = new Point({
-    spatialReference: a.spatialReference,
-    x: lerp(a.x, b.x, t),
-    y: lerp(a.y, b.y, t),
-    z: lerp(a.z, b.z, t),
-  });
-  return origin;
-};

@@ -15,6 +15,8 @@ import {
 } from "./layers";
 import { setTimeSlider } from "./mapControls";
 import { setSingleVis, summarizeData } from "./singleVisualization";
+
+import { setGroupVis } from "./groupVisualization";
 import { setWeather } from "./weather";
 
 export async function loadData(arcgisScene: HTMLArcgisSceneElement) {
@@ -173,10 +175,19 @@ async function createDefaultLayers(
   const secondaryValue = "speed";
   const birdPath = Object.values(dataProcessed)[0];
 
+  document.getElementById("nr-of-paths")!.innerText =
+    Object.keys(dataProcessed).length;
   const birdSummary = summarizeData(birdPath);
   const birdGraphics = createGraphics(birdPath);
   const generalizedLayer = await createGeneralizedLineLayer(dataProcessed);
-  const primaryLayer = await createLineLayer(dataProcessed, birdSummary);
+  await createBirdList(
+    Object.keys(dataProcessed),
+    generalizedLayer,
+    arcgisScene,
+  );
+
+  const groupLineLayer = await setGroupVis(dataProcessed, arcgisScene);
+  const primaryLayer = await createLineLayer(birdPath, birdSummary);
   const secondaryLayer = createCylinderLayer(birdGraphics, birdSummary);
   [hourLayer, dayLayer] = await createTimeLayer(birdGraphics);
 
@@ -186,6 +197,7 @@ async function createDefaultLayers(
 
   await arcgisScene.addLayers([
     generalizedLayer,
+    groupLineLayer,
     primaryLayer,
     secondaryLayer,
     arrowLayer,
@@ -215,12 +227,86 @@ async function createDefaultLayers(
     secondaryValue,
   );
 
-  setTimeSlider(arcgisScene, primaryLayer);
   await setCharts(polyline, secondaryLayer, arcgisScene, birdSummary);
 
   await setBirdPerspective(arcgisScene, secondaryLayer);
+  await setTimeSlider(
+    arcgisScene,
+    primaryLayer,
+    groupLineLayer,
+    birdGraphics,
+    dataProcessed,
+  );
 
   return [primaryLayer, generalizedLayer, secondaryLayer];
+}
+
+async function createBirdList(
+  birdSummary: string[],
+  featureLayer,
+  arcgisScene,
+) {
+  const list = document.getElementById("bird-list") as HTMLCalciteListElement;
+  list.innerHTML = "";
+  let view = arcgisScene.view;
+  let highlight;
+  for (let birdId of birdSummary) {
+    const features = await featureLayer.queryFeatures({
+      where: `birdid = '${birdId}'`,
+      returnGeometry: true,
+      outFields: ["*"],
+    });
+    const feature = features.features[0];
+    if (feature) {
+      const { length, startDate, endDate, color } = feature.attributes;
+      const listItem = document.createElement("calcite-list-item");
+      listItem.setAttribute("label", `Bird ${birdId}`);
+      listItem.setAttribute("value", birdId);
+      const formatDate = (date: number) =>
+        new Date(date).toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+        });
+      const dateRange = `${formatDate(startDate)} - ${formatDate(endDate)}`;
+
+      const durationMs = endDate - startDate;
+      const durationHrs = Math.floor(durationMs / (1000 * 60 * 60));
+      const days = Math.floor(durationHrs / 24);
+      const hours = durationHrs % 24;
+      const description = `Path: ${length} km for ${days} day${days !== 1 ? "s" : ""} and ${hours} hour${hours !== 1 ? "s" : ""} (${dateRange})`;
+      listItem.setAttribute("description", description);
+      listItem.addEventListener("pointerenter", async () => {
+        const layerView = await arcgisScene.view.whenLayerView(featureLayer);
+        highlight = layerView.highlight(feature);
+        setTimeout(() => highlight.remove(), 500);
+      });
+      const action = document.createElement("calcite-action");
+      action.setAttribute("slot", "actions-end");
+      action.setAttribute("icon", "layer-zoom-to");
+      action.setAttribute("text", "Select");
+      action.style.setProperty("--calcite-action-text-color", color);
+      listItem.style.setProperty("--calcite-list-label-text-color", color);
+
+      action.addEventListener("click", async () => {
+        await view.goTo(feature.geometry);
+        const layerView = await arcgisScene.view.whenLayerView(featureLayer);
+        highlight = layerView.highlight(feature);
+        setTimeout(() => {
+          highlight.remove();
+        }, 3000);
+
+        console.log("f", feature);
+        console.log("f2", feature.geometry.extent.center);
+
+        view.openPopup({
+          location: feature.geometry.extent.center,
+          fetchFeatures: true,
+        });
+      });
+      listItem.appendChild(action);
+      list.appendChild(listItem);
+    }
+  }
 }
 
 async function createPolylineAndDashboardInfo(birdData) {

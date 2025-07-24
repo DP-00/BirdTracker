@@ -1,13 +1,19 @@
 import Basemap from "@arcgis/core/Basemap";
+import Mesh from "@arcgis/core/geometry/Mesh";
+import Graphic from "@arcgis/core/Graphic";
 import ImageryLayer from "@arcgis/core/layers/ImageryLayer";
 import ImageryTileLayer from "@arcgis/core/layers/ImageryTileLayer";
 import * as rasterFunctionUtils from "@arcgis/core/layers/support/rasterFunctionUtils";
 import TileLayer from "@arcgis/core/layers/TileLayer";
 import VectorTileLayer from "@arcgis/core/layers/VectorTileLayer";
+import FillSymbol3DLayer from "@arcgis/core/symbols/FillSymbol3DLayer";
+import MeshSymbol3D from "@arcgis/core/symbols/MeshSymbol3D";
 import TimeExtent from "@arcgis/core/time/TimeExtent";
 import Slide from "@arcgis/core/webscene/Slide";
 import LocalBasemapsSource from "@arcgis/core/widgets/BasemapGallery/support/LocalBasemapsSource";
 import { ArcgisTimeSlider } from "@arcgis/map-components/dist/components/arcgis-time-slider";
+import { updateBirdAndCameraPosition } from "./birdPerspective";
+import { updateLine } from "./groupVisualization";
 
 export function setBasemaps() {
   const customBasemaps = [
@@ -194,66 +200,150 @@ export async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
       }));
 }
 
-export function setTimeSlider(
+export async function setTimeSlider(
   arcgisScene: HTMLArcgisSceneElement,
   layer: __esri.FeatureLayer,
+  groupLineLayer,
+  features,
+  groupedData,
 ) {
   const timeSlider = document.querySelector(
     "arcgis-time-slider",
   )! as ArcgisTimeSlider;
-
-  // timeSlider.view = arcgisScene.view;
-
+  const timezonePicker = document.getElementById("timezone-picker");
+  let animationSwitch = document.getElementById("play-group-animation")!;
+  let animationPlayRate = document.getElementById("animation-playrate");
+  timeSlider.view = arcgisScene.view;
   timeSlider.fullTimeExtent = layer.timeInfo?.fullTimeExtent;
-
   const start = new Date(timeSlider.fullTimeExtent.start);
-
   let end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
   timeSlider.timeExtent = new TimeExtent({ start, end });
-  timeSlider.stops = { count: 10000 };
-  // timeSlider.stops = null;
-
-  // timeSlider.stops = { interval: { value: 2, unit: "minutes" } };
+  timeSlider.stops = { interval: { value: 10, unit: "minutes" } };
   timeSlider.addEventListener("arcgisPropertyChange", (event) => {
     arcgisScene.view.environment.lighting.date = new Date(
       timeSlider.timeExtent.end,
     );
   });
 
-  document
-    .getElementById("time-window")!
-    .addEventListener("calciteSelectChange", (e) => {
-      const hours = parseInt(e.target.value);
-      const end = new Date(timeSlider.timeExtent.end);
-      let start = new Date(end.getTime() - hours * 60 * 60 * 1000);
-      if (start < new Date(timeSlider.fullTimeExtent.start)) {
-        start = new Date(timeSlider.fullTimeExtent.start);
-      }
-      timeSlider.timeExtent = new TimeExtent({ start, end });
-    });
-
-  document
-    .getElementById("speed")!
-    .addEventListener("calciteSelectChange", (e) => {
-      timeSlider.playRate = parseFloat(e.target.value);
-    });
-  document
-    .getElementById("stops")!
-    .addEventListener("calciteSelectChange", (e) => {
-      if (e.target.value === "continous") {
-        timeSlider.stops = { count: 10000 };
-      } else {
-        timeSlider.stops = { interval: { value: 1, unit: e.target.value } };
-      }
-    });
-
-  const timezonePicker = document.getElementById("timezone-picker");
   timezonePicker.addEventListener("calciteInputTimeZoneChange", () => {
-    console.log("azone", arcgisScene.map);
-    // arcgisMap.timeZone = timezonePicker.value; // original
-    // arcgisScene.timeZone = timezonePicker.value; // X
-    // arcgisScene.map.timeZone = timezonePicker.value; // X
+    arcgisScene.view.timeZone = timezonePicker.value;
   });
+
+  let isPlaying = false;
+
+  // SET MODEL
+  // const modelUrl = "./flying_crow_color.glb";
+  document
+    .getElementById("camera-zoom")!
+    .addEventListener("click", async () => {
+      arcgisScene.view.goTo(layer.fullExtent);
+    });
+  const gaugeContainer = document.getElementById("gauges-container");
+  gaugeContainer!.style.display = "none";
+
+  const modelUrl =
+    "https://raw.githubusercontent.com/RalucaNicola/bird-migration/refs/heads/main/public/assets/flying_crow_color.glb";
+  // const modelUrl =
+  // "https://raw.githubusercontent.com/DP-00/BirdTracker/refs/heads/main/public/flying_crow_color.glb";
+
+  let birdMesh = (
+    await Mesh.createFromGLTF(features[0].geometry, modelUrl, {
+      vertexSpace: "local",
+    })
+  ).scale(30);
+  const initialTransform = birdMesh.transform?.clone();
+  const animationTarget = new Graphic({
+    geometry: birdMesh,
+    symbol: new MeshSymbol3D({
+      symbolLayers: [
+        new FillSymbol3DLayer({
+          material: {
+            color: [255, 255, 255],
+          },
+        }),
+      ],
+    }),
+    attributes: {
+      id: "bird-model",
+    },
+  });
+  arcgisScene.view.graphics.add(animationTarget);
+  const cameraControl = document.getElementById(
+    "camera-control",
+  ) as HTMLCalciteSegmentedControlElement;
+  cameraControl?.addEventListener("calciteSegmentedControlChange", async () => {
+    if (cameraControl.value == "bird") {
+      await arcgisScene.view.goTo(animationTarget);
+      gaugeContainer!.style.display = "block";
+    } else {
+      isPlaying = false;
+      gaugeContainer!.style.display = "none";
+      arcgisScene.view.goTo(layer.fullExtent);
+    }
+  });
+
+  animationSwitch.addEventListener("click", () => {
+    isPlaying = !isPlaying;
+    if (isPlaying) {
+      animationSwitch.iconStart = "pause-f";
+      updateVisualization(timeSlider.timeExtent.end, groupedData);
+    } else {
+      animationSwitch.iconStart = "play-f";
+    }
+  });
+  const updateVisualization = (time) => {
+    if (isPlaying) {
+      requestAnimationFrame(() => {
+        let currentTime = updateTimeSlider();
+        const now = new Date(currentTime);
+        const formatted = now
+          .toLocaleString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          })
+          .toUpperCase()
+          .replace(",", "");
+
+        document.getElementById("time-dashboard")!.innerText = formatted;
+
+        if (cameraControl.value == "bird") {
+          updateBirdAndCameraPosition(
+            currentTime,
+            arcgisScene,
+            features,
+            birdMesh,
+            initialTransform,
+          );
+        } else {
+          updateLine(groupedData, groupLineLayer.graphics, currentTime);
+        }
+        updateVisualization(currentTime);
+      });
+    }
+  };
+
+  function updateTimeSlider() {
+    const timeStep = 40;
+    let currentTime =
+      timeSlider.timeExtent.end.getTime() + timeStep * animationPlayRate.value;
+    if (currentTime >= timeSlider.fullTimeExtent.end) {
+      currentTime = timeSlider.fullTimeExtent.start;
+    }
+    let currentTimeTail = currentTime - 24 * 60 * 60 * 1000;
+    if (currentTimeTail <= timeSlider.fullTimeExtent.start) {
+      currentTimeTail = timeSlider.fullTimeExtent.start;
+    }
+    timeSlider.timeExtent.end = currentTime;
+    timeSlider.timeExtent.start = currentTimeTail;
+    arcgisScene.view.environment.lighting.date = new Date(
+      timeSlider.timeExtent.end,
+    );
+
+    return currentTime;
+  }
 }
 
 export function setSlides(arcgisScene: HTMLArcgisSceneElement) {
