@@ -17,6 +17,7 @@ const colors = [
 
 export async function setGroupVis(groupedData, arcgisScene) {
   const groupLineLayer = new GraphicsLayer({
+    title: "Group visualization",
     elevationInfo: {
       mode: "absolute-height",
       //   offset: 10000,

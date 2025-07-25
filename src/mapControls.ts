@@ -188,24 +188,28 @@ export async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
   document.querySelector("arcgis-layer-list")!.filterPredicate = (item) =>
     !item.title.toLowerCase().includes("visualization");
 
-  document.getElementById("thematic-layers-legend")!.layerInfos =
-    arcgisScene.map.layers
-      .filter(
-        (layer) =>
-          layer.title && !layer.title.toLowerCase().includes("visualization"),
-      )
-      .map((layer) => ({
-        layer,
-        title: layer.title,
-      }));
+  const layerListEl = document.getElementById(
+    "thematic-layers",
+  ) as HTMLArcgisLayerListElement;
+
+  layerListEl.view = arcgisScene.view;
+
+  layerListEl.listItemCreatedFunction = (
+    event: __esri.LayerListListItemCreatedEvent,
+  ) => {
+    const item = event.item;
+
+    item.panel = {
+      content: "legend",
+    };
+  };
 }
 
 export async function setTimeSlider(
   arcgisScene: HTMLArcgisSceneElement,
-  layer: __esri.FeatureLayer,
-  groupLineLayer,
-  features,
+  fullTimeExtent,
   groupedData,
+  birdData,
 ) {
   const timeSlider = document.querySelector(
     "arcgis-time-slider",
@@ -213,8 +217,11 @@ export async function setTimeSlider(
   const timezonePicker = document.getElementById("timezone-picker");
   let animationSwitch = document.getElementById("play-group-animation")!;
   let animationPlayRate = document.getElementById("animation-playrate");
+  const groupLineLayer = arcgisScene.view.map.allLayers.find(
+    (layer) => layer.title === "Group visualization",
+  );
   timeSlider.view = arcgisScene.view;
-  timeSlider.fullTimeExtent = layer.timeInfo?.fullTimeExtent;
+  timeSlider.fullTimeExtent = fullTimeExtent;
   const start = new Date(timeSlider.fullTimeExtent.start);
   let end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
   timeSlider.timeExtent = new TimeExtent({ start, end });
@@ -230,47 +237,51 @@ export async function setTimeSlider(
   });
 
   let isPlaying = false;
+  let isGroupView = true;
+  let isFollowMode = false;
+  let birdMesh, animationTarget, initialTransform;
 
   // SET MODEL
   // const modelUrl = "./flying_crow_color.glb";
-  document
-    .getElementById("camera-zoom")!
-    .addEventListener("click", async () => {
-      arcgisScene.view.goTo(layer.fullExtent);
+
+  console.log(birdData);
+  console.log(birdData.length);
+
+  if (birdData.length > 0) {
+    const modelUrl =
+      "https://raw.githubusercontent.com/RalucaNicola/bird-migration/refs/heads/main/public/assets/flying_crow_color.glb";
+    // const modelUrl =
+    // "https://raw.githubusercontent.com/DP-00/BirdTracker/refs/heads/main/public/flying_crow_color.glb";
+
+    birdMesh = (
+      await Mesh.createFromGLTF(birdData[0].geometry, modelUrl, {
+        vertexSpace: "local",
+      })
+    ).scale(30);
+    initialTransform = birdMesh.transform?.clone();
+    animationTarget = new Graphic({
+      geometry: birdMesh,
+      symbol: new MeshSymbol3D({
+        symbolLayers: [
+          new FillSymbol3DLayer({
+            material: {
+              color: [255, 255, 255],
+            },
+          }),
+        ],
+      }),
+      attributes: {
+        id: "bird-model",
+      },
     });
-  const gaugeContainer = document.getElementById("gauges-container");
-  gaugeContainer!.style.display = "none";
-
-  const modelUrl =
-    "https://raw.githubusercontent.com/RalucaNicola/bird-migration/refs/heads/main/public/assets/flying_crow_color.glb";
-  // const modelUrl =
-  // "https://raw.githubusercontent.com/DP-00/BirdTracker/refs/heads/main/public/flying_crow_color.glb";
-
-  let birdMesh = (
-    await Mesh.createFromGLTF(features[0].geometry, modelUrl, {
-      vertexSpace: "local",
-    })
-  ).scale(30);
-  const initialTransform = birdMesh.transform?.clone();
-  const animationTarget = new Graphic({
-    geometry: birdMesh,
-    symbol: new MeshSymbol3D({
-      symbolLayers: [
-        new FillSymbol3DLayer({
-          material: {
-            color: [255, 255, 255],
-          },
-        }),
-      ],
-    }),
-    attributes: {
-      id: "bird-model",
-    },
-  });
-  arcgisScene.view.graphics.add(animationTarget);
+    arcgisScene.view.graphics.add(animationTarget);
+  }
   const cameraControl = document.getElementById(
     "camera-control",
   ) as HTMLCalciteSegmentedControlElement;
+  const gaugeContainer = document.getElementById("gauges-container");
+  gaugeContainer!.style.display = "none";
+
   cameraControl?.addEventListener("calciteSegmentedControlChange", async () => {
     if (cameraControl.value == "bird") {
       await arcgisScene.view.goTo(animationTarget);
@@ -278,7 +289,7 @@ export async function setTimeSlider(
     } else {
       isPlaying = false;
       gaugeContainer!.style.display = "none";
-      arcgisScene.view.goTo(layer.fullExtent);
+      // arcgisScene.view.goTo(layer.fullExtent);
     }
   });
 
@@ -286,7 +297,7 @@ export async function setTimeSlider(
     isPlaying = !isPlaying;
     if (isPlaying) {
       animationSwitch.iconStart = "pause-f";
-      updateVisualization(timeSlider.timeExtent.end, groupedData);
+      updateVisualization(timeSlider.timeExtent.end);
     } else {
       animationSwitch.iconStart = "play-f";
     }
@@ -313,7 +324,7 @@ export async function setTimeSlider(
           updateBirdAndCameraPosition(
             currentTime,
             arcgisScene,
-            features,
+            birdData,
             birdMesh,
             initialTransform,
           );

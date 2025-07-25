@@ -8,6 +8,7 @@ import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import TextSymbol from "@arcgis/core/symbols/TextSymbol";
 
+import { createSingleVisView } from "./dataLoading";
 import { generateLayerFields } from "./singleVisualization";
 
 // Esri color ramps - Falling Leaves
@@ -98,9 +99,12 @@ export function createGraphics(csvData: any) {
   return graphics;
 }
 
-export async function createGeneralizedLineLayer(groupedData: {
-  [x: string]: any;
-}) {
+export async function createGeneralizedLineLayer(
+  groupedData: {
+    [x: string]: any;
+  },
+  arcgisScene,
+) {
   const lineGraphics = [];
 
   let i = 0;
@@ -181,10 +185,30 @@ export async function createGeneralizedLineLayer(groupedData: {
         {
           type: "fields",
           fieldInfos: [
-            { fieldName: "length", label: "Path length" },
+            { fieldName: "length", label: "Path length (km)" },
             { fieldName: "startDate", label: "Starting date" },
             { fieldName: "endDate", label: "Finishing date" },
           ],
+        },
+        {
+          type: "custom",
+          creator: (event) => {
+            const container = document.createElement("div");
+
+            const button = document.createElement("calcite-button");
+            button.id = "details-button";
+            button.setAttribute("appearance", "outline");
+            button.setAttribute("width", "full");
+            button.innerText = "Investigate the path";
+
+            const birdid = event.graphic.attributes.birdid;
+            button.addEventListener("click", () => {
+              createSingleVisView(arcgisScene, groupedData, birdid);
+            });
+
+            container.appendChild(button);
+            return container;
+          },
         },
       ],
     },

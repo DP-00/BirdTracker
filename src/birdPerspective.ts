@@ -168,6 +168,12 @@ export async function setBirdPerspective(arcgisScene, pointLayer) {
     valueTextShadow: true,
     colorValueTextShadow: "#aed8cc",
   }).draw();
+
+  document
+    .getElementById("camera-zoom")!
+    .addEventListener("click", async () => {
+      arcgisScene.view.goTo(pointLayer.fullExtent);
+    });
 }
 
 export async function updateBirdAndCameraPosition(

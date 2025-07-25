@@ -350,7 +350,7 @@ const windRenderer = {
 export async function setWeather(
   arcgisScene,
   secondaryLayer,
-  polylineLayer,
+  polyline,
   hourLayer,
 ) {
   const weatherSelect = document.getElementById(
@@ -406,11 +406,7 @@ export async function setWeather(
   ];
 
   buttonTiles?.addEventListener("click", async () => {
-    tiles = await generateWeatherExtent(
-      arcgisScene,
-      secondaryLayer,
-      polylineLayer,
-    );
+    tiles = await generateWeatherExtent(arcgisScene, secondaryLayer, polyline);
   });
   buttonWeather?.addEventListener("click", async () => {
     updateWeatherLayer();
@@ -477,7 +473,7 @@ export async function setWeather(
     return weatherLayer;
   }
 
-  async function generateWeatherExtent(arcgisScene, layer, polylineLayer) {
+  async function generateWeatherExtent(arcgisScene, layer, polyline) {
     buttonTiles.loading = true;
     try {
       const existing = await weatherLayer.queryFeatures();
@@ -542,7 +538,7 @@ export async function setWeather(
 
       const tiles = await generateTiles(
         polygon,
-        polylineLayer,
+        polyline,
         firstTimestamp,
         lastTimestamp,
       );
@@ -572,7 +568,7 @@ export async function setWeather(
 
   async function generateTiles(
     polygon,
-    polylineLayer,
+    polyline,
     firstTimestamp,
     lastTimestamp,
   ) {
@@ -584,12 +580,12 @@ export async function setWeather(
     const ymin = extent.ymin;
     const ymax = extent.ymax;
 
-    const polylineFeatureSet = await polylineLayer.queryFeatures({
-      returnGeometry: true,
-      where: "1=1",
-    });
-    const polylineWGS84 = polylineFeatureSet.features[0].geometry;
-    const polyline = webMercatorUtils.geographicToWebMercator(polylineWGS84);
+    // const polylineFeatureSet = await polyline.queryFeatures({
+    //   returnGeometry: true,
+    //   where: "1=1",
+    // });
+    const polylineWGS84 = polyline.geometry;
+    let polylineWM = webMercatorUtils.geographicToWebMercator(polylineWGS84);
     const tiles = [];
     for (let x = xmin; x < xmax; x += step) {
       for (let y = ymin; y < ymax; y += step) {
@@ -605,7 +601,7 @@ export async function setWeather(
 
         let distanceToLine = geodeticDistanceOperator.execute(
           tileCenter,
-          polyline,
+          polylineWM,
         );
 
         if (

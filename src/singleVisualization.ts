@@ -14,7 +14,6 @@ export async function setSingleVis(
   arcgisScene: HTMLArcgisSceneElement,
   primaryLayer: __esri.FeatureLayer,
   secondaryLayer: __esri.FeatureLayer,
-  generalizedLayer,
   arrowLayer: __esri.GraphicsLayer,
   hourLayer,
   dayLayer,
@@ -189,6 +188,9 @@ export async function setSingleVis(
     generalizedVisibility?.addEventListener(
       "calciteCheckboxChange",
       async () => {
+        const generalizedLayer = arcgisScene.view.map.allLayers.find(
+          (layer) => layer.title === "Generlized visualization",
+        );
         generalizedLayer.visible = !generalizedLayer.visible;
       },
     );
