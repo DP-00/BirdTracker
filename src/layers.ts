@@ -8,6 +8,8 @@ import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import TextSymbol from "@arcgis/core/symbols/TextSymbol";
 
+import LineSymbol3D from "@arcgis/core/symbols/LineSymbol3D";
+import LineSymbol3DLayer from "@arcgis/core/symbols/LineSymbol3DLayer";
 import { createSingleVisView } from "./dataLoading";
 import { generateLayerFields } from "./singleVisualization";
 
@@ -20,6 +22,16 @@ const colors = [
   "rgba(217, 215, 140, 1)",
   "rgba(184, 107, 83, 1)",
 ];
+
+const specialKeys = new Set([
+  "ObjectID",
+  "birdid",
+  "altitude",
+  "speed",
+  "timestamp",
+  "longitude",
+  "latitude",
+]);
 
 // Create the popupTemplate dynamically
 export function createDynamicPopupTemplate(
@@ -53,16 +65,6 @@ export function createDynamicPopupTemplate(
 
   layer.popupTemplate = popupTemplate;
 }
-
-const specialKeys = new Set([
-  "ObjectID",
-  "birdid",
-  "altitude",
-  "speed",
-  "timestamp",
-  "longitude",
-  "latitude",
-]);
 
 export function createGraphics(csvData: any) {
   let idCounter = 1;
@@ -178,10 +180,6 @@ export async function createGeneralizedLineLayer(
       title: "Bird {birdid}",
       outFields: ["*"],
       content: [
-        // {
-        //   type: "custom",
-        //   creator: createWeatherChartPopup(value),
-        // },
         {
           type: "fields",
           fieldInfos: [
@@ -218,6 +216,52 @@ export async function createGeneralizedLineLayer(
       symbol: { type: "simple-line", color: [80, 80, 80, 1], width: 4 },
     },
   });
+}
+
+export async function createGroupLineLayer(groupedData) {
+  const groupLineLayer = new GraphicsLayer({
+    title: "Group visualization",
+    elevationInfo: {
+      mode: "absolute-height",
+    },
+  });
+
+  const lineGraphics = Object.entries(groupedData).map(([birdId], i) => {
+    const color = colors[i % colors.length];
+
+    return new Graphic({
+      geometry: new Polyline({
+        spatialReference: { wkid: 4326 },
+        hasZ: true,
+        paths: [],
+      }),
+      symbol: new LineSymbol3D({
+        symbolLayers: [
+          new LineSymbol3DLayer({
+            material: {
+              color: color,
+              // @ts-ignore
+              emissive: {
+                strength: 2,
+                source: "color",
+              },
+            },
+            cap: "round",
+            join: "round",
+            size: 3,
+          }),
+        ],
+      }),
+      attributes: {
+        birdId,
+        color,
+      },
+    });
+  });
+
+  groupLineLayer.addMany(lineGraphics);
+
+  return groupLineLayer;
 }
 
 export async function createLineLayer(

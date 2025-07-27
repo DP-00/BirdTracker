@@ -10,6 +10,7 @@ import {
   createCylinderLayer,
   createGeneralizedLineLayer,
   createGraphics,
+  createGroupLineLayer,
   createLineLayer,
   createTimeLayer,
 } from "./layers";
@@ -17,7 +18,7 @@ import { setTimeSlider } from "./mapControls";
 import { setSingleVis, summarizeData } from "./singleVisualization";
 
 import TimeExtent from "@arcgis/core/time/TimeExtent";
-import { setGroupVis } from "./groupVisualization";
+import { removeLayersByTitles } from "./utils";
 import { setWeather } from "./weather";
 
 export async function loadData(arcgisScene: HTMLArcgisSceneElement) {
@@ -117,11 +118,6 @@ export async function loadData(arcgisScene: HTMLArcgisSceneElement) {
       const result = await processCSV(csvText, mappedCols, 8);
       [dataProcessed, statJSON] = result;
 
-      // [primaryLayer, generalizedLayer] = await createDefaultLayers(
-      //   arcgisScene,
-      //   dataProcessed,
-      // );
-
       await createGroupVisView(arcgisScene, dataProcessed);
     } catch (err) {
       console.error(err);
@@ -148,11 +144,6 @@ export async function loadData(arcgisScene: HTMLArcgisSceneElement) {
       if (Object.keys(dataProcessed).length === 0) {
         alert.open = true;
       } else {
-        // [primaryLayer, generalizedLayer] = await createDefaultLayers(
-        //   arcgisScene,
-        //   dataProcessed,
-        // );
-
         await createGroupVisView(arcgisScene, dataProcessed);
 
         console.log("Parsed CSV Data:", dataProcessed);
@@ -167,20 +158,65 @@ export async function loadData(arcgisScene: HTMLArcgisSceneElement) {
       dialog.open = false;
     }
   });
-
-  // return [dataProcessed, statJSON, primaryLayer, generalizedLayer];
 }
 
-async function createBirdList(
-  birdSummary: string[],
-  featureLayer,
-  arcgisScene,
+async function createGroupVisView(
+  arcgisScene: HTMLArcgisSceneElement,
+  dataProcessed: any,
 ) {
+  const generalizedLayer = await createGeneralizedLineLayer(
+    dataProcessed,
+    arcgisScene,
+  );
+  const groupLineLayer = await createGroupLineLayer(dataProcessed);
+  arcgisScene.map?.addMany([generalizedLayer, groupLineLayer]);
+
+  let birdIds = Object.keys(dataProcessed);
+  document.getElementById("nr-of-paths")!.innerText = birdIds.length;
+  await createBirdList(birdIds, generalizedLayer, arcgisScene);
+
+  const { features } = await generalizedLayer.queryFeatures({
+    where: "1=1",
+    outFields: ["startDate", "endDate"],
+    returnGeometry: false,
+  });
+
+  const timeExtent = new TimeExtent({
+    start: new Date(Math.min(...features.map((f) => f.attributes.startDate))),
+    end: new Date(Math.max(...features.map((f) => f.attributes.endDate))),
+  });
+
+  await setTimeSlider(arcgisScene, timeExtent, dataProcessed, []);
+
+  arcgisScene.view.goTo(generalizedLayer.fullExtent);
+  document.getElementById("zoom-group")!.addEventListener("click", async () => {
+    arcgisScene.view.goTo(generalizedLayer.fullExtent);
+  });
+
+  document
+    .getElementById("show-group-vis")!
+    .addEventListener("click", async () => {
+      document.getElementById("dashboard-single-vis")!.style.display = "none";
+      removeLayersByTitles(arcgisScene.view, [
+        "Line visualization",
+        "Cylinder visualization",
+        "Time and distance visualization (hours)",
+        "Time and distance visualization (days)",
+        "Extremum visualization",
+      ]);
+      await setTimeSlider(arcgisScene, timeExtent, dataProcessed, []);
+      groupLineLayer.visible = true;
+      await arcgisScene.view.goTo(generalizedLayer.fullExtent);
+      document.getElementById("dashboard-group-vis")!.style.display = "block";
+    });
+}
+
+async function createBirdList(birdIds: string[], featureLayer, arcgisScene) {
   const list = document.getElementById("bird-list") as HTMLCalciteListElement;
   list.innerHTML = "";
   let view = arcgisScene.view;
   let highlight;
-  for (let birdId of birdSummary) {
+  for (let birdId of birdIds) {
     const features = await featureLayer.queryFeatures({
       where: `birdid = '${birdId}'`,
       returnGeometry: true,
@@ -224,12 +260,8 @@ async function createBirdList(
         setTimeout(() => {
           highlight.remove();
         }, 3000);
-
-        console.log("f2", feature.geometry.extent.center);
-
         view.openPopup({
           location: feature.geometry.extent.center,
-          fetchFeatures: true,
         });
       });
       listItem.appendChild(action);
@@ -238,87 +270,12 @@ async function createBirdList(
   }
 }
 
-async function createGroupVisView(
-  arcgisScene: HTMLArcgisSceneElement,
-  dataProcessed: any,
-) {
-  document.getElementById("nr-of-paths")!.innerText =
-    Object.keys(dataProcessed).length;
-  const generalizedLayer = await createGeneralizedLineLayer(
-    dataProcessed,
-    arcgisScene,
-  );
-  const groupLineLayer = await setGroupVis(dataProcessed, arcgisScene);
-
-  await createBirdList(
-    Object.keys(dataProcessed),
-    generalizedLayer,
-    arcgisScene,
-  );
-
-  arcgisScene.map?.addMany([generalizedLayer, groupLineLayer]);
-
-  const { features } = await generalizedLayer.queryFeatures({
-    where: "1=1",
-    outFields: ["startDate", "endDate"],
-    returnGeometry: false,
-  });
-
-  const startDates = features.map((f) => f.attributes.startDate);
-  const endDates = features.map((f) => f.attributes.endDate);
-
-  const minStart = new Date(Math.min(...startDates));
-  const maxEnd = new Date(Math.max(...endDates));
-
-  let timeExtent = new TimeExtent({
-    start: minStart,
-    end: maxEnd,
-  });
-
-  arcgisScene.view.goTo(generalizedLayer.fullExtent);
-
-  await setTimeSlider(arcgisScene, timeExtent, dataProcessed, []);
-  document.getElementById("zoom-group")!.addEventListener("click", async () => {
-    arcgisScene.view.goTo(generalizedLayer.fullExtent);
-  });
-
-  document
-    .getElementById("show-group-vis")!
-    .addEventListener("click", async () => {
-      groupLineLayer.visible = true;
-      await arcgisScene.view.goTo(generalizedLayer.fullExtent);
-      document.getElementById("dashboard-group-vis")!.style.display = "block";
-      document.getElementById("dashboard-single-vis")!.style.display = "none";
-      await setTimeSlider(arcgisScene, timeExtent, dataProcessed, []);
-      removeLayersByTitles(arcgisScene.view, [
-        "Line visualization",
-        "Cylinder visualization",
-        "Time and distance visualization (hours)",
-        "Time and distance visualization (days)",
-        "Extremum visualization",
-      ]);
-    });
-}
-
-function removeLayersByTitles(view: __esri.SceneView, titles: string[]) {
-  const layersToRemove = view.map.allLayers.filter((layer) =>
-    titles.includes(layer.title),
-  );
-
-  layersToRemove.forEach((layer) => {
-    view.map.remove(layer);
-    console.log(`Removed layer: ${layer.title}`);
-  });
-}
-
 export async function createSingleVisView(
   arcgisScene: HTMLArcgisSceneElement,
   dataProcessed: any,
   birdid: string,
 ) {
-  console.log("BIRDID:", birdid);
   document.getElementById("dashboard-group-vis")!.style.display = "none";
-  document.getElementById("dashboard-single-vis")!.style.display = "block";
 
   const groupLineLayer = arcgisScene.view.map.allLayers.find(
     (layer) => layer.title === "Group visualization",
@@ -382,70 +339,8 @@ export async function createSingleVisView(
     dataProcessed,
     birdGraphics,
   );
-}
 
-async function createDefaultLayers(
-  arcgisScene: HTMLArcgisSceneElement,
-  dataProcessed: any,
-) {
-  // let hourLayer, dayLayer;
-  // const primaryValue = "altitude";
-  // const secondaryValue = "speed";
-  // const birdPath = Object.values(dataProcessed)[0];
-  // document.getElementById("nr-of-paths")!.innerText =
-  //   Object.keys(dataProcessed).length;
-  // const birdSummary = summarizeData(birdPath);
-  // const birdGraphics = createGraphics(birdPath);
-  // const generalizedLayer = await createGeneralizedLineLayer(dataProcessed);
-  // await createBirdList(
-  //   Object.keys(dataProcessed),
-  //   generalizedLayer,
-  //   arcgisScene,
-  // );
-  // const groupLineLayer = await setGroupVis(dataProcessed, arcgisScene);
-  // const primaryLayer = await createLineLayer(birdPath, birdSummary);
-  // const secondaryLayer = createCylinderLayer(birdGraphics, birdSummary);
-  // [hourLayer, dayLayer] = await createTimeLayer(birdGraphics);
-  // const arrowLayer = new GraphicsLayer({
-  //   title: `Extremum visualization`,
-  // });
-  // await arcgisScene.addLayers([
-  //   generalizedLayer,
-  //   groupLineLayer,
-  //   primaryLayer,
-  //   secondaryLayer,
-  //   arrowLayer,
-  //   hourLayer,
-  //   dayLayer,
-  // ]);
-  // await primaryLayer.when();
-  // await arcgisScene.view.goTo(primaryLayer.fullExtent);
-  // await secondaryLayer.when();
-  // let polyline = await createPolylineAndDashboardInfo(birdPath);
-  // await setWeather(arcgisScene, secondaryLayer, generalizedLayer, hourLayer);
-  // // await arcgisScene.addLayers([weatherLayer]);
-  // await setSingleVis(
-  //   arcgisScene,
-  //   primaryLayer,
-  //   secondaryLayer,
-  //   generalizedLayer,
-  //   arrowLayer,
-  //   hourLayer,
-  //   dayLayer,
-  //   birdSummary,
-  //   primaryValue,
-  //   secondaryValue,
-  // );
-  // await setCharts(polyline, secondaryLayer, arcgisScene, birdSummary);
-  // await setBirdPerspective(arcgisScene, secondaryLayer);
-  // await setTimeSlider(
-  //   arcgisScene,
-  //   primaryLayer,
-  //   groupLineLayer,
-  //   birdGraphics,
-  //   dataProcessed,
-  // );
-  // return [primaryLayer, generalizedLayer, secondaryLayer];
+  document.getElementById("dashboard-single-vis")!.style.display = "block";
 }
 
 async function createPolylineAndDashboardInfo(birdData) {
@@ -543,8 +438,14 @@ function processCSV(
 
         for (const row of data) {
           const birdid = row[getCol("birdid")] ?? "unknown";
-          const longitude = parseFloat(row[getCol("longitude")]);
-          const latitude = parseFloat(row[getCol("latitude")]);
+          const longitude = parseFloat(
+            parseFloat(row[getCol("longitude")]).toFixed(6),
+          );
+          const latitude = parseFloat(
+            parseFloat(row[getCol("latitude")]).toFixed(6),
+          );
+          // const longitude = parseFloat(row[getCol("longitude")]);
+          // const latitude = parseFloat(row[getCol("latitude")]);
           if (
             isNaN(longitude) ||
             isNaN(latitude) ||

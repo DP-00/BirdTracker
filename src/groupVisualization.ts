@@ -1,8 +1,4 @@
 import Polyline from "@arcgis/core/geometry/Polyline";
-import Graphic from "@arcgis/core/Graphic";
-import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
-import LineSymbol3D from "@arcgis/core/symbols/LineSymbol3D";
-import LineSymbol3DLayer from "@arcgis/core/symbols/LineSymbol3DLayer";
 import { interpolate } from "./utils";
 
 // Esri color ramps - Falling Leaves
@@ -15,52 +11,51 @@ const colors = [
   "rgba(184, 107, 83, 1)",
 ];
 
-export async function setGroupVis(groupedData, arcgisScene) {
-  const groupLineLayer = new GraphicsLayer({
-    title: "Group visualization",
-    elevationInfo: {
-      mode: "absolute-height",
-      //   offset: 10000,
-    },
-  });
+// export async function setGroupVis(groupedData, arcgisScene) {
+//   const groupLineLayer = new GraphicsLayer({
+//     title: "Group visualization",
+//     elevationInfo: {
+//       mode: "absolute-height",
+//     },
+//   });
 
-  const lineGraphics = Object.entries(groupedData).map(([birdId], i) => {
-    const color = colors[i % colors.length];
+//   const lineGraphics = Object.entries(groupedData).map(([birdId], i) => {
+//     const color = colors[i % colors.length];
 
-    return new Graphic({
-      geometry: new Polyline({
-        spatialReference: { wkid: 4326 },
-        hasZ: true,
-        paths: [],
-      }),
-      symbol: new LineSymbol3D({
-        symbolLayers: [
-          new LineSymbol3DLayer({
-            material: {
-              color: color,
-              // @ts-ignore
-              emissive: {
-                strength: 2,
-                source: "color",
-              },
-            },
-            cap: "round",
-            join: "round",
-            size: 3,
-          }),
-        ],
-      }),
-      attributes: {
-        birdId,
-        color,
-      },
-    });
-  });
+//     return new Graphic({
+//       geometry: new Polyline({
+//         spatialReference: { wkid: 4326 },
+//         hasZ: true,
+//         paths: [],
+//       }),
+//       symbol: new LineSymbol3D({
+//         symbolLayers: [
+//           new LineSymbol3DLayer({
+//             material: {
+//               color: color,
+//               // @ts-ignore
+//               emissive: {
+//                 strength: 2,
+//                 source: "color",
+//               },
+//             },
+//             cap: "round",
+//             join: "round",
+//             size: 3,
+//           }),
+//         ],
+//       }),
+//       attributes: {
+//         birdId,
+//         color,
+//       },
+//     });
+//   });
 
-  groupLineLayer.addMany(lineGraphics);
+//   groupLineLayer.addMany(lineGraphics);
 
-  return groupLineLayer;
-}
+//   return groupLineLayer;
+// }
 
 export function updateLine(groupedData, lineGraphics: any[], time) {
   lineGraphics.forEach((lineGraphic) => {

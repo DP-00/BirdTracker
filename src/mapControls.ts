@@ -79,7 +79,7 @@ export async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
 
   const landCoverLayer = new ImageryLayer({
     url: "https://ic.imagery1.arcgis.com/arcgis/rest/services/Sentinel2_10m_LandCover/ImageServer",
-    title: "Sentinel-2 10m Land Cover",
+    title: "Land Cover (Sentinel-2 10m)",
     visible: false,
   });
 
@@ -173,16 +173,16 @@ export async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
   });
 
   await arcgisScene.addLayers([
+    windspeedLayer,
     footprintLayer,
     biointactnessLayer,
     conopyLayer,
-    landCoverLayer,
     ecosystemLayer,
     ndviLayer,
-    windspeedLayer,
     DEMLayer,
     slopeLayer,
     protectedLayer,
+    landCoverLayer,
   ]);
 
   document.querySelector("arcgis-layer-list")!.filterPredicate = (item) =>
@@ -214,6 +214,55 @@ export async function setTimeSlider(
   const timeSlider = document.querySelector(
     "arcgis-time-slider",
   )! as ArcgisTimeSlider;
+
+  // not in component
+  timeSlider.labelFormatFunction = (value, type, element, layout) => {
+    console.log("tform");
+    if (!timeSlider.fullTimeExtent) {
+      // element.setAttribute(
+      //   "style",
+      //   "font-family: 'Orbitron', sans-serif; font-size: 11px; color: black;"
+      // );
+      element.innerText = "Loading...";
+      return;
+    }
+
+    // Helper function to pad numbers to two digits
+    const pad2 = (num) => num.toString().padStart(2, "0");
+
+    // Format a single Date object to DD.MM.YYYY HH:MM:SS (24h)
+    const formatDate = (date) => {
+      const d = pad2(date.getDate());
+      const m = pad2(date.getMonth() + 1); // months are 0-based
+      const y = date.getFullYear();
+      const h = pad2(date.getHours());
+      const min = pad2(date.getMinutes());
+      const s = pad2(date.getSeconds());
+      return `${d}.${m}.${y} ${h}:${min}:${s}`;
+    };
+
+    switch (type) {
+      case "min":
+      case "max":
+        element.setAttribute(
+          "style",
+          "font-family: 'Orbitron', sans-serif; font-size: 16px; color: magenta;",
+        );
+        element.innerText = formatDate(value);
+        break;
+      case "extent":
+        element.setAttribute(
+          "style",
+          "font-family: 'Orbitron', sans-serif; font-size: 18px; color: red;",
+        );
+        // value here is usually an array [startDate, endDate] for extent
+        const startDate = value[0];
+        const endDate = value[1];
+        // You can display both start and end or just the start, here showing both
+        element.innerText = `${formatDate(startDate)} – ${formatDate(endDate)}`;
+        break;
+    }
+  };
   const timezonePicker = document.getElementById("timezone-picker");
   let animationSwitch = document.getElementById("play-group-animation")!;
   let animationPlayRate = document.getElementById("animation-playrate");
@@ -226,15 +275,88 @@ export async function setTimeSlider(
   let end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
   timeSlider.timeExtent = new TimeExtent({ start, end });
   timeSlider.stops = { interval: { value: 10, unit: "minutes" } };
+
   timeSlider.addEventListener("arcgisPropertyChange", (event) => {
-    arcgisScene.view.environment.lighting.date = new Date(
-      timeSlider.timeExtent.end,
-    );
+    let currentTime = timeSlider.timeExtent.end;
+    arcgisScene.view.environment.lighting.date = new Date(currentTime);
+    updateLine(groupedData, groupLineLayer.graphics, currentTime);
+    if (groupLineLayer.visible) {
+      let currentTimeTail = currentTime - 24 * 60 * 60 * 1000;
+      if (currentTimeTail <= timeSlider.fullTimeExtent.start) {
+        currentTimeTail = timeSlider.fullTimeExtent.start;
+      }
+      timeSlider.timeExtent.start = currentTimeTail;
+    }
   });
 
   timezonePicker.addEventListener("calciteInputTimeZoneChange", () => {
     arcgisScene.view.timeZone = timezonePicker.value;
   });
+
+  const startDatePicker = document.getElementById("start-date");
+  const startTimePicker = document.getElementById("start-time");
+  const endDatePicker = document.getElementById("end-date");
+  const endTimePicker = document.getElementById("end-time");
+  const applyButton = document.getElementById("apply-range");
+  const popoverTime = document.getElementById("popover-time");
+  const popoverBtn = document.getElementById("edit-time-button");
+
+  popoverBtn.addEventListener("click", () => {
+    let extent = timeSlider.timeExtent;
+    const offsetMinutes = arcgisScene.view.timeZone;
+    console.log(
+      "start",
+      offsetMinutes,
+      extent.start,
+      extent.start.toISOString(),
+    );
+    startDatePicker.value = extent.start.toISOString().split("T")[0];
+    startTimePicker.value = extent.start.toISOString().slice(11, 16);
+    endDatePicker.value = extent.end.toISOString().split("T")[0];
+    endTimePicker.value = extent.end.toISOString().slice(11, 16);
+  });
+
+  applyButton.addEventListener("click", () => {
+    const start = new Date(`${startDatePicker.value}T${startTimePicker.value}`);
+    const end = new Date(`${endDatePicker.value}T${endTimePicker.value}`);
+    timeSlider.timeExtent = new TimeExtent({ start, end });
+    popoverTime.open = false;
+  });
+
+  function validateInputs() {
+    const startDateStr = startDatePicker.value;
+    const startTimeStr = startTimePicker.value;
+    const endDateStr = endDatePicker.value;
+    const endTimeStr = endTimePicker.value;
+
+    if (!startDateStr || !startTimeStr || !endDateStr || !endTimeStr) {
+      applyButton.disabled = true;
+      return;
+    }
+
+    const start = new Date(`${startDateStr}T${startTimeStr}`);
+    const end = new Date(`${endDateStr}T${endTimeStr}`);
+    const fullStart = timeSlider.fullTimeExtent.start;
+    const fullEnd = timeSlider.fullTimeExtent.end;
+
+    const valid =
+      !isNaN(start) &&
+      !isNaN(end) &&
+      start < end &&
+      start >= fullStart &&
+      end <= fullEnd;
+
+    applyButton.disabled = !valid;
+  }
+
+  // Revalidate on every change
+  [startDatePicker, startTimePicker, endDatePicker, endTimePicker].forEach(
+    (input) => {
+      input.addEventListener("calciteInputDatePickerChange", validateInputs);
+      input.addEventListener("calciteInputTimePickerChange", validateInputs);
+      input.addEventListener("change", validateInputs);
+    },
+  );
 
   let isPlaying = false;
   let isGroupView = true;

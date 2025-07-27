@@ -505,3 +505,50 @@ calcite-tab-title {
   max-width: 90%;
   margin: auto;
 }
+
+#edit-time-button {
+  right: 35%;
+  transform: translateX(35%);
+  position: absolute;
+  z-index: 1;
+  top: 0.1rem;
+}
+
+#popover-time {
+  padding: 1rem;
+}
+
+[id$="-handle-1"] .esri-slider__thumb {
+  background-color: #00000000 !important;
+  border-color: #00000000 !important;
+}
+
+[id$="-handle-1"] .esri-slider__thumb::after {
+  // content: "🐦";
+  content: "🕊";
+  // content: "🦅";
+
+  font-family: "Segoe UI Symbol", sans-serif;
+  font-size: 30px;
+  font-weight: 1000;
+  color: #aed8cc;
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  // transform: translate(-50%, -50%) scaleX(-1);
+
+  text-shadow:
+    -1px -1px 0 black,
+    1px -1px 0 black,
+    -1px 1px 0 black,
+    1px 1px 0 black;
+
+  background-color: #00000000 !important;
+  border-color: #00000000 !important;
+}
+
+[id$="-handle-0"] .esri-slider__thumb {
+  background-color: #aed8cc !important;
+  border-color: #00000000 !important;
+}

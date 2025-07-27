@@ -42,6 +42,8 @@ import "@esri/calcite-components/dist/components/calcite-dialog";
 import "@esri/calcite-components/dist/components/calcite-fab";
 import "@esri/calcite-components/dist/components/calcite-handle";
 import "@esri/calcite-components/dist/components/calcite-input";
+import "@esri/calcite-components/dist/components/calcite-input-date-picker";
+import "@esri/calcite-components/dist/components/calcite-input-time-picker";
 import "@esri/calcite-components/dist/components/calcite-input-time-zone";
 import "@esri/calcite-components/dist/components/calcite-label";
 import "@esri/calcite-components/dist/components/calcite-list";
@@ -55,6 +57,7 @@ import "@esri/calcite-components/dist/components/calcite-navigation-logo";
 import "@esri/calcite-components/dist/components/calcite-navigation-user";
 import "@esri/calcite-components/dist/components/calcite-notice";
 import "@esri/calcite-components/dist/components/calcite-panel";
+import "@esri/calcite-components/dist/components/calcite-popover";
 import "@esri/calcite-components/dist/components/calcite-segmented-control";
 import "@esri/calcite-components/dist/components/calcite-segmented-control-item";
 import "@esri/calcite-components/dist/components/calcite-slider";
@@ -66,8 +69,10 @@ import "@esri/calcite-components/dist/components/calcite-tab-nav";
 import "@esri/calcite-components/dist/components/calcite-tab-title";
 import "@esri/calcite-components/dist/components/calcite-tabs";
 
+import esriConfig from "@arcgis/core/config";
 import { loadData } from "../dataLoading";
 import { setBasemaps, setSlides, setThematicLayers } from "../mapControls";
+esriConfig.locale = "en-gb";
 
 type AppProperties = {};
 
@@ -172,9 +177,9 @@ class App extends Widget<AppProperties> {
               ></calcite-button>
               <calcite-input-time-zone
                 mode="name"
-                offset-style="utc"
                 id="timezone-picker"
                 scale="s"
+                value="Etc/UTC"
               ></calcite-input-time-zone>
               <calcite-combobox
                 id="animation-playrate"
@@ -205,6 +210,43 @@ class App extends Widget<AppProperties> {
                   heading="x 10 000"
                 ></calcite-combobox-item>
               </calcite-combobox>
+
+              <calcite-popover
+                heading="Edit time extent"
+                label="Edit time extent"
+                reference-element="edit-time-button"
+                closable
+                placement="top"
+              >
+                <div id="popover-time">
+                  <calcite-label>
+                    Start Date:
+                    <calcite-input-date-picker id="start-date"></calcite-input-date-picker>
+                    <calcite-input-time-picker
+                      id="start-time"
+                      hour-format="24"
+                    ></calcite-input-time-picker>
+                  </calcite-label>
+                  <calcite-label>
+                    End Date:
+                    <calcite-input-date-picker id="end-date"></calcite-input-date-picker>
+                    <calcite-input-time-picker
+                      id="end-time"
+                      hour-format="24"
+                    ></calcite-input-time-picker>
+                  </calcite-label>
+
+                  <calcite-button id="apply-range" appearance="solid">
+                    Apply
+                  </calcite-button>
+                </div>
+              </calcite-popover>
+              <calcite-button
+                id="edit-time-button"
+                icon-start="pencil"
+                appearance="transparent"
+              ></calcite-button>
+
               <arcgis-time-slider
                 layout="compact"
                 reference-element="scene-div"
@@ -736,6 +778,7 @@ const TimeControls = () => {
           offset-style="utc"
           id="timezone-picker"
           scale="s"
+          value="Etc/UTC"
         ></calcite-input-time-zone>
       </calcite-label>
       <calcite-label layout="inline" scale="s">

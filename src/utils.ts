@@ -6,6 +6,17 @@ export function timeout(timeoutInMilliseconds: number) {
   });
 }
 
+export function removeLayersByTitles(view: __esri.SceneView, titles: string[]) {
+  const layersToRemove = view.map.allLayers.filter((layer) =>
+    titles.includes(layer.title),
+  );
+
+  layersToRemove.forEach((layer) => {
+    view.map.remove(layer);
+    console.log(`Removed layer: ${layer.title}`);
+  });
+}
+
 export function getHeading(a, b) {
   const atan2 = Math.PI / 2 - Math.atan2(b.y - a.y, b.x - a.x);
   return (atan2 * 180) / Math.PI;
