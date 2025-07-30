@@ -251,37 +251,3 @@ export async function updateBirdAndCameraPosition(
   document.gauges.get("headingGauge").value = heading;
   document.gauges.get("altitudeGauge").value = altitude;
 }
-
-// async function updateSceneFromTimeSlider(event: any) {
-//   const feature = await getLatestVisibleFeature(pointLayer, timeSlider);
-//   const firstFeature = await getFirstVisibleFeature(pointLayer, timeSlider);
-//   console.log(feature);
-//   if (!feature) return;
-//   if (!firstFeature) return;
-//   const startTime = new Date(firstFeature.attributes.timestamp).getTime();
-//   const endTime = new Date(feature.attributes.timestamp).getTime();
-//   console.log("startTime", startTime, endTime);
-//   let durationSeconds = (endTime - startTime) / 1000;
-//   const daysSelected = Math.floor(durationSeconds / (3600 * 24));
-//   durationSeconds -= daysSelected * 3600 * 24;
-//   const hoursSelected = Math.floor(durationSeconds / 3600);
-//   const sumHoursSelected = daysSelected * 24 + hoursSelected;
-//   const verticalDiff = Math.abs(
-//     feature.attributes.altitude - firstFeature.attributes.altitude,
-//   );
-//   if (!geodeticDistanceOperator.isLoaded()) {
-//     await geodeticDistanceOperator.load();
-//   }
-
-//   let distanceToLine = geodeticDistanceOperator.execute(
-//     feature.geometry,
-//     firstFeature.geometry,
-//   );
-
-//   document.getElementById("dashboard-duration-selected")!.innerHTML =
-//     `Selected path: <b style="font-weight:800;">${(distanceToLine / 1000).toFixed(2)} km</b> for <b style="font-weight:800;">${daysSelected} days and ${hoursSelected} hours</b>
-//   <br> Horizontal speed: <b style="font-weight:800;">${(distanceToLine / 1000 / sumHoursSelected).toFixed(2)} km/h</b>
-//   Vertical speed: <b style="font-weight:800;">${(verticalDiff / 1000 / sumHoursSelected).toFixed(2)} km/h</b>
-//   `;
-
-// }

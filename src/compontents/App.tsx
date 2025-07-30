@@ -209,6 +209,10 @@ class App extends Widget<AppProperties> {
                   value={10000}
                   heading="x 10 000"
                 ></calcite-combobox-item>
+                <calcite-combobox-item
+                  value={100000}
+                  heading="x 100 000"
+                ></calcite-combobox-item>
               </calcite-combobox>
 
               <calcite-popover
@@ -260,7 +264,7 @@ class App extends Widget<AppProperties> {
               ></arcgis-time-slider>
             </div>
           </div>
-          <div id="dashboard" class="esri-widget">
+          <calcite-panel id="dashboard">
             <div id="dashboard-group-vis">
               <p>
                 <h2>
@@ -273,9 +277,9 @@ class App extends Widget<AppProperties> {
                     scale="l"
                   ></calcite-button>
                 </h2>
-                Birds paths (<span id="nr-of-paths"></span>):
+                Birds tracks (<span id="nr-of-paths"></span>):
                 <calcite-button
-                  icon-start="zoom-to-object"
+                  icon-start="layer-zoom-to"
                   id="zoom-group"
                 ></calcite-button>
               </p>
@@ -437,7 +441,7 @@ class App extends Widget<AppProperties> {
                 </calcite-tab>
               </calcite-tabs>
             </div>
-          </div>
+          </calcite-panel>
         </div>
       </div>
     );

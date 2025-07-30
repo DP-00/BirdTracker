@@ -8,8 +8,11 @@ import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import TextSymbol from "@arcgis/core/symbols/TextSymbol";
 
+import Point from "@arcgis/core/geometry/Point";
 import LineSymbol3D from "@arcgis/core/symbols/LineSymbol3D";
 import LineSymbol3DLayer from "@arcgis/core/symbols/LineSymbol3DLayer";
+import LineStylePattern3D from "@arcgis/core/symbols/patterns/LineStylePattern3D.js";
+import PointSymbol3D from "@arcgis/core/symbols/PointSymbol3D";
 import { createSingleVisView } from "./dataLoading";
 import { generateLayerFields } from "./singleVisualization";
 
@@ -140,6 +143,33 @@ export async function createGeneralizedLineLayer(
     );
 
     console.log("birdid", birdid);
+    const lineSymbol3D = new LineSymbol3D({
+      symbolLayers: [
+        new LineSymbol3DLayer({
+          cap: "round",
+          join: "round",
+          material: {
+            color: "#192a27",
+          },
+          pattern: new LineStylePattern3D({
+            style: "solid",
+          }),
+          size: 5,
+        }),
+
+        new LineSymbol3DLayer({
+          cap: "round",
+          join: "round",
+          material: {
+            color: "#aed8cc",
+          },
+          pattern: new LineStylePattern3D({
+            style: "dot",
+          }),
+          size: 3,
+        }),
+      ],
+    });
     const lineGraphic = new Graphic({
       geometry: generalizedPolyline,
       attributes: {
@@ -149,11 +179,12 @@ export async function createGeneralizedLineLayer(
         length,
         color,
       },
-      symbol: {
-        type: "simple-line",
-        color: color,
-        width: 5,
-      },
+      // symbol: lineSymbol3D,
+      // {
+      //   type: "simple-line",
+      //   color: color,
+      //   width: 5,
+      // },
     });
     console.log("birdidLine", lineGraphic);
 
@@ -200,8 +231,9 @@ export async function createGeneralizedLineLayer(
             button.innerText = "Investigate the path";
 
             const birdid = event.graphic.attributes.birdid;
-            button.addEventListener("click", () => {
-              createSingleVisView(arcgisScene, groupedData, birdid);
+            button.addEventListener("click", async () => {
+              await createSingleVisView(arcgisScene, groupedData, birdid);
+              arcgisScene.popup.close(); // Collapse the popup after action
             });
 
             container.appendChild(button);
@@ -213,9 +245,99 @@ export async function createGeneralizedLineLayer(
     elevationInfo: { mode: "on-the-ground" },
     renderer: {
       type: "simple",
-      symbol: { type: "simple-line", color: [80, 80, 80, 1], width: 4 },
+      symbol: new LineSymbol3D({
+        symbolLayers: [
+          new LineSymbol3DLayer({
+            cap: "round",
+            join: "round",
+            material: {
+              color: "#192a27b5",
+            },
+            pattern: new LineStylePattern3D({
+              style: "solid",
+            }),
+            size: 4,
+          }),
+
+          new LineSymbol3DLayer({
+            cap: "round",
+            join: "round",
+            material: {
+              color: "#aed8cc3b",
+            },
+            pattern: new LineStylePattern3D({
+              style: "dash",
+            }),
+            size: 2,
+          }),
+        ],
+      }),
+      // { type: "simple-line", color: [80, 80, 80, 1], width: 4 },
     },
   });
+}
+export async function createIconLayer(groupedData) {
+  const iconLayer = new GraphicsLayer({
+    title: "Icon visualization",
+    maxScale: 100000,
+    elevationInfo: {
+      mode: "absolute-height",
+    },
+  });
+
+  const lineGraphics = Object.entries(groupedData).map(([birdId], i) => {
+    const color = colors[i % colors.length];
+
+    return new Graphic({
+      geometry: new Point({
+        spatialReference: { wkid: 4326 },
+        hasZ: true,
+      }),
+      // symbol: new PointSymbol3D({
+      //   symbolLayers: [
+      //     new TextSymbol3DLayer({
+      //       text: "🦅",
+      //       material: { color: color },
+      //       size: 24,
+      //       font: {
+      //         family: "Segoe UI Emoji", // good emoji-supporting font
+      //         weight: "bold",
+      //       },
+      //     }),
+      //   ],
+      // }),
+      symbol: new PointSymbol3D({
+        symbolLayers: [
+          {
+            type: "icon", // autocasts as new IconSymbol3DLayer()
+            size: "12", // points
+            resource: {
+              href: "public/birdIcon3.svg",
+            },
+            material: {
+              color: color,
+              emissive: {
+                strength: 5,
+                source: "color",
+              },
+            },
+            // material: {
+            //   color: "#ffffff",
+            // },
+            angle: 180, // initial clockwise angle in degrees to make the arrow point upwards
+          },
+        ],
+      }),
+      attributes: {
+        birdId,
+        color,
+      },
+    });
+  });
+
+  iconLayer.addMany(lineGraphics);
+
+  return iconLayer;
 }
 
 export async function createGroupLineLayer(groupedData) {

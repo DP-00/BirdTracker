@@ -11,6 +11,7 @@ import {
   createGeneralizedLineLayer,
   createGraphics,
   createGroupLineLayer,
+  createIconLayer,
   createLineLayer,
   createTimeLayer,
 } from "./layers";
@@ -169,7 +170,9 @@ async function createGroupVisView(
     arcgisScene,
   );
   const groupLineLayer = await createGroupLineLayer(dataProcessed);
-  arcgisScene.map?.addMany([generalizedLayer, groupLineLayer]);
+  const iconLayer = await createIconLayer(dataProcessed);
+
+  arcgisScene.map?.addMany([generalizedLayer, groupLineLayer, iconLayer]);
 
   let birdIds = Object.keys(dataProcessed);
   document.getElementById("nr-of-paths")!.innerText = birdIds.length;
@@ -193,6 +196,8 @@ async function createGroupVisView(
     arcgisScene.view.goTo(generalizedLayer.fullExtent);
   });
 
+  document.body.classList.toggle("bird-mode", true);
+
   document
     .getElementById("show-group-vis")!
     .addEventListener("click", async () => {
@@ -205,6 +210,7 @@ async function createGroupVisView(
         "Extremum visualization",
       ]);
       await setTimeSlider(arcgisScene, timeExtent, dataProcessed, []);
+      document.body.classList.toggle("bird-mode", true);
       groupLineLayer.visible = true;
       await arcgisScene.view.goTo(generalizedLayer.fullExtent);
       document.getElementById("dashboard-group-vis")!.style.display = "block";
@@ -239,7 +245,7 @@ async function createBirdList(birdIds: string[], featureLayer, arcgisScene) {
       const durationHrs = Math.floor(durationMs / (1000 * 60 * 60));
       const days = Math.floor(durationHrs / 24);
       const hours = durationHrs % 24;
-      const description = `Path: ${length} km for ${days} day${days !== 1 ? "s" : ""} and ${hours} hour${hours !== 1 ? "s" : ""} (${dateRange})`;
+      const description = `${length} km for ${days} day${days !== 1 ? "s" : ""} and ${hours} hour${hours !== 1 ? "s" : ""} (${dateRange})`;
       listItem.setAttribute("description", description);
       listItem.addEventListener("pointerenter", async () => {
         const layerView = await arcgisScene.view.whenLayerView(featureLayer);
@@ -275,6 +281,9 @@ export async function createSingleVisView(
   dataProcessed: any,
   birdid: string,
 ) {
+  document.getElementById("dashboard")!.loading = true;
+  document.getElementById("details-button")!.loading = true;
+
   document.getElementById("dashboard-group-vis")!.style.display = "none";
 
   const groupLineLayer = arcgisScene.view.map.allLayers.find(
@@ -282,6 +291,7 @@ export async function createSingleVisView(
   );
   console.log("gl1", groupLineLayer);
   groupLineLayer.visible = false;
+  document.body.classList.toggle("bird-mode", false);
 
   removeLayersByTitles(arcgisScene.view, [
     "Line visualization",
@@ -340,7 +350,19 @@ export async function createSingleVisView(
     birdGraphics,
   );
 
+  const cameraControl = document.getElementById(
+    "camera-control",
+  ) as HTMLCalciteSegmentedControlElement;
+  cameraControl.value = "line";
   document.getElementById("dashboard-single-vis")!.style.display = "block";
+  const gaugeContainer = document.getElementById("gauges-container");
+  let animationSwitch = document.getElementById("play-group-animation")!;
+  let animationPlayRate = document.getElementById("animation-playrate");
+  gaugeContainer!.style.display = "none";
+  animationPlayRate!.style.display = "none";
+  animationSwitch!.style.display = "none";
+  document.getElementById("dashboard")!.loading = false;
+  document.getElementById("details-button")!.loading = false;
 }
 
 async function createPolylineAndDashboardInfo(birdData) {
