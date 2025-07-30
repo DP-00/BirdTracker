@@ -66,7 +66,16 @@ export function updateIcon(groupedData, iconGraphics: any[], time) {
         (time - birdData[i].timestamp) /
         (birdData[i + 1].timestamp - birdData[i].timestamp);
       const point = interpolate(p1, p2, t);
-      iconGraphic.geometry = point;
+
+      if (
+        iconGraphic.geometry &&
+        Number.isFinite(iconGraphic.geometry.x) &&
+        Number.isFinite(iconGraphic.geometry.y)
+      ) {
+        iconGraphic.geometry = point;
+      } else {
+        iconGraphic.geometry;
+      }
     }
   });
 }

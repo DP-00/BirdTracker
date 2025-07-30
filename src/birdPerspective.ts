@@ -202,52 +202,54 @@ export async function updateBirdAndCameraPosition(
   ) {
     i++;
   }
-  const t =
-    (time - features[i].attributes.timestamp) /
-    (features[i + 1].attributes.timestamp - features[i].attributes.timestamp);
-  const p1 = features[i].geometry;
-  const p2 = features[i + 1].geometry;
-  const point = interpolate(p1, p2, t);
-  let heading = getHeading(p1, point);
-  let altitude = Math.floor(lerp(p1.z, p2.z, t));
-  let speed = Math.floor(
-    lerp(features[i].attributes.speed, features[i + 1].attributes.speed, t),
-  );
+  if (features[i]) {
+    const t =
+      (time - features[i].attributes.timestamp) /
+      (features[i + 1].attributes.timestamp - features[i].attributes.timestamp);
+    const p1 = features[i].geometry;
+    const p2 = features[i + 1].geometry;
+    const point = interpolate(p1, p2, t);
+    let heading = getHeading(p1, point);
+    let altitude = Math.floor(lerp(p1.z, p2.z, t));
+    let speed = Math.floor(
+      lerp(features[i].attributes.speed, features[i + 1].attributes.speed, t),
+    );
 
-  birdMesh.centerAt(point);
-  birdMesh.transform = initialTransform?.clone();
-  birdMesh.offset(0, 0, 10);
-  birdMesh.rotate(0, 0, -heading);
+    birdMesh.centerAt(point);
+    birdMesh.transform = initialTransform?.clone();
+    birdMesh.offset(0, 0, 10);
+    birdMesh.rotate(0, 0, -heading);
 
-  const birdOrigin = webMercatorUtils.geographicToWebMercator(
-    birdMesh.origin,
-  ) as Point;
-  const x =
-    birdOrigin.x -
-    isFront *
-      (40 + cameraSideOffset) *
-      Math.sin(((heading - cameraSideOffset) * Math.PI) / 180);
-  const y =
-    birdOrigin.y -
-    isFront *
-      (40 + cameraSideOffset) *
-      Math.cos(((heading - cameraSideOffset) * Math.PI) / 180);
-  const z = birdOrigin.z + 5;
-  if (!isFollowing) {
-    arcgisScene.view.camera = new Camera({
-      position: new Point({
-        spatialReference: birdOrigin.spatialReference,
-        x,
-        y,
-        z,
-      }),
-      heading: heading - cameraSideOffset,
-      tilt: isFront * 90,
-      fov: 105,
-    });
+    const birdOrigin = webMercatorUtils.geographicToWebMercator(
+      birdMesh.origin,
+    ) as Point;
+    const x =
+      birdOrigin.x -
+      isFront *
+        (40 + cameraSideOffset) *
+        Math.sin(((heading - cameraSideOffset) * Math.PI) / 180);
+    const y =
+      birdOrigin.y -
+      isFront *
+        (40 + cameraSideOffset) *
+        Math.cos(((heading - cameraSideOffset) * Math.PI) / 180);
+    const z = birdOrigin.z + 5;
+    if (!isFollowing) {
+      arcgisScene.view.camera = new Camera({
+        position: new Point({
+          spatialReference: birdOrigin.spatialReference,
+          x,
+          y,
+          z,
+        }),
+        heading: heading - cameraSideOffset,
+        tilt: isFront * 90,
+        fov: 105,
+      });
+    }
+
+    document.gauges.get("speedGauge").value = speed;
+    document.gauges.get("headingGauge").value = heading;
+    document.gauges.get("altitudeGauge").value = altitude;
   }
-
-  document.gauges.get("speedGauge").value = speed;
-  document.gauges.get("headingGauge").value = heading;
-  document.gauges.get("altitudeGauge").value = altitude;
 }

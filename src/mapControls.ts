@@ -15,6 +15,7 @@ import { ArcgisTimeSlider } from "@arcgis/map-components/dist/components/arcgis-
 import { updateBirdAndCameraPosition } from "./birdPerspective";
 import { updateIcon, updateLine } from "./groupVisualization";
 import { updateCalculations } from "./singleVisualization";
+import { getClosestFeatureIndexInTime } from "./utils";
 
 export function setBasemaps() {
   const customBasemaps = [
@@ -216,16 +217,10 @@ export async function setTimeSlider(
     "arcgis-time-slider",
   )! as ArcgisTimeSlider;
 
-  const timezonePicker = document.getElementById("timezone-picker");
+  const timezonePicker = document.getElementById("timezone-picker")!;
   let animationSwitch = document.getElementById("play-group-animation")!;
-  let animationPlayRate = document.getElementById("animation-playrate");
-  const startDatePicker = document.getElementById("start-date");
-  const startTimePicker = document.getElementById("start-time");
-  const endDatePicker = document.getElementById("end-date");
-  const endTimePicker = document.getElementById("end-time");
-  const datePickerApplyBtn = document.getElementById("apply-range");
-  const datePickerPopover = document.getElementById("popover-time");
-  const datePickerBtn = document.getElementById("edit-time-button");
+  let animationPlayRate = document.getElementById("animation-playrate")!;
+
   const cameraControl = document.getElementById(
     "camera-control",
   ) as HTMLCalciteSegmentedControlElement;
@@ -241,66 +236,12 @@ export async function setTimeSlider(
   animationPlayRate!.style.display = "block";
   animationSwitch!.style.display = "block";
   animationPlayRate.value = 10000;
+
+  setDatePicker();
+
   timezonePicker.addEventListener("calciteInputTimeZoneChange", () => {
     arcgisScene.view.timeZone = timezonePicker.value;
   });
-
-  datePickerBtn.addEventListener("click", () => {
-    let extent = timeSlider.timeExtent;
-    const offsetMinutes = arcgisScene.view.timeZone;
-    console.log(
-      "start",
-      offsetMinutes,
-      extent.start,
-      extent.start.toISOString(),
-    );
-    startDatePicker.value = extent.start.toISOString().split("T")[0];
-    startTimePicker.value = extent.start.toISOString().slice(11, 16);
-    endDatePicker.value = extent.end.toISOString().split("T")[0];
-    endTimePicker.value = extent.end.toISOString().slice(11, 16);
-  });
-
-  datePickerApplyBtn.addEventListener("click", () => {
-    const start = new Date(`${startDatePicker.value}T${startTimePicker.value}`);
-    const end = new Date(`${endDatePicker.value}T${endTimePicker.value}`);
-    timeSlider.timeExtent = new TimeExtent({ start, end });
-    datePickerPopover.open = false;
-  });
-
-  function validateInputs() {
-    const startDateStr = startDatePicker.value;
-    const startTimeStr = startTimePicker.value;
-    const endDateStr = endDatePicker.value;
-    const endTimeStr = endTimePicker.value;
-
-    if (!startDateStr || !startTimeStr || !endDateStr || !endTimeStr) {
-      datePickerApplyBtn.disabled = true;
-      return;
-    }
-
-    const start = new Date(`${startDateStr}T${startTimeStr}`);
-    const end = new Date(`${endDateStr}T${endTimeStr}`);
-    const fullStart = timeSlider.fullTimeExtent.start;
-    const fullEnd = timeSlider.fullTimeExtent.end;
-
-    const valid =
-      !isNaN(start) &&
-      !isNaN(end) &&
-      start < end &&
-      start >= fullStart &&
-      end <= fullEnd;
-
-    datePickerApplyBtn.disabled = !valid;
-  }
-
-  // Revalidate on every change
-  [startDatePicker, startTimePicker, endDatePicker, endTimePicker].forEach(
-    (input) => {
-      input.addEventListener("calciteInputDatePickerChange", validateInputs);
-      input.addEventListener("calciteInputTimePickerChange", validateInputs);
-      input.addEventListener("change", validateInputs);
-    },
-  );
 
   timeSlider.view = arcgisScene.view;
   timeSlider.fullTimeExtent = fullTimeExtent;
@@ -336,19 +277,14 @@ export async function setTimeSlider(
   let birdMesh, animationTarget, initialTransform;
 
   // SET MODEL
-  // const modelUrl = "./flying_crow_color.glb";
-
-  console.log(birdData);
-  console.log(birdData.length);
 
   if (birdData.length > 0) {
-    const modelUrl =
-      "https://raw.githubusercontent.com/RalucaNicola/bird-migration/refs/heads/main/public/assets/flying_crow_color.glb";
-    // const modelUrl =
-    // "https://raw.githubusercontent.com/DP-00/BirdTracker/refs/heads/main/public/flying_crow_color.glb";
+    const modelUrl = "/public/flying_crow_color_north.glb";
+
+    let i = getClosestFeatureIndexInTime(birdData, timeSlider.timeExtent.end);
 
     birdMesh = (
-      await Mesh.createFromGLTF(birdData[0].geometry, modelUrl, {
+      await Mesh.createFromGLTF(birdData[i].geometry, modelUrl, {
         vertexSpace: "local",
       })
     ).scale(30);
@@ -374,7 +310,9 @@ export async function setTimeSlider(
 
   cameraControl?.addEventListener("calciteSegmentedControlChange", async () => {
     if (cameraControl.value == "bird") {
-      await arcgisScene.view.goTo(animationTarget);
+      try {
+        await arcgisScene.view.goTo(animationTarget);
+      } catch (err) {}
       document.body.classList.toggle("bird-mode", true);
       gaugeContainer!.style.display = "block";
       animationPlayRate!.style.display = "block";
@@ -434,6 +372,75 @@ export async function setTimeSlider(
       });
     }
   };
+
+  function setDatePicker() {
+    const startDatePicker = document.getElementById("start-date");
+    const startTimePicker = document.getElementById("start-time");
+    const endDatePicker = document.getElementById("end-date");
+    const endTimePicker = document.getElementById("end-time");
+    const datePickerApplyBtn = document.getElementById("apply-range");
+    const datePickerPopover = document.getElementById("popover-time");
+    const datePickerBtn = document.getElementById("edit-time-button");
+
+    datePickerBtn.addEventListener("click", () => {
+      let extent = timeSlider.timeExtent;
+      const offsetMinutes = arcgisScene.view.timeZone;
+      console.log(
+        "start",
+        offsetMinutes,
+        extent.start,
+        extent.start.toISOString(),
+      );
+      startDatePicker.value = extent.start.toISOString().split("T")[0];
+      startTimePicker.value = extent.start.toISOString().slice(11, 16);
+      endDatePicker.value = extent.end.toISOString().split("T")[0];
+      endTimePicker.value = extent.end.toISOString().slice(11, 16);
+    });
+
+    datePickerApplyBtn.addEventListener("click", () => {
+      const start = new Date(
+        `${startDatePicker.value}T${startTimePicker.value}`,
+      );
+      const end = new Date(`${endDatePicker.value}T${endTimePicker.value}`);
+      timeSlider.timeExtent = new TimeExtent({ start, end });
+      datePickerPopover.open = false;
+    });
+
+    function validateInputs() {
+      const startDateStr = startDatePicker.value;
+      const startTimeStr = startTimePicker.value;
+      const endDateStr = endDatePicker.value;
+      const endTimeStr = endTimePicker.value;
+
+      if (!startDateStr || !startTimeStr || !endDateStr || !endTimeStr) {
+        datePickerApplyBtn.disabled = true;
+        return;
+      }
+
+      const start = new Date(`${startDateStr}T${startTimeStr}`);
+      const end = new Date(`${endDateStr}T${endTimeStr}`);
+      const fullStart = timeSlider.fullTimeExtent.start;
+      const fullEnd = timeSlider.fullTimeExtent.end;
+
+      const valid =
+        !isNaN(start) &&
+        !isNaN(end) &&
+        start < end &&
+        start >= fullStart &&
+        end <= fullEnd;
+
+      datePickerApplyBtn.disabled = !valid;
+    }
+
+    // Revalidate on every change
+    [startDatePicker, startTimePicker, endDatePicker, endTimePicker].forEach(
+      (input) => {
+        input.addEventListener("calciteInputDatePickerChange", validateInputs);
+        input.addEventListener("calciteInputTimePickerChange", validateInputs);
+        input.addEventListener("change", validateInputs);
+      },
+    );
+  }
 
   function updateTimeSlider(timeStep) {
     // const timeStep = 40;

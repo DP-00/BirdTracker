@@ -121,8 +121,6 @@ export async function createGeneralizedLineLayer(
     let endDate = new Date(data[data.length - 1].timestamp).getTime();
     let color = colors[i % colors.length];
 
-    console.log(startDate);
-
     const polyline = new Polyline({
       spatialReference: { wkid: 4326 },
       paths: data.map((pt: { longitude: any; latitude: any }) => [
@@ -142,34 +140,6 @@ export async function createGeneralizedLineLayer(
       0.001,
     );
 
-    console.log("birdid", birdid);
-    const lineSymbol3D = new LineSymbol3D({
-      symbolLayers: [
-        new LineSymbol3DLayer({
-          cap: "round",
-          join: "round",
-          material: {
-            color: "#192a27",
-          },
-          pattern: new LineStylePattern3D({
-            style: "solid",
-          }),
-          size: 5,
-        }),
-
-        new LineSymbol3DLayer({
-          cap: "round",
-          join: "round",
-          material: {
-            color: "#aed8cc",
-          },
-          pattern: new LineStylePattern3D({
-            style: "dot",
-          }),
-          size: 3,
-        }),
-      ],
-    });
     const lineGraphic = new Graphic({
       geometry: generalizedPolyline,
       attributes: {
@@ -179,14 +149,7 @@ export async function createGeneralizedLineLayer(
         length,
         color,
       },
-      // symbol: lineSymbol3D,
-      // {
-      //   type: "simple-line",
-      //   color: color,
-      //   width: 5,
-      // },
     });
-    console.log("birdidLine", lineGraphic);
 
     lineGraphics.push(lineGraphic);
     i++;
@@ -266,7 +229,7 @@ export async function createGeneralizedLineLayer(
               color: "#aed8cc3b",
             },
             pattern: new LineStylePattern3D({
-              style: "dash",
+              style: "solid",
             }),
             size: 2,
           }),
@@ -290,41 +253,24 @@ export async function createIconLayer(groupedData) {
 
     return new Graphic({
       geometry: new Point({
+        x: 0,
+        y: 0,
+        z: 0,
         spatialReference: { wkid: 4326 },
         hasZ: true,
       }),
-      // symbol: new PointSymbol3D({
-      //   symbolLayers: [
-      //     new TextSymbol3DLayer({
-      //       text: "🦅",
-      //       material: { color: color },
-      //       size: 24,
-      //       font: {
-      //         family: "Segoe UI Emoji", // good emoji-supporting font
-      //         weight: "bold",
-      //       },
-      //     }),
-      //   ],
-      // }),
       symbol: new PointSymbol3D({
         symbolLayers: [
           {
-            type: "icon", // autocasts as new IconSymbol3DLayer()
-            size: "12", // points
+            type: "icon",
+            size: "12",
             resource: {
               href: "public/birdIcon3.svg",
             },
             material: {
               color: color,
-              emissive: {
-                strength: 5,
-                source: "color",
-              },
             },
-            // material: {
-            //   color: "#ffffff",
-            // },
-            angle: 180, // initial clockwise angle in degrees to make the arrow point upwards
+            angle: 180,
           },
         ],
       }),
@@ -355,7 +301,12 @@ export async function createGroupLineLayer(groupedData) {
       geometry: new Polyline({
         spatialReference: { wkid: 4326 },
         hasZ: true,
-        paths: [],
+        paths: [
+          [
+            [0, 0, 0],
+            [0.0001, 0.0001, 0],
+          ],
+        ],
       }),
       symbol: new LineSymbol3D({
         symbolLayers: [

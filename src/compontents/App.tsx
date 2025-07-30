@@ -277,7 +277,7 @@ class App extends Widget<AppProperties> {
                     scale="l"
                   ></calcite-button>
                 </h2>
-                Birds tracks (<span id="nr-of-paths"></span>):
+                <span id="nr-of-paths"></span> birds tracks:
                 <calcite-button
                   icon-start="layer-zoom-to"
                   id="zoom-group"

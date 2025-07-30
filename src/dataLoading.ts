@@ -172,9 +172,11 @@ async function createGroupVisView(
   const groupLineLayer = await createGroupLineLayer(dataProcessed);
   const iconLayer = await createIconLayer(dataProcessed);
 
+  // arcgisScene.map?.addMany([generalizedLayer, iconLayer]);
   arcgisScene.map?.addMany([generalizedLayer, groupLineLayer, iconLayer]);
 
   let birdIds = Object.keys(dataProcessed);
+  console.log(birdIds);
   document.getElementById("nr-of-paths")!.innerText = birdIds.length;
   await createBirdList(birdIds, generalizedLayer, arcgisScene);
 
@@ -267,7 +269,7 @@ async function createBirdList(birdIds: string[], featureLayer, arcgisScene) {
           highlight.remove();
         }, 3000);
         view.openPopup({
-          location: feature.geometry.extent.center,
+          features: [feature],
         });
       });
       listItem.appendChild(action);
@@ -285,13 +287,12 @@ export async function createSingleVisView(
   document.getElementById("details-button")!.loading = true;
 
   document.getElementById("dashboard-group-vis")!.style.display = "none";
+  document.body.classList.toggle("bird-mode", false);
 
   const groupLineLayer = arcgisScene.view.map.allLayers.find(
     (layer) => layer.title === "Group visualization",
   );
-  console.log("gl1", groupLineLayer);
   groupLineLayer.visible = false;
-  document.body.classList.toggle("bird-mode", false);
 
   removeLayersByTitles(arcgisScene.view, [
     "Line visualization",

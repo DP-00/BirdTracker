@@ -43,3 +43,15 @@ export const interpolate = (a, b, t) => {
   });
   return origin;
 };
+
+export function getClosestFeatureIndexInTime(features, time) {
+  let i = 0;
+  while (
+    i < features.length - 1 &&
+    time > features[i + 1].attributes.timestamp
+  ) {
+    i++;
+  }
+
+  return i;
+}

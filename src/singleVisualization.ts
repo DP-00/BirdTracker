@@ -14,6 +14,7 @@ import { createDynamicPopupTemplate } from "./layers";
 
 import Polyline from "@arcgis/core/geometry/Polyline";
 import * as colorRendererCreator from "@arcgis/core/smartMapping/renderers/color.js";
+import { getClosestFeatureIndexInTime } from "./utils";
 export async function setSingleVis(
   arcgisScene: HTMLArcgisSceneElement,
   primaryLayer: __esri.FeatureLayer,
@@ -439,21 +440,24 @@ export async function updateCalculations(birdData, timeSlider) {
   const startTime = timeSlider.timeExtent.start;
   const endTime = timeSlider.timeExtent.end;
 
-  let i = 0;
-  while (
-    i < birdData.length - 1 &&
-    endTime > birdData[i + 1].attributes.timestamp
-  ) {
-    i++;
-  }
+  let i = getClosestFeatureIndexInTime(birdData, endTime);
+  let j = getClosestFeatureIndexInTime(birdData, startTime);
 
-  let j = 0;
-  while (
-    j < birdData.length - 1 &&
-    startTime > birdData[j + 1].attributes.timestamp
-  ) {
-    j++;
-  }
+  // let i = 0;
+  // while (
+  //   i < birdData.length - 1 &&
+  //   endTime > birdData[i + 1].attributes.timestamp
+  // ) {
+  //   i++;
+  // }
+
+  // let j = 0;
+  // while (
+  //   j < birdData.length - 1 &&
+  //   startTime > birdData[j + 1].attributes.timestamp
+  // ) {
+  //   j++;
+  // }
 
   if (birdData[i] && birdData[j]) {
     const lastPoint = birdData[i].geometry;
