@@ -42,6 +42,8 @@ import "@esri/calcite-components/dist/components/calcite-dialog";
 import "@esri/calcite-components/dist/components/calcite-fab";
 import "@esri/calcite-components/dist/components/calcite-handle";
 import "@esri/calcite-components/dist/components/calcite-input";
+import "@esri/calcite-components/dist/components/calcite-input-date-picker";
+import "@esri/calcite-components/dist/components/calcite-input-time-picker";
 import "@esri/calcite-components/dist/components/calcite-input-time-zone";
 import "@esri/calcite-components/dist/components/calcite-label";
 import "@esri/calcite-components/dist/components/calcite-list";
@@ -55,6 +57,7 @@ import "@esri/calcite-components/dist/components/calcite-navigation-logo";
 import "@esri/calcite-components/dist/components/calcite-navigation-user";
 import "@esri/calcite-components/dist/components/calcite-notice";
 import "@esri/calcite-components/dist/components/calcite-panel";
+import "@esri/calcite-components/dist/components/calcite-popover";
 import "@esri/calcite-components/dist/components/calcite-segmented-control";
 import "@esri/calcite-components/dist/components/calcite-segmented-control-item";
 import "@esri/calcite-components/dist/components/calcite-slider";
@@ -66,8 +69,10 @@ import "@esri/calcite-components/dist/components/calcite-tab-nav";
 import "@esri/calcite-components/dist/components/calcite-tab-title";
 import "@esri/calcite-components/dist/components/calcite-tabs";
 
+import esriConfig from "@arcgis/core/config";
 import { loadData } from "../dataLoading";
 import { setBasemaps, setSlides, setThematicLayers } from "../mapControls";
+esriConfig.locale = "en-gb";
 
 type AppProperties = {};
 
@@ -86,7 +91,9 @@ class App extends Widget<AppProperties> {
       textColor: "green",
     };
     view.popup!.defaultPopupTemplateEnabled = true;
-
+    view.timeZone = "Etc/UTC";
+    //@ts-ignore
+    view.qualitySettings.bloom = true;
     await loadData(arcgisScene);
     setSlides(arcgisScene);
     setBasemaps();
@@ -154,21 +161,99 @@ class App extends Widget<AppProperties> {
                 </calcite-segmented-control-item>
               </calcite-segmented-control>
 
-              <calcite-fab
-                id="play-animation"
-                icon="play-f"
-                scale="l"
-              ></calcite-fab>
               <p id="time-dashboard"></p>
               <canvas id="speedGauge"></canvas>
               <canvas id="headingGauge"></canvas>
               <canvas id="altitudeGauge"></canvas>
             </div>
             <div id="time-slider">
-              <TimeControls></TimeControls>
+              {/* <TimeControls></TimeControls> */}
+              <calcite-button
+                id="play-group-animation"
+                icon-start="play-f"
+                scale="l"
+                appearance="transparent"
+                kind="info"
+              ></calcite-button>
+              <calcite-input-time-zone
+                mode="name"
+                id="timezone-picker"
+                scale="s"
+                value="Etc/UTC"
+              ></calcite-input-time-zone>
+              <calcite-combobox
+                id="animation-playrate"
+                placeholder="Animation speed"
+                clear-disabled="true"
+                selection-mode="single"
+                selection-display="all"
+              >
+                <calcite-combobox-item
+                  value={1}
+                  heading="x 1"
+                  selected
+                ></calcite-combobox-item>
+                <calcite-combobox-item
+                  value={10}
+                  heading="x 10"
+                ></calcite-combobox-item>
+                <calcite-combobox-item
+                  value={100}
+                  heading="x 100"
+                ></calcite-combobox-item>
+                <calcite-combobox-item
+                  value={1000}
+                  heading="x 1000"
+                ></calcite-combobox-item>
+                <calcite-combobox-item
+                  value={10000}
+                  heading="x 10 000"
+                ></calcite-combobox-item>
+                <calcite-combobox-item
+                  value={100000}
+                  heading="x 100 000"
+                ></calcite-combobox-item>
+              </calcite-combobox>
+
+              <calcite-popover
+                heading="Edit time extent"
+                label="Edit time extent"
+                reference-element="edit-time-button"
+                closable
+                placement="top"
+              >
+                <div id="popover-time">
+                  <calcite-label>
+                    Start Date:
+                    <calcite-input-date-picker id="start-date"></calcite-input-date-picker>
+                    <calcite-input-time-picker
+                      id="start-time"
+                      hour-format="24"
+                    ></calcite-input-time-picker>
+                  </calcite-label>
+                  <calcite-label>
+                    End Date:
+                    <calcite-input-date-picker id="end-date"></calcite-input-date-picker>
+                    <calcite-input-time-picker
+                      id="end-time"
+                      hour-format="24"
+                    ></calcite-input-time-picker>
+                  </calcite-label>
+
+                  <calcite-button id="apply-range" appearance="solid">
+                    Apply
+                  </calcite-button>
+                </div>
+              </calcite-popover>
+              <calcite-button
+                id="edit-time-button"
+                icon-start="pencil"
+                appearance="transparent"
+              ></calcite-button>
+
               <arcgis-time-slider
-                layout="auto"
-                // reference-element="scene-div"
+                layout="compact"
+                reference-element="scene-div"
                 position="bottom-right"
                 mode="time-window"
                 play-rate="100"
@@ -179,174 +264,184 @@ class App extends Widget<AppProperties> {
               ></arcgis-time-slider>
             </div>
           </div>
-          <div id="dashboard" class="esri-widget">
-            <calcite-label>
-              <calcite-segmented-control
-                id="camera-control"
-                width="full"
-                appearance="outline-fill"
-                scale="m"
-              >
-                <calcite-segmented-control-item
-                  icon-start="gps-on"
-                  value="bird"
-                >
-                  Follow bird
-                </calcite-segmented-control-item>
-
-                <calcite-segmented-control-item
-                  id="camera-zoom"
-                  icon-start="line"
-                  value="line"
-                  checked
-                >
-                  Explore path
-                </calcite-segmented-control-item>
-              </calcite-segmented-control>
-            </calcite-label>
-            <p>
-              <h2>
-                Bird <span id="dashboard-birdid"></span>
+          <calcite-panel id="dashboard">
+            <div id="dashboard-group-vis">
+              <p>
+                <h2>
+                  BirdTracker
+                  <calcite-button
+                    appearance="transparent"
+                    icon-start="information"
+                    kind="neutral"
+                    round
+                    scale="l"
+                  ></calcite-button>
+                </h2>
+                <span id="nr-of-paths"></span> birds tracks:
                 <calcite-button
-                  appearance="transparent"
-                  icon-start="information"
-                  kind="neutral"
-                  round
-                  scale="s"
+                  icon-start="layer-zoom-to"
+                  id="zoom-group"
                 ></calcite-button>
-              </h2>
-              <p id="dashboard-duration"></p>
-              <p id="dashboard-duration-selected"></p>
-            </p>
-            <div id="dashboard-info">
-              <p>Line visualization:</p>
-              <p> Cylinder visualization:</p>
-              <calcite-select id="primary-vis-select"></calcite-select>
-              <calcite-select id="secondary-vis-select"></calcite-select>
+              </p>
+              <calcite-list id="bird-list" label="Bird list"></calcite-list>
             </div>
+            <div id="dashboard-single-vis">
+              <calcite-label>
+                <calcite-segmented-control
+                  id="camera-control"
+                  width="full"
+                  appearance="outline-fill"
+                  scale="m"
+                >
+                  <calcite-segmented-control-item
+                    icon-start="gps-on"
+                    value="bird"
+                  >
+                    Follow bird
+                  </calcite-segmented-control-item>
 
-            <calcite-tabs layout="center">
-              <calcite-tab-nav slot="title-group">
-                <calcite-tab-title icon-start="palette" selected>
-                  Path<br></br>symbolization
-                </calcite-tab-title>
-                <calcite-tab-title icon-start="graph-time-series">
-                  Values<br></br>over time
-                </calcite-tab-title>
-                <calcite-tab-title icon-start="altitude">
-                  Elevation<br></br>profile
-                </calcite-tab-title>
+                  <calcite-segmented-control-item
+                    id="camera-zoom"
+                    icon-start="line"
+                    value="line"
+                    checked
+                  >
+                    Explore path
+                  </calcite-segmented-control-item>
+                </calcite-segmented-control>
+              </calcite-label>
+              <p>
+                <h2>
+                  Bird <span id="dashboard-birdid"></span>
+                  <calcite-button
+                    id="show-group-vis"
+                    appearance="transparent"
+                    icon-start="home"
+                    kind="neutral"
+                    round
+                    scale="l"
+                  ></calcite-button>
+                </h2>
+                <p id="dashboard-duration"></p>
+                <p id="dashboard-duration-selected"></p>
+              </p>
 
-                <calcite-tab-title icon-start="partly-cloudy">
-                  Weather<br></br>settings
-                </calcite-tab-title>
-              </calcite-tab-nav>
+              <div id="dashboard-info">
+                <p>Line visualization:</p>
+                <p> Cylinder visualization:</p>
+                <calcite-select id="primary-vis-select"></calcite-select>
+                <calcite-select id="secondary-vis-select"></calcite-select>
+              </div>
 
-              <calcite-tab>
-                <div id="color-scale-container">
-                  <calcite-label layout="inline" class="layer-label">
-                    <calcite-checkbox
-                      id="visibility-line"
-                      checked
-                    ></calcite-checkbox>
-                    <span id="line-variable"></span> (Line layer)
-                  </calcite-label>
-                  <calcite-label layout="inline" class="layer-label">
-                    <calcite-checkbox
-                      id="visibility-cylinders"
-                      checked
-                    ></calcite-checkbox>
-                    <span id="cylinder-variable"></span> (Cylinder layer)
-                  </calcite-label>
+              <calcite-tabs layout="center">
+                <calcite-tab-nav slot="title-group">
+                  <calcite-tab-title icon-start="palette" selected>
+                    Path<br></br>symbolization
+                  </calcite-tab-title>
+                  <calcite-tab-title icon-start="graph-time-series">
+                    Values<br></br>over time
+                  </calcite-tab-title>
+                  <calcite-tab-title icon-start="altitude">
+                    Elevation<br></br>profile
+                  </calcite-tab-title>
 
-                  <div>
-                    <div id="color-slider-primary"></div>
-                    <arcgis-legend
-                      id="legend-primary"
-                      reference-element="scene-div"
-                    ></arcgis-legend>
-                    <div class="filters-container">
-                      <calcite-icon icon="filter" scale="m" />
-                      <div
-                        id="prim-filter-container"
-                        class="filter-container"
-                      ></div>
+                  <calcite-tab-title icon-start="partly-cloudy">
+                    Weather<br></br>settings
+                  </calcite-tab-title>
+                </calcite-tab-nav>
+
+                <calcite-tab>
+                  <div id="color-scale-container">
+                    <calcite-label layout="inline" class="layer-label">
+                      <calcite-checkbox
+                        id="visibility-line"
+                        checked
+                      ></calcite-checkbox>
+                      <span id="line-variable"></span> (Line layer)
+                    </calcite-label>
+                    <calcite-label layout="inline" class="layer-label">
+                      <calcite-checkbox
+                        id="visibility-cylinders"
+                        checked
+                      ></calcite-checkbox>
+                      <span id="cylinder-variable"></span> (Cylinder layer)
+                    </calcite-label>
+
+                    <div>
+                      <div id="color-slider-primary"></div>
+                      <arcgis-legend
+                        id="legend-primary"
+                        reference-element="scene-div"
+                      ></arcgis-legend>
+                      <div class="filters-container">
+                        <calcite-icon icon="filter" scale="m" />
+                        <div
+                          id="prim-filter-container"
+                          class="filter-container"
+                        ></div>
+                      </div>
                     </div>
-                    {/* <calcite-label
-                      layout="inline-space-between"
-                      class="extremums"
-                    >
-                      Mark extremums
-                      <calcite-switch checked></calcite-switch>
-                    </calcite-label> */}
-                  </div>
 
-                  <div>
-                    <div id="color-slider-secondary"></div>
-                    <arcgis-legend
-                      id="legend-secondary"
-                      reference-element="scene-div"
-                    ></arcgis-legend>
-                    <div class="filters-container">
-                      <calcite-icon icon="filter" scale="m" />
-                      <div
-                        id="sec-filter-container"
-                        class="filter-container"
-                      ></div>
+                    <div>
+                      <div id="color-slider-secondary"></div>
+                      <arcgis-legend
+                        id="legend-secondary"
+                        reference-element="scene-div"
+                      ></arcgis-legend>
+                      <div class="filters-container">
+                        <calcite-icon icon="filter" scale="m" />
+                        <div
+                          id="sec-filter-container"
+                          class="filter-container"
+                        ></div>
+                      </div>
                     </div>
-                    {/* <calcite-label
-                      layout="inline-space-between"
-                      class="extremums"
-                    >
-                      Mark extremums
-                      <calcite-switch checked></calcite-switch>
-                    </calcite-label> */}
                   </div>
-                </div>
-                <div class="legend-label-container">
-                  <calcite-label layout="inline" alignment="center">
-                    <calcite-checkbox
-                      id="visibility-extremums"
-                      checked
-                    ></calcite-checkbox>
-                    Extremums along line visualization
-                  </calcite-label>
-                  <calcite-label layout="inline" alignment="center">
-                    <calcite-checkbox
-                      id="visibility-generalized"
-                      checked
-                    ></calcite-checkbox>
-                    Generalized line
-                    <span id="generalize-legend"></span>
-                  </calcite-label>
-                  <calcite-label layout="inline" alignment="center">
-                    <calcite-checkbox
-                      id="visibility-timemarks"
-                      checked
-                    ></calcite-checkbox>
-                    Time marks along path
-                  </calcite-label>
-                </div>
-              </calcite-tab>
-              <calcite-tab>
-                <ChartsDashboard></ChartsDashboard>
-              </calcite-tab>
-              <calcite-tab>
-                <arcgis-elevation-profile
-                  label="test"
-                  reference-element="scene-div"
-                  hideClearButton={true}
-                  hideSelectButton={true}
-                  hideSettingsButton={true}
-                  hideSketchButton={true}
-                  highlightEnabled={false}
-                ></arcgis-elevation-profile>
-              </calcite-tab>
-              <calcite-tab>
-                <WeatherControls></WeatherControls>
-              </calcite-tab>
-            </calcite-tabs>
-          </div>
+                  <div class="legend-label-container">
+                    <calcite-label layout="inline" alignment="center">
+                      <calcite-checkbox
+                        id="visibility-extremums"
+                        checked
+                      ></calcite-checkbox>
+                      Extremums along line visualization
+                    </calcite-label>
+                    <calcite-label layout="inline" alignment="center">
+                      <calcite-checkbox
+                        id="visibility-generalized"
+                        checked
+                      ></calcite-checkbox>
+                      Generalized line
+                      <span id="generalize-legend"></span>
+                    </calcite-label>
+                    <calcite-label layout="inline" alignment="center">
+                      <calcite-checkbox
+                        id="visibility-timemarks"
+                        checked
+                      ></calcite-checkbox>
+                      Time marks along path
+                    </calcite-label>
+                  </div>
+                </calcite-tab>
+                <calcite-tab>
+                  <ChartsDashboard></ChartsDashboard>
+                </calcite-tab>
+                <calcite-tab>
+                  <arcgis-elevation-profile
+                    label="test"
+                    reference-element="scene-div"
+                    hideClearButton={true}
+                    hideSelectButton={true}
+                    hideSettingsButton={true}
+                    hideSketchButton={true}
+                    highlightEnabled={false}
+                  ></arcgis-elevation-profile>
+                </calcite-tab>
+                <calcite-tab>
+                  <WeatherControls></WeatherControls>
+                </calcite-tab>
+              </calcite-tabs>
+            </div>
+          </calcite-panel>
         </div>
       </div>
     );
@@ -647,14 +742,9 @@ const MapControls = () => {
       <arcgis-expand group="top-left" expand-tooltip="Set basemap">
         <arcgis-basemap-gallery></arcgis-basemap-gallery>
       </arcgis-expand>
-      <arcgis-expand
-        group="top-left"
-        expand-icon="layer-map"
-        collapse-icon="layer-map"
-        expand-tooltip="Set thematic layers"
-      >
+      <arcgis-expand group="top-left" expand-tooltip="Set thematic layers">
+        {/* <arcgis-legend id="thematic-layers-legend"></arcgis-legend> */}
         <arcgis-layer-list id="thematic-layers"></arcgis-layer-list>
-        <arcgis-legend id="thematic-layers-legend"></arcgis-legend>
       </arcgis-expand>
       <arcgis-expand group="top-left" expand-tooltip="Control light">
         <arcgis-daylight
@@ -692,6 +782,7 @@ const TimeControls = () => {
           offset-style="utc"
           id="timezone-picker"
           scale="s"
+          value="Etc/UTC"
         ></calcite-input-time-zone>
       </calcite-label>
       <calcite-label layout="inline" scale="s">
@@ -728,20 +819,6 @@ const TimeControls = () => {
           <calcite-option value={100}>fast</calcite-option>
         </calcite-select>
       </calcite-label>
-      <calcite-segmented-control id="animation-playrate">
-        <calcite-segmented-control-item value={1}>
-          x1
-        </calcite-segmented-control-item>
-        <calcite-segmented-control-item value={10}>
-          x10
-        </calcite-segmented-control-item>
-        <calcite-segmented-control-item value={100} checked>
-          x100
-        </calcite-segmented-control-item>
-        <calcite-segmented-control-item value={1000}>
-          x1000
-        </calcite-segmented-control-item>
-      </calcite-segmented-control>
     </div>
   );
 };

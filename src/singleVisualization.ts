@@ -2,6 +2,9 @@ import Point from "@arcgis/core/geometry/Point";
 import Graphic from "@arcgis/core/Graphic";
 
 import Color from "@arcgis/core/Color";
+import * as geodeticDistanceOperator from "@arcgis/core/geometry/operators/geodeticDistanceOperator";
+import * as geodeticLengthOperator from "@arcgis/core/geometry/operators/geodeticLengthOperator";
+
 import histogram from "@arcgis/core/smartMapping/statistics/histogram";
 import * as colorSymbology from "@arcgis/core/smartMapping/symbology/color";
 import { TextSymbol } from "@arcgis/core/symbols";
@@ -9,12 +12,13 @@ import ColorSlider from "@arcgis/core/widgets/smartMapping/ColorSlider";
 
 import { createDynamicPopupTemplate } from "./layers";
 
+import Polyline from "@arcgis/core/geometry/Polyline";
 import * as colorRendererCreator from "@arcgis/core/smartMapping/renderers/color.js";
+import { getClosestFeatureIndexInTime } from "./utils";
 export async function setSingleVis(
   arcgisScene: HTMLArcgisSceneElement,
   primaryLayer: __esri.FeatureLayer,
   secondaryLayer: __esri.FeatureLayer,
-  generalizedLayer,
   arrowLayer: __esri.GraphicsLayer,
   hourLayer,
   dayLayer,
@@ -189,6 +193,9 @@ export async function setSingleVis(
     generalizedVisibility?.addEventListener(
       "calciteCheckboxChange",
       async () => {
+        const generalizedLayer = arcgisScene.view.map.allLayers.find(
+          (layer) => layer.title === "Generlized visualization",
+        );
         generalizedLayer.visible = !generalizedLayer.visible;
       },
     );
@@ -426,6 +433,69 @@ export async function setSingleVis(
 
       return Color.blendColors(minStop.color, maxStop.color, weightedPosition);
     }
+  }
+}
+
+export async function updateCalculations(birdData, timeSlider) {
+  const startTime = timeSlider.timeExtent.start;
+  const endTime = timeSlider.timeExtent.end;
+
+  let i = getClosestFeatureIndexInTime(birdData, endTime);
+  let j = getClosestFeatureIndexInTime(birdData, startTime);
+
+  // let i = 0;
+  // while (
+  //   i < birdData.length - 1 &&
+  //   endTime > birdData[i + 1].attributes.timestamp
+  // ) {
+  //   i++;
+  // }
+
+  // let j = 0;
+  // while (
+  //   j < birdData.length - 1 &&
+  //   startTime > birdData[j + 1].attributes.timestamp
+  // ) {
+  //   j++;
+  // }
+
+  if (birdData[i] && birdData[j]) {
+    const lastPoint = birdData[i].geometry;
+    const firstPoint = birdData[j].geometry;
+
+    let durationSeconds = (endTime - startTime) / 1000;
+
+    const daysSelected = Math.floor(durationSeconds / (3600 * 24));
+    durationSeconds -= daysSelected * 3600 * 24;
+    const hoursSelected = Math.floor(durationSeconds / 3600);
+    const sumHoursSelected = daysSelected * 24 + hoursSelected;
+
+    const verticalDiff = Math.abs(firstPoint.z - lastPoint.z);
+    if (!geodeticDistanceOperator.isLoaded()) {
+      await geodeticDistanceOperator.load();
+    }
+
+    const pathPoints = birdData
+      .slice(j, i + 1)
+      .map((p) => [p.geometry.x, p.geometry.y, p.geometry.z]);
+
+    const newLine = new Polyline({
+      hasZ: true,
+      spatialReference: { wkid: 4326 },
+      paths: [pathPoints],
+    });
+
+    let distanceToLine = geodeticDistanceOperator.execute(
+      firstPoint,
+      lastPoint,
+    );
+    let distanceToLine2 = geodeticLengthOperator.execute(newLine);
+
+    document.getElementById("dashboard-duration-selected")!.innerHTML =
+      `Selected path: <b style="font-weight:800;">${(distanceToLine2 / 1000).toFixed(2)}km</b> for <b style="font-weight:800;">${daysSelected} days and ${hoursSelected} hours</b>
+  <br> Horizontal speed: <b style="font-weight:800;">${(distanceToLine / 1000 / sumHoursSelected).toFixed(2)} km/h</b>
+  Vertical speed: <b style="font-weight:800;">${(verticalDiff / 1000 / sumHoursSelected).toFixed(2)} km/h</b>
+  `;
   }
 }
 
