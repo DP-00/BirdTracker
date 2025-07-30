@@ -279,7 +279,7 @@ export async function setTimeSlider(
   // SET MODEL
 
   if (birdData.length > 0) {
-    const modelUrl = "/public/flying_crow_color_north.glb";
+    const modelUrl = "./flying_crow_color_north.glb";
 
     let i = getClosestFeatureIndexInTime(birdData, timeSlider.timeExtent.end);
 
