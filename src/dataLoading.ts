@@ -103,7 +103,7 @@ export async function loadData(arcgisScene: HTMLArcgisSceneElement) {
       dialog.loading = true;
 
       const defaultCSVUrl =
-        "https://raw.githubusercontent.com/DP-00/BirdTracker/refs/heads/main/data/hbCH_cut.csv";
+        "https://raw.githubusercontent.com/DP-00/BirdTracker/refs/heads/main/data/hbUsabilityStudy.csv";
       const res = await fetch(defaultCSVUrl);
       csvText = await res.text();
 
@@ -283,8 +283,9 @@ export async function createSingleVisView(
   dataProcessed: any,
   birdid: string,
 ) {
-  document.getElementById("dashboard")!.loading = true;
   document.getElementById("details-button")!.loading = true;
+
+  document.getElementById("dashboard")!.loading = true;
 
   document.getElementById("dashboard-group-vis")!.style.display = "none";
   document.body.classList.toggle("bird-mode", false);
@@ -305,6 +306,7 @@ export async function createSingleVisView(
   let hourLayer, dayLayer;
   const primaryValue = "altitude";
   const secondaryValue = "speed";
+
   const birdPath = dataProcessed[birdid];
   const birdSummary = summarizeData(birdPath);
   const birdGraphics = createGraphics(birdPath);
