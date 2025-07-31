@@ -13,7 +13,7 @@ import {
   createGroupLineLayer,
   createIconLayer,
   createLineLayer,
-  createTimeLayer,
+  createTimeMarkersLayer,
 } from "./layers";
 import { setTimeSlider } from "./mapControls";
 import { setSingleVis, summarizeData } from "./singleVisualization";
@@ -312,7 +312,9 @@ export async function createSingleVisView(
   const birdGraphics = createGraphics(birdPath);
   const primaryLayer = await createLineLayer(birdPath, birdSummary);
   const secondaryLayer = createCylinderLayer(birdGraphics, birdSummary);
-  [hourLayer, dayLayer] = await createTimeLayer(birdGraphics);
+  // [hourLayer, dayLayer] = await createTimeLayer(birdGraphics);
+  dayLayer = await createTimeMarkersLayer(birdGraphics);
+
   const arrowLayer = new GraphicsLayer({
     title: `Extremum visualization`,
   });
@@ -321,7 +323,7 @@ export async function createSingleVisView(
     primaryLayer,
     secondaryLayer,
     arrowLayer,
-    hourLayer,
+    // hourLayer,
     dayLayer,
   ]);
   await primaryLayer.when();

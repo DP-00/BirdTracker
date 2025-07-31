@@ -94,6 +94,13 @@ class App extends Widget<AppProperties> {
     view.timeZone = "Etc/UTC";
     //@ts-ignore
     view.qualitySettings.bloom = true;
+    view.popup = {
+      dockEnabled: false,
+      dockOptions: {
+        breakpoint: false,
+        position: "top-right",
+      },
+    };
     await loadData(arcgisScene);
     setSlides(arcgisScene);
     setBasemaps();
@@ -334,7 +341,7 @@ class App extends Widget<AppProperties> {
               </div>
 
               <calcite-tabs layout="center">
-                <calcite-tab-nav slot="title-group">
+                <calcite-tab-nav slot="title-group" id="dashboard-tabs-nav">
                   <calcite-tab-title icon-start="palette" selected>
                     Path<br></br>symbolization
                   </calcite-tab-title>
@@ -503,7 +510,7 @@ const LoadingPanel = () => {
                 <calcite-select required id="lat-select"></calcite-select>
               </calcite-label>
               <calcite-label layout="inline-space-between">
-                Elevation
+                Altitude
                 <calcite-select required id="elev-select"></calcite-select>
               </calcite-label>
               <calcite-label layout="inline-space-between">

@@ -9,10 +9,17 @@ import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import TextSymbol from "@arcgis/core/symbols/TextSymbol";
 
 import Point from "@arcgis/core/geometry/Point";
+import SpatialReference from "@arcgis/core/geometry/SpatialReference";
+import Field from "@arcgis/core/layers/support/Field";
+import LabelClass from "@arcgis/core/layers/support/LabelClass";
+import UniqueValueRenderer from "@arcgis/core/renderers/UniqueValueRenderer";
+import IconSymbol3DLayer from "@arcgis/core/symbols/IconSymbol3DLayer";
+import LabelSymbol3D from "@arcgis/core/symbols/LabelSymbol3D";
 import LineSymbol3D from "@arcgis/core/symbols/LineSymbol3D";
 import LineSymbol3DLayer from "@arcgis/core/symbols/LineSymbol3DLayer";
 import LineStylePattern3D from "@arcgis/core/symbols/patterns/LineStylePattern3D.js";
 import PointSymbol3D from "@arcgis/core/symbols/PointSymbol3D";
+import TextSymbol3DLayer from "@arcgis/core/symbols/TextSymbol3DLayer";
 import { createSingleVisView } from "./dataLoading";
 import { generateLayerFields } from "./singleVisualization";
 
@@ -560,99 +567,217 @@ export async function createTimeLayer(graphics) {
   return layers;
 }
 
-// export function createTimeLayer(graphics) {
-//   const intervals = [
-//     {
-//       label: "Hour",
-//       interval: 60 * 60 * 1000,
-//       title: "Time and distance visualization (hours)",
-//       minScale: 300000,
-//     },
-//     {
-//       label: "Day",
-//       interval: 24 * 60 * 60 * 1000,
-//       title: "Time and distance visualization (days)",
-//       maxScale: 300000,
-//     },
-//   ];
-//   return intervals.map(
-//     async ({ label, interval, title, minScale, maxScale }) => {
-//       let lastTimestamp = null;
-//       let firstTimestamp = null;
-//       let lastPoint = null;
-//       let accumulatedDistance = 0;
-//       const timeGraphic: Graphic[] = [];
+export async function createTimeMarkersLayer(graphics) {
+  // const intervals = [
+  //   {
+  //     label: "Hour",
+  //     interval: 60 * 60 * 1000,
+  //     title: "Time and distance visualization (hours)",
+  //     minScale: 300000,
+  //   },
+  //   {
+  //     label: "Day",
+  //     interval: 24 * 60 * 60 * 1000,
+  //     title: "Time and distance visualization (days)",
+  //     maxScale: 300000,
+  //   },
+  // ];
 
-//       // graphics.forEach(async (g) => {
-//       for (const g of graphics) {
-//         if (!firstTimestamp) firstTimestamp = g.attributes.timestamp;
-//         const currentTimestamp = g.attributes.timestamp;
-//         const currentPoint = g.geometry;
+  let label = "Day";
+  let interval = 24 * 60 * 60 * 1000;
+  let title = "Time and distance visualization (hours)";
+  // let minScale = 300000;
+  const layers = [];
 
-//         let distanceFromLast = 0;
-//         if (lastPoint) {
-//           const lastWeb = webMercatorUtils.geographicToWebMercator(lastPoint);
-//           const currentWeb =
-//             webMercatorUtils.geographicToWebMercator(currentPoint);
+  // for (const config of intervals) {
+  // const { label, interval, title, minScale, maxScale } = config;
+  const graphicsArray = [];
 
-//           distanceFromLast =
-//             geometryEngine.distance(lastWeb, currentWeb, "kilometers") || 0;
+  let lastTimestamp = null;
+  let firstTimestamp = null;
+  let lastPoint = null;
+  let accumulatedDistance = 0;
+  let i = 0;
+  for (const g of graphics) {
+    if (!firstTimestamp) firstTimestamp = g.attributes.timestamp;
+    const currentTimestamp = g.attributes.timestamp;
+    const currentPoint = g.geometry;
 
-//           if (!geodeticDistanceOperator.isLoaded()) {
-//             await geodeticDistanceOperator.load();
-//           }
+    let distanceFromLast = 0;
+    if (lastPoint) {
+      if (!geodeticDistanceOperator.isLoaded()) {
+        await geodeticDistanceOperator.load();
+      }
 
-//           let distanceFromLast2 = geodeticDistanceOperator.execute(
-//             lastPoint,
-//             currentPoint,
-//           );
+      distanceFromLast = geodeticDistanceOperator.execute(
+        lastPoint,
+        currentPoint,
+      );
 
-//           // distanceFromLast = distanceFromLast / 1000;
-//           console.log("d", distanceFromLast2);
-//         }
+      distanceFromLast = distanceFromLast / 1000;
+    }
 
-//         if (!lastTimestamp || currentTimestamp - lastTimestamp >= interval) {
-//           accumulatedDistance += distanceFromLast;
-//           lastTimestamp = currentTimestamp;
-//           lastPoint = currentPoint;
-//           let durationInSeconds = (currentTimestamp - firstTimestamp) / 1000;
-//           let days = Math.floor(durationInSeconds / 86400);
-//           let hours = Math.floor((durationInSeconds % 86400) / 3600);
-//           let text =
-//             label === "Hour"
-//               ? `${days}d ${hours}h \ue63f +${distanceFromLast.toFixed(0)} (${accumulatedDistance.toFixed(0)})km`
-//               : `${days} \ue63f +${distanceFromLast.toFixed(0)} (${accumulatedDistance.toFixed(0)})km`;
+    if (!lastTimestamp || currentTimestamp - lastTimestamp >= interval) {
+      accumulatedDistance += distanceFromLast;
+      lastTimestamp = currentTimestamp;
+      lastPoint = currentPoint;
+      let durationInSeconds = (currentTimestamp - firstTimestamp) / 1000;
+      let days = Math.floor(durationInSeconds / 86400);
+      let hours = Math.floor((durationInSeconds % 86400) / 3600);
+      let text =
+        label === "Hour"
+          ? `${days}d ${hours}h | +${Math.round(distanceFromLast)} km`
+          : // : `${days} \ue64e +${Math.round(distanceFromLast)} (${Math.round(accumulatedDistance)}) km`;
+            `${days}d | +${Math.round(distanceFromLast)} km`;
 
-//           timeGraphic.push(
-//             new Graphic({
-//               geometry: currentPoint,
-//               attributes: {
-//                 timestamp: currentTimestamp,
-//               },
-//               symbol: new TextSymbol({
-//                 text: text,
-//                 color: [30, 30, 30],
-//                 haloColor: [150, 150, 150, 0.5],
-//                 haloSize: 1.5,
-//                 font: {
-//                   size: 10,
-//                   family: "CalciteWebCoreIcons",
-//                   weight: "bold",
-//                 },
-//               }),
-//             }),
-//           );
-//         }
-//       }
+      graphicsArray.push(
+        new Graphic({
+          geometry: currentPoint,
+          attributes: {
+            OBJECTID: i + 1,
+            date: currentTimestamp,
+            distance: Math.round(distanceFromLast),
+          },
+        }),
+      );
+      i++;
+    }
+  }
 
-//       const timeLayer = new GraphicsLayer({
-//         title,
-//         minScale,
-//         maxScale,
-//       });
-//       timeGraphic.forEach((g) => timeLayer.add(g));
+  const labelingInfo = [
+    new LabelClass({
+      labelExpressionInfo: {
+        expression:
+          "var dateTime = $feature.date; var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'OCT', 'Nov', 'Dec']; return `${months[Month(dateTime)]} ${Day(dateTime)}\n${$feature.distance} km`",
+      },
+      labelPlacement: "center-right",
+      symbol: new LabelSymbol3D({
+        symbolLayers: [
+          new TextSymbol3DLayer({
+            material: {
+              color: "#aed8cc",
+            },
+            background: {
+              color: "#192a276e",
+            },
+            halo: {
+              color: "#192a276e",
+              size: 0,
+            },
+            font: {
+              size: 8,
+              weight: "normal",
+              family: '"Avenir Next", "Avenir", "Helvetica Neue", sans-serif',
+            },
+          }),
+        ],
+      }),
+    }),
+  ];
 
-//       return timeLayer;
-//     },
-//   );
-// }
+  const getCanvasSymbol = (day: number) => {
+    console.log("canvDay", day);
+    const canvas = document.createElement("canvas");
+    const width = 25;
+    const height = 25;
+    canvas.setAttribute("width", width.toString() + "px");
+    canvas.setAttribute("height", height.toString() + "px");
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#4c1010bb";
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = "#aed8cc";
+    ctx.font = "bold 18px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(day.toString(), width / 2, height / 2);
+    return canvas.toDataURL("image/png");
+  };
+
+  const getUniqueValues = () => {
+    const days = Array.from({ length: graphicsArray.length }, (_, i) => i + 1); // generating icons for a trip of 2 months
+    console.log("days", days);
+    return days.map((day) => {
+      return {
+        value: day,
+        symbol: new PointSymbol3D({
+          symbolLayers: [
+            new IconSymbol3DLayer({
+              resource: {
+                href: getCanvasSymbol(day),
+              },
+              anchor: "relative",
+              anchorPosition: {
+                x: 0.5,
+                y: -0.5,
+              },
+              size: 15,
+            }),
+          ],
+          verticalOffset: {
+            screenLength: 40,
+            maxWorldLength: 500000,
+            minWorldLength: 0,
+          },
+          callout: {
+            type: "line",
+            size: 1,
+            color: "#192a27ff",
+          },
+        }),
+      };
+    });
+  };
+  const layer = new FeatureLayer({
+    source: graphicsArray,
+    title: title,
+    // minScale,
+    // maxScale,
+    geometryType: "point",
+    spatialReference: SpatialReference.WGS84,
+    objectIdField: "OBJECTID",
+    popupEnabled: false,
+    fields: [
+      new Field({
+        name: "OBJECTID",
+        type: "oid",
+      }),
+      new Field({
+        name: "date",
+        type: "date",
+      }),
+      new Field({
+        name: "distance",
+        type: "double",
+      }),
+      new Field({
+        name: "id",
+        type: "double",
+      }),
+    ],
+    labelingInfo,
+    screenSizePerspectiveEnabled: false,
+    renderer: new UniqueValueRenderer({
+      field: "OBJECTID",
+      defaultSymbol: new PointSymbol3D({
+        symbolLayers: [
+          new IconSymbol3DLayer({
+            resource: {
+              primitive: "square",
+            },
+            material: {
+              color: "red",
+            },
+            size: 10,
+          }),
+        ],
+      }),
+      uniqueValueInfos: getUniqueValues(),
+    }),
+  });
+
+  // layer.addMany(graphicsArray);
+  layers.push(layer);
+  // }
+
+  return layer;
+}

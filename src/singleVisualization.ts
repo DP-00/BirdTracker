@@ -7,13 +7,14 @@ import * as geodeticLengthOperator from "@arcgis/core/geometry/operators/geodeti
 
 import histogram from "@arcgis/core/smartMapping/statistics/histogram";
 import * as colorSymbology from "@arcgis/core/smartMapping/symbology/color";
-import { TextSymbol } from "@arcgis/core/symbols";
 import ColorSlider from "@arcgis/core/widgets/smartMapping/ColorSlider";
 
 import { createDynamicPopupTemplate } from "./layers";
 
 import Polyline from "@arcgis/core/geometry/Polyline";
 import * as colorRendererCreator from "@arcgis/core/smartMapping/renderers/color.js";
+import IconSymbol3DLayer from "@arcgis/core/symbols/IconSymbol3DLayer";
+import PointSymbol3D from "@arcgis/core/symbols/PointSymbol3D";
 import { getClosestFeatureIndexInTime } from "./utils";
 export async function setSingleVis(
   arcgisScene: HTMLArcgisSceneElement,
@@ -699,18 +700,66 @@ export function updateArrowLayer(
   const arrows = [
     {
       location: summary.minLocation,
-      icon: "\ue608", // Down arrow
-      label: summary.min.toFixed(0),
-      color: [255, 0, 0],
+      value: summary.min.toFixed(0),
+      color: "#192a27",
+      direction: "down",
     },
     {
       location: summary.maxLocation,
-      icon: "\ue609", // Up arrow
-      label: summary.max.toFixed(0),
+      value: summary.max.toFixed(0),
+      color: "#4c1010bb",
+      direction: "up",
     },
   ];
 
-  const graphics = arrows.map(({ location, icon, label }) => {
+  const drawTriangle = (
+    value: string,
+    direction: "up" | "down",
+    color: string,
+  ) => {
+    const canvas = document.createElement("canvas");
+    const width = 50;
+    const height = 50;
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d")!;
+    ctx.clearRect(0, 0, width, height);
+
+    ctx.save();
+
+    if (direction === "down") {
+      ctx.translate(width / 2, height / 2);
+      ctx.rotate(Math.PI);
+      ctx.translate(-width / 2, -height / 2);
+    }
+
+    // Draw triangle
+    ctx.beginPath();
+    ctx.moveTo(width / 2, 0);
+    ctx.lineTo(width, height);
+    ctx.lineTo(0, height);
+    ctx.closePath();
+
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle = "#aed8cc";
+    ctx.font = "bold 14px Arial";
+    ctx.textAlign = "center";
+
+    if (direction === "up") {
+      ctx.textBaseline = "bottom";
+      ctx.fillText(value, width / 2, height - 4);
+    } else {
+      ctx.textBaseline = "top";
+      ctx.fillText(value, width / 2, 6);
+    }
+
+    return canvas.toDataURL("image/png");
+  };
+
+  const graphics = arrows.map(({ location, value, color, direction }) => {
     const point = new Point({
       longitude: location.longitude,
       latitude: location.latitude,
@@ -720,17 +769,27 @@ export function updateArrowLayer(
 
     return new Graphic({
       geometry: point,
-      symbol: new TextSymbol({
-        text: `${label}\n${icon}`,
-        color: [14, 22, 21],
-        haloColor: [125, 149, 139, 0.5],
-        haloSize: 2,
-        font: {
-          size: 24,
-          family: "CalciteWebCoreIcons",
-          weight: "bold",
+      symbol: new PointSymbol3D({
+        symbolLayers: [
+          new IconSymbol3DLayer({
+            resource: {
+              href: drawTriangle(value, direction, color),
+            },
+            anchor: "bottom",
+            anchorPosition: { x: 0, y: 0 },
+            size: 35,
+          }),
+        ],
+        verticalOffset: {
+          screenLength: 80,
+          maxWorldLength: 1000000,
+          minWorldLength: 0,
         },
-        verticalAlignment: "middle",
+        callout: {
+          type: "line",
+          size: 3,
+          color,
+        },
       }),
     });
   });
