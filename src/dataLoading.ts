@@ -109,8 +109,8 @@ export async function loadData(arcgisScene: HTMLArcgisSceneElement) {
 
       const mappedCols = {
         birdid: "individual-local-identifier",
-        longitude: "long",
-        latitude: "lat",
+        longitude: "location-long",
+        latitude: "location-lat",
         altitude: "height-above-ellipsoid",
         speed: "ground-speed",
         timestamp: "timestamp",
