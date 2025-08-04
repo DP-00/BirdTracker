@@ -207,8 +207,7 @@ async function createGroupVisView(
       removeLayersByTitles(arcgisScene.view, [
         "Line visualization",
         "Cylinder visualization",
-        "Time and distance visualization (hours)",
-        "Time and distance visualization (days)",
+        "Time and distance visualization",
         "Extremum visualization",
       ]);
       await setTimeSlider(arcgisScene, timeExtent, dataProcessed, []);
@@ -303,7 +302,6 @@ export async function createSingleVisView(
     "Extremum visualization",
   ]);
 
-  let hourLayer, dayLayer;
   const primaryValue = "altitude";
   const secondaryValue = "speed";
 
@@ -312,8 +310,7 @@ export async function createSingleVisView(
   const birdGraphics = createGraphics(birdPath);
   const primaryLayer = await createLineLayer(birdPath, birdSummary);
   const secondaryLayer = createCylinderLayer(birdGraphics, birdSummary);
-  // [hourLayer, dayLayer] = await createTimeLayer(birdGraphics);
-  dayLayer = await createTimeMarkersLayer(birdGraphics);
+  const dayLayer = await createTimeMarkersLayer(birdGraphics);
 
   const arrowLayer = new GraphicsLayer({
     title: `Extremum visualization`,
@@ -323,7 +320,6 @@ export async function createSingleVisView(
     primaryLayer,
     secondaryLayer,
     arrowLayer,
-    // hourLayer,
     dayLayer,
   ]);
   await primaryLayer.when();
@@ -331,13 +327,12 @@ export async function createSingleVisView(
   await secondaryLayer.when();
 
   let polyline = await createPolylineAndDashboardInfo(birdPath);
-  await setWeather(arcgisScene, secondaryLayer, polyline, hourLayer);
+  await setWeather(arcgisScene, secondaryLayer, polyline);
   await setSingleVis(
     arcgisScene,
     primaryLayer,
     secondaryLayer,
     arrowLayer,
-    hourLayer,
     dayLayer,
     birdSummary,
     primaryValue,

@@ -1,4 +1,3 @@
-import * as geodeticDistanceOperator from "@arcgis/core/geometry/operators/geodeticDistanceOperator";
 import * as geodeticLengthOperator from "@arcgis/core/geometry/operators/geodeticLengthOperator";
 
 import * as generalizeOperator from "@arcgis/core/geometry/operators/generalizeOperator";
@@ -6,7 +5,6 @@ import Polyline from "@arcgis/core/geometry/Polyline";
 import Graphic from "@arcgis/core/Graphic";
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
-import TextSymbol from "@arcgis/core/symbols/TextSymbol";
 
 import Point from "@arcgis/core/geometry/Point";
 import SpatialReference from "@arcgis/core/geometry/SpatialReference";
@@ -17,11 +15,15 @@ import IconSymbol3DLayer from "@arcgis/core/symbols/IconSymbol3DLayer";
 import LabelSymbol3D from "@arcgis/core/symbols/LabelSymbol3D";
 import LineSymbol3D from "@arcgis/core/symbols/LineSymbol3D";
 import LineSymbol3DLayer from "@arcgis/core/symbols/LineSymbol3DLayer";
-import LineStylePattern3D from "@arcgis/core/symbols/patterns/LineStylePattern3D.js";
 import PointSymbol3D from "@arcgis/core/symbols/PointSymbol3D";
 import TextSymbol3DLayer from "@arcgis/core/symbols/TextSymbol3DLayer";
 import { createSingleVisView } from "./dataLoading";
 import { generateLayerFields } from "./singleVisualization";
+import {
+  getClosestFeatureIndexInTime,
+  getClosestPointInTime,
+  getCoordinatesFromFeatures,
+} from "./utils";
 
 // Esri color ramps - Falling Leaves
 const colors = [
@@ -43,7 +45,6 @@ const specialKeys = new Set([
   "latitude",
 ]);
 
-// Create the popupTemplate dynamically
 export function createDynamicPopupTemplate(
   layer: FeatureLayer,
   activeVariable: string,
@@ -203,7 +204,7 @@ export async function createGeneralizedLineLayer(
             const birdid = event.graphic.attributes.birdid;
             button.addEventListener("click", async () => {
               await createSingleVisView(arcgisScene, groupedData, birdid);
-              arcgisScene.popup.close(); // Collapse the popup after action
+              arcgisScene.popup.close();
             });
 
             container.appendChild(button);
@@ -223,9 +224,9 @@ export async function createGeneralizedLineLayer(
             material: {
               color: "#192a27b5",
             },
-            pattern: new LineStylePattern3D({
-              style: "solid",
-            }),
+            // pattern: new LineStylePattern3D({
+            //   style: "solid",
+            // }),
             size: 4,
           }),
 
@@ -235,14 +236,13 @@ export async function createGeneralizedLineLayer(
             material: {
               color: "#aed8cc3b",
             },
-            pattern: new LineStylePattern3D({
-              style: "solid",
-            }),
+            // pattern: new LineStylePattern3D({
+            //   style: "solid",
+            // }),
             size: 2,
           }),
         ],
       }),
-      // { type: "simple-line", color: [80, 80, 80, 1], width: 4 },
     },
   });
 }
@@ -475,180 +475,62 @@ export function createCylinderLayer(graphics: any, birdSummary: any) {
   return featureLayer;
 }
 
-export async function createTimeLayer(graphics) {
-  const intervals = [
-    {
-      label: "Hour",
-      interval: 60 * 60 * 1000,
-      title: "Time and distance visualization (hours)",
-      minScale: 300000,
-    },
-    {
-      label: "Day",
-      interval: 24 * 60 * 60 * 1000,
-      title: "Time and distance visualization (days)",
-      maxScale: 300000,
-    },
-  ];
-
-  const layers = [];
-
-  for (const config of intervals) {
-    const { label, interval, title, minScale, maxScale } = config;
-    const graphicsArray = [];
-
-    let lastTimestamp = null;
-    let firstTimestamp = null;
-    let lastPoint = null;
-    let accumulatedDistance = 0;
-
-    for (const g of graphics) {
-      if (!firstTimestamp) firstTimestamp = g.attributes.timestamp;
-      const currentTimestamp = g.attributes.timestamp;
-      const currentPoint = g.geometry;
-
-      let distanceFromLast = 0;
-      if (lastPoint) {
-        if (!geodeticDistanceOperator.isLoaded()) {
-          await geodeticDistanceOperator.load();
-        }
-
-        distanceFromLast = geodeticDistanceOperator.execute(
-          lastPoint,
-          currentPoint,
-        );
-
-        distanceFromLast = distanceFromLast / 1000;
-      }
-
-      if (!lastTimestamp || currentTimestamp - lastTimestamp >= interval) {
-        accumulatedDistance += distanceFromLast;
-        lastTimestamp = currentTimestamp;
-        lastPoint = currentPoint;
-        let durationInSeconds = (currentTimestamp - firstTimestamp) / 1000;
-        let days = Math.floor(durationInSeconds / 86400);
-        let hours = Math.floor((durationInSeconds % 86400) / 3600);
-        let text =
-          label === "Hour"
-            ? `${days}d ${hours}h | +${Math.round(distanceFromLast)} km`
-            : // : `${days} \ue64e +${Math.round(distanceFromLast)} (${Math.round(accumulatedDistance)}) km`;
-              `${days}d | +${Math.round(distanceFromLast)} km`;
-
-        graphicsArray.push(
-          new Graphic({
-            geometry: currentPoint,
-            attributes: { timestamp: currentTimestamp },
-            symbol: new TextSymbol({
-              text,
-              color: [14, 22, 21],
-              haloColor: [125, 149, 139, 0.5],
-              haloSize: 1.5,
-              font: {
-                size: 10,
-                family: "CalciteWebCoreIcons",
-                weight: "bold",
-              },
-            }),
-          }),
-        );
-      }
-    }
-
-    const layer = new GraphicsLayer({
-      title,
-      minScale,
-      maxScale,
-    });
-
-    layer.addMany(graphicsArray);
-    layers.push(layer);
+export async function createTimeMarkersLayer(graphics) {
+  if (!geodeticLengthOperator.isLoaded()) {
+    await geodeticLengthOperator.load();
   }
 
-  return layers;
-}
-
-export async function createTimeMarkersLayer(graphics) {
-  // const intervals = [
-  //   {
-  //     label: "Hour",
-  //     interval: 60 * 60 * 1000,
-  //     title: "Time and distance visualization (hours)",
-  //     minScale: 300000,
-  //   },
-  //   {
-  //     label: "Day",
-  //     interval: 24 * 60 * 60 * 1000,
-  //     title: "Time and distance visualization (days)",
-  //     maxScale: 300000,
-  //   },
-  // ];
-
-  let label = "Day";
-  let interval = 24 * 60 * 60 * 1000;
-  let title = "Time and distance visualization (hours)";
-  // let minScale = 300000;
-  const layers = [];
-
-  // for (const config of intervals) {
-  // const { label, interval, title, minScale, maxScale } = config;
   const graphicsArray = [];
-
-  let lastTimestamp = null;
-  let firstTimestamp = null;
-  let lastPoint = null;
-  let accumulatedDistance = 0;
+  const spatialReference = graphics[0].geometry.spatialReference;
+  const coordinates = getCoordinatesFromFeatures(graphics);
+  const startDate = new Date(
+    new Date(graphics[0].attributes.timestamp).setHours(23, 59, 59, 0),
+  );
+  const endDate = new Date(
+    new Date(graphics[graphics.length - 1].attributes.timestamp).setHours(
+      23,
+      59,
+      59,
+      0,
+    ),
+  );
+  let prevIndex = 0;
   let i = 0;
-  for (const g of graphics) {
-    if (!firstTimestamp) firstTimestamp = g.attributes.timestamp;
-    const currentTimestamp = g.attributes.timestamp;
-    const currentPoint = g.geometry;
+  for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
+    let currentIndex = getClosestFeatureIndexInTime(graphics, d);
+    let point = getClosestPointInTime(graphics, d, currentIndex);
 
-    let distanceFromLast = 0;
-    if (lastPoint) {
-      if (!geodeticDistanceOperator.isLoaded()) {
-        await geodeticDistanceOperator.load();
-      }
+    const line = new Polyline({
+      spatialReference: spatialReference,
+      paths: [
+        coordinates
+          .slice(prevIndex, currentIndex + 1)
+          .concat([[point.x, point.y, point.z ?? 0]]),
+      ],
+    });
 
-      distanceFromLast = geodeticDistanceOperator.execute(
-        lastPoint,
-        currentPoint,
-      );
+    const distance = Math.round(geodeticLengthOperator.execute(line) / 1000);
 
-      distanceFromLast = distanceFromLast / 1000;
-    }
+    graphicsArray.push(
+      new Graphic({
+        attributes: {
+          OBJECTID: i + 1,
+          distance,
+          date: d.getTime(),
+        },
+        geometry: graphics[currentIndex].geometry,
+      }),
+    );
 
-    if (!lastTimestamp || currentTimestamp - lastTimestamp >= interval) {
-      accumulatedDistance += distanceFromLast;
-      lastTimestamp = currentTimestamp;
-      lastPoint = currentPoint;
-      let durationInSeconds = (currentTimestamp - firstTimestamp) / 1000;
-      let days = Math.floor(durationInSeconds / 86400);
-      let hours = Math.floor((durationInSeconds % 86400) / 3600);
-      let text =
-        label === "Hour"
-          ? `${days}d ${hours}h | +${Math.round(distanceFromLast)} km`
-          : // : `${days} \ue64e +${Math.round(distanceFromLast)} (${Math.round(accumulatedDistance)}) km`;
-            `${days}d | +${Math.round(distanceFromLast)} km`;
-
-      graphicsArray.push(
-        new Graphic({
-          geometry: currentPoint,
-          attributes: {
-            OBJECTID: i + 1,
-            date: currentTimestamp,
-            distance: Math.round(distanceFromLast),
-          },
-        }),
-      );
-      i++;
-    }
+    prevIndex = currentIndex;
+    i++;
   }
 
   const labelingInfo = [
     new LabelClass({
       labelExpressionInfo: {
         expression:
-          "var dateTime = $feature.date; var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'OCT', 'Nov', 'Dec']; return `${months[Month(dateTime)]} ${Day(dateTime)}\n${$feature.distance} km`",
+          "var dateTime = $feature.date; return `${Upper(Text($feature.date, 'MMM D'))}\n${$feature.distance} km`",
       },
       labelPlacement: "center-right",
       symbol: new LabelSymbol3D({
@@ -676,7 +558,6 @@ export async function createTimeMarkersLayer(graphics) {
   ];
 
   const getCanvasSymbol = (day: number) => {
-    console.log("canvDay", day);
     const canvas = document.createElement("canvas");
     const width = 25;
     const height = 25;
@@ -694,8 +575,7 @@ export async function createTimeMarkersLayer(graphics) {
   };
 
   const getUniqueValues = () => {
-    const days = Array.from({ length: graphicsArray.length }, (_, i) => i + 1); // generating icons for a trip of 2 months
-    console.log("days", days);
+    const days = Array.from({ length: graphicsArray.length }, (_, i) => i + 1);
     return days.map((day) => {
       return {
         value: day,
@@ -727,14 +607,12 @@ export async function createTimeMarkersLayer(graphics) {
       };
     });
   };
+
   const layer = new FeatureLayer({
     source: graphicsArray,
-    title: title,
-    // minScale,
-    // maxScale,
+    title: "Time and distance visualization",
     geometryType: "point",
     spatialReference: SpatialReference.WGS84,
-    objectIdField: "OBJECTID",
     popupEnabled: false,
     fields: [
       new Field({
@@ -749,35 +627,17 @@ export async function createTimeMarkersLayer(graphics) {
         name: "distance",
         type: "double",
       }),
-      new Field({
-        name: "id",
-        type: "double",
-      }),
     ],
     labelingInfo,
     screenSizePerspectiveEnabled: false,
     renderer: new UniqueValueRenderer({
       field: "OBJECTID",
       defaultSymbol: new PointSymbol3D({
-        symbolLayers: [
-          new IconSymbol3DLayer({
-            resource: {
-              primitive: "square",
-            },
-            material: {
-              color: "red",
-            },
-            size: 10,
-          }),
-        ],
+        symbolLayers: [new IconSymbol3DLayer({})],
       }),
       uniqueValueInfos: getUniqueValues(),
     }),
   });
-
-  // layer.addMany(graphicsArray);
-  layers.push(layer);
-  // }
 
   return layer;
 }

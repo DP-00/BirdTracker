@@ -1,3 +1,4 @@
+import Graphic from "@arcgis/core/Graphic";
 import Point from "@arcgis/core/geometry/Point";
 
 export function timeout(timeoutInMilliseconds: number) {
@@ -44,6 +45,15 @@ export const interpolate = (a, b, t) => {
   return origin;
 };
 
+export function getCoordinatesFromFeatures(features: Graphic[]): number[][] {
+  return features
+    .filter((f) => f.geometry?.type === "point")
+    .map((f) => {
+      const { x, y, z } = f.geometry as __esri.Point;
+      return [x, y, z ?? 0];
+    });
+}
+
 export function getClosestFeatureIndexInTime(features, time) {
   let i = 0;
   while (
@@ -54,4 +64,18 @@ export function getClosestFeatureIndexInTime(features, time) {
   }
 
   return i;
+}
+
+export function getClosestPointInTime(features, time, i?: number) {
+  if (i === undefined) {
+    i = getClosestFeatureIndexInTime(features, time);
+  }
+  const t =
+    (time - features[i].attributes.timestamp) /
+    (features[i + 1].attributes.timestamp - features[i].attributes.timestamp);
+  const p1 = features[i].geometry;
+  const p2 = features[i + 1].geometry;
+  const p = interpolate(p1, p2, t);
+
+  return p;
 }

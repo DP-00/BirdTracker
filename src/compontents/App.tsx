@@ -69,10 +69,10 @@ import "@esri/calcite-components/dist/components/calcite-tab-nav";
 import "@esri/calcite-components/dist/components/calcite-tab-title";
 import "@esri/calcite-components/dist/components/calcite-tabs";
 
-import esriConfig from "@arcgis/core/config";
+import * as intl from "@arcgis/core/intl.js";
 import { loadData } from "../dataLoading";
 import { setBasemaps, setSlides, setThematicLayers } from "../mapControls";
-esriConfig.locale = "en-gb";
+intl.setLocale("en-gb");
 
 type AppProperties = {};
 

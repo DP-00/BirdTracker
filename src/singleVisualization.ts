@@ -21,7 +21,6 @@ export async function setSingleVis(
   primaryLayer: __esri.FeatureLayer,
   secondaryLayer: __esri.FeatureLayer,
   arrowLayer: __esri.GraphicsLayer,
-  hourLayer,
   dayLayer,
   birdSummary: Record<string, any>,
   primaryValue: string,
@@ -204,7 +203,6 @@ export async function setSingleVis(
       arrowLayer.visible = !arrowLayer.visible;
     });
     timeMarksVisibility?.addEventListener("calciteCheckboxChange", async () => {
-      hourLayer.visible = !hourLayer.visible;
       dayLayer.visible = !dayLayer.visible;
     });
   }

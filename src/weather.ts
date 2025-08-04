@@ -1,4 +1,5 @@
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils";
+import * as geodesicProximityOperator from "@arcgis/core/geometry/operators/geodesicProximityOperator.js";
 import * as geodeticDistanceOperator from "@arcgis/core/geometry/operators/geodeticDistanceOperator";
 import Point from "@arcgis/core/geometry/Point";
 import Polygon from "@arcgis/core/geometry/Polygon";
@@ -347,12 +348,7 @@ const windRenderer = {
   ],
 };
 
-export async function setWeather(
-  arcgisScene,
-  secondaryLayer,
-  polyline,
-  hourLayer,
-) {
+export async function setWeather(arcgisScene, secondaryLayer, polyline) {
   const weatherSelect = document.getElementById(
     "weather-select",
   ) as HTMLCalciteSelectElement;
@@ -792,11 +788,34 @@ export async function setWeather(
   async function setWeatherLayerTime() {
     let timeIndex = document.getElementById("weather-time")!.value;
 
+    if (!geodesicProximityOperator.isLoaded()) {
+      await geodesicProximityOperator.load();
+    }
+
     for (let i = tiles.length - 1; i >= 0; i--) {
       const tile = tiles[i];
 
       if (!weatherTimeSwitch.checked) {
-        let currentTimestamp = await getClosestHour(tile.geometry.centroid);
+        const tilePoint = webMercatorUtils.webMercatorToGeographic(
+          tile.geometry.centroid,
+        ) as Point;
+
+        const currentPoint = geodesicProximityOperator.getNearestVertex(
+          polyline.geometry,
+          tilePoint,
+        );
+
+        const query = secondaryLayer.createQuery();
+        query.geometry = currentPoint.coordinate;
+        query.spatialRelationship = "intersects";
+        query.returnGeometry = true;
+        query.outFields = ["*"];
+        const result = await secondaryLayer.queryFeatures(query);
+        const feature = result.features[0];
+        console.log("feature", feature);
+
+        let currentTimestamp = new Date(feature.attributes.timestamp);
+
         timeIndex = mapDatetoIndex(
           currentTimestamp,
           tile.attributes.timestampAll,
@@ -1058,42 +1077,6 @@ export async function setWeather(
 
       return container;
     };
-  }
-
-  async function getClosestHour(weatherPoint) {
-    let closestGraphic = null;
-    let minDistance = Infinity;
-
-    for (const graphic of hourLayer.graphics.items) {
-      let graphicPoint = new Point({
-        longitude: graphic.geometry.longitude,
-        latitude: graphic.geometry.latitude,
-        spatialReference: graphic.geometry.spatialReference,
-      });
-
-      let graphicPointMercator =
-        webMercatorUtils.geographicToWebMercator(graphicPoint);
-
-      if (!geodeticDistanceOperator.isLoaded()) {
-        await geodeticDistanceOperator.load();
-      }
-
-      let distance = geodeticDistanceOperator.execute(
-        graphicPointMercator,
-        weatherPoint,
-      );
-
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestGraphic = graphic;
-      }
-    }
-
-    if (closestGraphic) {
-      return new Date(closestGraphic.attributes.timestamp);
-    }
-
-    return null;
   }
 
   function mapDatetoIndex(date, timeArray) {
