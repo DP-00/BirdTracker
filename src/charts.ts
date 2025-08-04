@@ -2,7 +2,6 @@ import "@arcgis/charts-components/components/arcgis-chart";
 import { defineCustomElements } from "@arcgis/charts-components/dist/loader";
 import { createModel } from "@arcgis/charts-components/model";
 
-// import { ArcgisTimeSlider } from "@arcgis/map-components/components/arcgis-time-slider";
 defineCustomElements(window, {
   resourcesUrl: "https://jsdev.arcgis.com/4.33/charts-components/",
 });
@@ -25,26 +24,45 @@ export async function setCharts(
     "primary-vis-select",
   ) as HTMLCalciteSelectElement;
 
-  let elevProfile = document.querySelector("arcgis-elevation-profile");
-  elevProfile.input = path;
-  elevProfile.profiles = [
-    {
-      type: "input",
-      color: "rgba(174, 216, 204, 1)",
-      title: "Track elevation",
-    },
-    {
-      type: "ground",
-      color: "rgba(35, 57, 53, 1)",
-      title: "Ground elevation",
-      viewVisualizationEnabled: false,
-    },
-  ];
-
   const lineChartElement = document.getElementById("line-chart")!;
   const barChartElement = document.getElementById("bar-chart")!;
 
-  // await setLineChart();
+  const dashboardTabsNav = document.getElementById("dashboard-tabs-nav")!;
+  dashboardTabsNav?.addEventListener("calciteTabChange", async () => {
+    if (dashboardTabsNav.selectedTitle.innerText.includes("Values")) {
+      lineChartElement.layerFilterChangePolicy = "refresh";
+    } else {
+      lineChartElement.layerFilterChangePolicy = "ignore";
+    }
+    console.log(
+      dashboardTabsNav.selectedTitle,
+      dashboardTabsNav.selectedTitle.innerText.includes("Values"),
+      lineChartElement.layerFilterChangePolicy,
+    );
+  });
+  setElevationProfile();
+
+  await setLineChart();
+  // await setBarChart();
+
+  function setElevationProfile() {
+    let elevProfile = document.querySelector("arcgis-elevation-profile");
+    elevProfile.input = path;
+    elevProfile.profiles = [
+      {
+        type: "input",
+        color: "rgba(174, 216, 204, 1)",
+        title: "Track elevation",
+      },
+      {
+        type: "ground",
+        color: "rgba(35, 57, 53, 1)",
+        title: "Ground elevation",
+        viewVisualizationEnabled: false,
+      },
+    ];
+  }
+
   async function setLineChart() {
     const layerView = await arcgisScene.view.whenLayerView(secondaryLayer);
     const lineChartModel = await createModel({
@@ -143,7 +161,6 @@ export async function setCharts(
     }
   }
 
-  // await setBarChart();
   async function setBarChart() {
     let variable = "altitude";
     let timeBinning = "esriTimeUnitsHours";

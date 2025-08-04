@@ -1,23 +1,19 @@
 import Basemap from "@arcgis/core/Basemap";
-import Mesh from "@arcgis/core/geometry/Mesh";
-import Graphic from "@arcgis/core/Graphic";
 import ImageryLayer from "@arcgis/core/layers/ImageryLayer";
 import ImageryTileLayer from "@arcgis/core/layers/ImageryTileLayer";
 import * as rasterFunctionUtils from "@arcgis/core/layers/support/rasterFunctionUtils";
 import TileLayer from "@arcgis/core/layers/TileLayer";
 import VectorTileLayer from "@arcgis/core/layers/VectorTileLayer";
-import FillSymbol3DLayer from "@arcgis/core/symbols/FillSymbol3DLayer";
-import MeshSymbol3D from "@arcgis/core/symbols/MeshSymbol3D";
-import TimeExtent from "@arcgis/core/time/TimeExtent";
 import Slide from "@arcgis/core/webscene/Slide";
 import LocalBasemapsSource from "@arcgis/core/widgets/BasemapGallery/support/LocalBasemapsSource";
-import { ArcgisTimeSlider } from "@arcgis/map-components/dist/components/arcgis-time-slider";
-import { updateBirdAndCameraPosition } from "./birdPerspective";
-import { updateIcon, updateLine } from "./groupVisualization";
-import { updateCalculations } from "./singleVisualization";
-import { getClosestFeatureIndexInTime } from "./utils";
+import { formatDate } from "./utils";
 
-export function setBasemaps() {
+export async function setMapControls(arcgisScene: HTMLArcgisSceneElement) {
+  setBasemaps();
+  await setThematicLayers(arcgisScene);
+  await setSlides(arcgisScene);
+}
+function setBasemaps() {
   const customBasemaps = [
     Basemap.fromId("topo-3d"),
     Basemap.fromId("osm-3d"),
@@ -64,7 +60,7 @@ export function setBasemaps() {
     new LocalBasemapsSource({ basemaps: customBasemaps });
 }
 
-export async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
+async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
   const footprintLayer = new TileLayer({
     portalItem: { id: "cfe002c152204bd8b6e392f3f39f2878" },
     visible: false,
@@ -207,263 +203,7 @@ export async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
   };
 }
 
-export async function setTimeSlider(
-  arcgisScene: HTMLArcgisSceneElement,
-  fullTimeExtent,
-  groupedData,
-  birdData,
-) {
-  const timeSlider = document.querySelector(
-    "arcgis-time-slider",
-  )! as ArcgisTimeSlider;
-
-  const timezonePicker = document.getElementById("timezone-picker")!;
-  let animationSwitch = document.getElementById("play-group-animation")!;
-  let animationPlayRate = document.getElementById("animation-playrate")!;
-
-  const cameraControl = document.getElementById(
-    "camera-control",
-  ) as HTMLCalciteSegmentedControlElement;
-  const gaugeContainer = document.getElementById("gauges-container");
-  const groupLineLayer = arcgisScene.view.map.allLayers.find(
-    (layer) => layer.title === "Group visualization",
-  );
-  const iconLayer = arcgisScene.view.map.allLayers.find(
-    (layer) => layer.title === "Icon visualization",
-  );
-
-  gaugeContainer!.style.display = "none";
-  animationPlayRate!.style.display = "block";
-  animationSwitch!.style.display = "block";
-  animationPlayRate.value = 10000;
-
-  setDatePicker();
-
-  timezonePicker.addEventListener("calciteInputTimeZoneChange", () => {
-    arcgisScene.view.timeZone = timezonePicker.value;
-  });
-
-  timeSlider.view = arcgisScene.view;
-  timeSlider.fullTimeExtent = fullTimeExtent;
-  const start = new Date(timeSlider.fullTimeExtent.start);
-  let end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-  timeSlider.timeExtent = new TimeExtent({ start, end });
-  timeSlider.stops = { interval: { value: 10, unit: "minutes" } };
-
-  timeSlider.addEventListener("arcgisPropertyChange", (event) => {
-    let currentTime = timeSlider.timeExtent.end;
-    arcgisScene.view.environment.lighting.date = new Date(currentTime);
-    updateIcon(groupedData, iconLayer.graphics, timeSlider.timeExtent.end);
-    if (groupLineLayer.visible) {
-      updateLine(
-        groupedData,
-        groupLineLayer.graphics,
-        timeSlider.timeExtent.end,
-      );
-
-      let currentTimeTail = currentTime - 24 * 60 * 60 * 1000;
-      if (currentTimeTail <= timeSlider.fullTimeExtent.start) {
-        currentTimeTail = timeSlider.fullTimeExtent.start;
-      }
-      timeSlider.timeExtent.start = currentTimeTail;
-    } else {
-      updateCalculations(birdData, timeSlider);
-    }
-  });
-
-  let isPlaying = false;
-  let isGroupView = true;
-  let isFollowMode = false;
-  let birdMesh, animationTarget, initialTransform;
-
-  // SET MODEL
-
-  if (birdData.length > 0) {
-    const modelUrl = "./flying_crow_color_north.glb";
-
-    let i = getClosestFeatureIndexInTime(birdData, timeSlider.timeExtent.end);
-
-    birdMesh = (
-      await Mesh.createFromGLTF(birdData[i].geometry, modelUrl, {
-        vertexSpace: "local",
-      })
-    ).scale(30);
-    initialTransform = birdMesh.transform?.clone();
-    animationTarget = new Graphic({
-      geometry: birdMesh,
-      symbol: new MeshSymbol3D({
-        symbolLayers: [
-          new FillSymbol3DLayer({
-            material: {
-              color: [255, 255, 255],
-            },
-          }),
-        ],
-      }),
-      attributes: {
-        id: "bird-model",
-      },
-    });
-
-    arcgisScene.view.graphics.add(animationTarget);
-  }
-
-  cameraControl?.addEventListener("calciteSegmentedControlChange", async () => {
-    if (cameraControl.value == "bird") {
-      try {
-        await arcgisScene.view.goTo(animationTarget);
-      } catch (err) {}
-      document.body.classList.toggle("bird-mode", true);
-      gaugeContainer!.style.display = "block";
-      animationPlayRate!.style.display = "block";
-      animationSwitch!.style.display = "block";
-      animationPlayRate.value = 10;
-    } else {
-      document.body.classList.toggle("bird-mode", false);
-
-      isPlaying = false;
-      gaugeContainer!.style.display = "none";
-      animationPlayRate!.style.display = "none";
-      animationSwitch!.style.display = "none";
-      // arcgisScene.view.goTo(layer.fullExtent);
-    }
-  });
-
-  animationSwitch.addEventListener("click", () => {
-    isPlaying = !isPlaying;
-    if (isPlaying) {
-      animationSwitch.iconStart = "pause-f";
-      updateVisualization(timeSlider.timeExtent.end);
-    } else {
-      animationSwitch.iconStart = "play-f";
-    }
-  });
-  const updateVisualization = (time) => {
-    if (isPlaying) {
-      requestAnimationFrame(() => {
-        let currentTime = updateTimeSlider(40);
-        const now = new Date(currentTime);
-        const formatted = now
-          .toLocaleString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          })
-          .toUpperCase()
-          .replace(",", "");
-
-        document.getElementById("time-dashboard")!.innerText = formatted;
-
-        updateIcon(groupedData, iconLayer.graphics, time);
-        if (cameraControl.value == "bird") {
-          updateBirdAndCameraPosition(
-            currentTime,
-            arcgisScene,
-            birdData,
-            birdMesh,
-            initialTransform,
-          );
-        } else {
-          updateLine(groupedData, groupLineLayer.graphics, currentTime);
-        }
-        updateVisualization(currentTime);
-      });
-    }
-  };
-
-  function setDatePicker() {
-    const startDatePicker = document.getElementById("start-date");
-    const startTimePicker = document.getElementById("start-time");
-    const endDatePicker = document.getElementById("end-date");
-    const endTimePicker = document.getElementById("end-time");
-    const datePickerApplyBtn = document.getElementById("apply-range");
-    const datePickerPopover = document.getElementById("popover-time");
-    const datePickerBtn = document.getElementById("edit-time-button");
-
-    datePickerBtn.addEventListener("click", () => {
-      let extent = timeSlider.timeExtent;
-      const offsetMinutes = arcgisScene.view.timeZone;
-      console.log(
-        "start",
-        offsetMinutes,
-        extent.start,
-        extent.start.toISOString(),
-      );
-      startDatePicker.value = extent.start.toISOString().split("T")[0];
-      startTimePicker.value = extent.start.toISOString().slice(11, 16);
-      endDatePicker.value = extent.end.toISOString().split("T")[0];
-      endTimePicker.value = extent.end.toISOString().slice(11, 16);
-    });
-
-    datePickerApplyBtn.addEventListener("click", () => {
-      const start = new Date(
-        `${startDatePicker.value}T${startTimePicker.value}`,
-      );
-      const end = new Date(`${endDatePicker.value}T${endTimePicker.value}`);
-      timeSlider.timeExtent = new TimeExtent({ start, end });
-      datePickerPopover.open = false;
-    });
-
-    function validateInputs() {
-      const startDateStr = startDatePicker.value;
-      const startTimeStr = startTimePicker.value;
-      const endDateStr = endDatePicker.value;
-      const endTimeStr = endTimePicker.value;
-
-      if (!startDateStr || !startTimeStr || !endDateStr || !endTimeStr) {
-        datePickerApplyBtn.disabled = true;
-        return;
-      }
-
-      const start = new Date(`${startDateStr}T${startTimeStr}`);
-      const end = new Date(`${endDateStr}T${endTimeStr}`);
-      const fullStart = timeSlider.fullTimeExtent.start;
-      const fullEnd = timeSlider.fullTimeExtent.end;
-
-      const valid =
-        !isNaN(start) &&
-        !isNaN(end) &&
-        start < end &&
-        start >= fullStart &&
-        end <= fullEnd;
-
-      datePickerApplyBtn.disabled = !valid;
-    }
-
-    // Revalidate on every change
-    [startDatePicker, startTimePicker, endDatePicker, endTimePicker].forEach(
-      (input) => {
-        input.addEventListener("calciteInputDatePickerChange", validateInputs);
-        input.addEventListener("calciteInputTimePickerChange", validateInputs);
-        input.addEventListener("change", validateInputs);
-      },
-    );
-  }
-
-  function updateTimeSlider(timeStep) {
-    // const timeStep = 40;
-    let currentTime =
-      timeSlider.timeExtent.end.getTime() + timeStep * animationPlayRate.value;
-    if (currentTime >= timeSlider.fullTimeExtent.end) {
-      currentTime = timeSlider.fullTimeExtent.start;
-    }
-    let currentTimeTail = currentTime - 24 * 60 * 60 * 1000;
-    if (currentTimeTail <= timeSlider.fullTimeExtent.start) {
-      currentTimeTail = timeSlider.fullTimeExtent.start;
-    }
-    timeSlider.timeExtent.end = currentTime;
-    timeSlider.timeExtent.start = currentTimeTail;
-    arcgisScene.view.environment.lighting.date = new Date(
-      timeSlider.timeExtent.end,
-    );
-
-    return currentTime;
-  }
-}
-
-export function setSlides(arcgisScene: HTMLArcgisSceneElement) {
+async function setSlides(arcgisScene: HTMLArcgisSceneElement) {
   const view = arcgisScene.view;
 
   // const slides = arcgisScene.map.presentation.slides;
@@ -492,7 +232,7 @@ function createSlideUI(slide: Slide, arcgisScene: HTMLArcgisSceneElement) {
   slideElement.label = slide.title?.text ?? "Untitled Slide";
 
   slideElement.setAttribute("closable", "");
-  slideElement.description = slide.environment.lighting.date.toLocaleString();
+  slideElement.description = formatDate(slide.environment.lighting.date);
   slideElement.innerHTML = `<calcite-content slot="content-start">
         <img alt="" title="${slide.title.text}"src="${slide.thumbnail.url}">
       </calcite-content>`;

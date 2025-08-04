@@ -481,27 +481,43 @@ export async function createTimeMarkersLayer(graphics) {
   }
 
   const graphicsArray = [];
-  const spatialReference = graphics[0].geometry.spatialReference;
   const coordinates = getCoordinatesFromFeatures(graphics);
+  const startTimestamp = graphics[0].attributes.timestamp;
+  const endTimestamp = graphics[graphics.length - 1].attributes.timestamp;
+
   const startDate = new Date(
-    new Date(graphics[0].attributes.timestamp).setHours(23, 59, 59, 0),
+    Date.UTC(
+      new Date(startTimestamp).getUTCFullYear(),
+      new Date(startTimestamp).getUTCMonth(),
+      new Date(startTimestamp).getUTCDate(),
+      0,
+      0,
+      0,
+      0,
+    ),
   );
+
   const endDate = new Date(
-    new Date(graphics[graphics.length - 1].attributes.timestamp).setHours(
+    Date.UTC(
+      new Date(endTimestamp).getUTCFullYear(),
+      new Date(endTimestamp).getUTCMonth(),
+      new Date(endTimestamp).getUTCDate(),
       23,
       59,
       59,
       0,
     ),
   );
+
   let prevIndex = 0;
   let i = 0;
-  for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
+  for (let d = startDate; d < endDate; d.setDate(d.getDate() + 1)) {
     let currentIndex = getClosestFeatureIndexInTime(graphics, d);
-    let point = getClosestPointInTime(graphics, d, currentIndex);
+    console.log(d, graphics[currentIndex].attributes.timestamp);
 
+    let point = getClosestPointInTime(graphics, d, currentIndex);
     const line = new Polyline({
-      spatialReference: spatialReference,
+      spatialReference: { wkid: 4326 },
       paths: [
         coordinates
           .slice(prevIndex, currentIndex + 1)
@@ -516,7 +532,7 @@ export async function createTimeMarkersLayer(graphics) {
         attributes: {
           OBJECTID: i + 1,
           distance,
-          date: d.getTime(),
+          date: d.getTime() + 1,
         },
         geometry: graphics[currentIndex].geometry,
       }),

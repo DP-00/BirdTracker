@@ -71,7 +71,7 @@ import "@esri/calcite-components/dist/components/calcite-tabs";
 
 import * as intl from "@arcgis/core/intl.js";
 import { loadData } from "../dataLoading";
-import { setBasemaps, setSlides, setThematicLayers } from "../mapControls";
+import { setMapControls } from "../mapControls";
 intl.setLocale("en-gb");
 
 type AppProperties = {};
@@ -102,9 +102,7 @@ class App extends Widget<AppProperties> {
       },
     };
     await loadData(arcgisScene);
-    setSlides(arcgisScene);
-    setBasemaps();
-    setThematicLayers(arcgisScene);
+    await setMapControls(arcgisScene);
   }
 
   render() {
@@ -169,107 +167,9 @@ class App extends Widget<AppProperties> {
               </calcite-segmented-control>
 
               <p id="time-dashboard"></p>
-              <canvas id="speedGauge"></canvas>
-              <canvas id="headingGauge"></canvas>
-              <canvas id="altitudeGauge"></canvas>
+              <Gauges></Gauges>
             </div>
-            <div id="time-slider">
-              {/* <TimeControls></TimeControls> */}
-              <calcite-button
-                id="play-group-animation"
-                icon-start="play-f"
-                scale="l"
-                appearance="transparent"
-                kind="info"
-              ></calcite-button>
-              <calcite-input-time-zone
-                mode="name"
-                id="timezone-picker"
-                scale="s"
-                value="Etc/UTC"
-              ></calcite-input-time-zone>
-              <calcite-combobox
-                id="animation-playrate"
-                placeholder="Animation speed"
-                clear-disabled="true"
-                selection-mode="single"
-                selection-display="all"
-              >
-                <calcite-combobox-item
-                  value={1}
-                  heading="x 1"
-                  selected
-                ></calcite-combobox-item>
-                <calcite-combobox-item
-                  value={10}
-                  heading="x 10"
-                ></calcite-combobox-item>
-                <calcite-combobox-item
-                  value={100}
-                  heading="x 100"
-                ></calcite-combobox-item>
-                <calcite-combobox-item
-                  value={1000}
-                  heading="x 1000"
-                ></calcite-combobox-item>
-                <calcite-combobox-item
-                  value={10000}
-                  heading="x 10 000"
-                ></calcite-combobox-item>
-                <calcite-combobox-item
-                  value={100000}
-                  heading="x 100 000"
-                ></calcite-combobox-item>
-              </calcite-combobox>
-
-              <calcite-popover
-                heading="Edit time extent"
-                label="Edit time extent"
-                reference-element="edit-time-button"
-                closable
-                placement="top"
-              >
-                <div id="popover-time">
-                  <calcite-label>
-                    Start Date:
-                    <calcite-input-date-picker id="start-date"></calcite-input-date-picker>
-                    <calcite-input-time-picker
-                      id="start-time"
-                      hour-format="24"
-                    ></calcite-input-time-picker>
-                  </calcite-label>
-                  <calcite-label>
-                    End Date:
-                    <calcite-input-date-picker id="end-date"></calcite-input-date-picker>
-                    <calcite-input-time-picker
-                      id="end-time"
-                      hour-format="24"
-                    ></calcite-input-time-picker>
-                  </calcite-label>
-
-                  <calcite-button id="apply-range" appearance="solid">
-                    Apply
-                  </calcite-button>
-                </div>
-              </calcite-popover>
-              <calcite-button
-                id="edit-time-button"
-                icon-start="pencil"
-                appearance="transparent"
-              ></calcite-button>
-
-              <arcgis-time-slider
-                layout="compact"
-                reference-element="scene-div"
-                position="bottom-right"
-                mode="time-window"
-                play-rate="100"
-                time-visible="true"
-                loop
-                stops-interval-value="1"
-                stops-interval-unit="minutes"
-              ></arcgis-time-slider>
-            </div>
+            <TimeControls></TimeControls>
           </div>
           <calcite-panel id="dashboard">
             <div id="dashboard-group-vis">
@@ -781,51 +681,246 @@ const MapControls = () => {
 
 const TimeControls = () => {
   return (
-    <div id="time-controls">
-      <calcite-label layout="inline" scale="s">
-        Timezone:
-        <calcite-input-time-zone
-          mode="offset"
-          offset-style="utc"
-          id="timezone-picker"
-          scale="s"
-          value="Etc/UTC"
-        ></calcite-input-time-zone>
-      </calcite-label>
-      <calcite-label layout="inline" scale="s">
-        Time Window:
-        <calcite-select id="time-window" scale="s">
-          <calcite-option value={1}>1h</calcite-option>
-          <calcite-option value={3}>3h</calcite-option>
-          <calcite-option value={6}>6h</calcite-option>
-          <calcite-option value={12}>12h</calcite-option>
-          <calcite-option value={24} selected>
-            24h
-          </calcite-option>
-        </calcite-select>
-      </calcite-label>
+    <div id="time-slider">
+      <calcite-button
+        id="play-group-animation"
+        icon-start="play-f"
+        scale="l"
+        appearance="transparent"
+        kind="info"
+      ></calcite-button>
+      <calcite-input-time-zone
+        mode="name"
+        id="timezone-picker"
+        scale="s"
+        value="Etc/UTC"
+      ></calcite-input-time-zone>
+      <calcite-combobox
+        id="animation-playrate"
+        placeholder="Animation speed"
+        clear-disabled="true"
+        selection-mode="single"
+        selection-display="all"
+      >
+        <calcite-combobox-item
+          value={1}
+          heading="x 1"
+          selected
+        ></calcite-combobox-item>
+        <calcite-combobox-item
+          value={10}
+          heading="x 10"
+        ></calcite-combobox-item>
+        <calcite-combobox-item
+          value={100}
+          heading="x 100"
+        ></calcite-combobox-item>
+        <calcite-combobox-item
+          value={1000}
+          heading="x 1000"
+        ></calcite-combobox-item>
+        <calcite-combobox-item
+          value={10000}
+          heading="x 10 000"
+        ></calcite-combobox-item>
+        <calcite-combobox-item
+          value={100000}
+          heading="x 100 000"
+        ></calcite-combobox-item>
+      </calcite-combobox>
 
-      <calcite-label layout="inline" scale="s">
-        Interval:
-        <calcite-select id="stops" scale="s">
-          <calcite-option value="continuous" selected>
-            continuous
-          </calcite-option>
-          <calcite-option value="hours">hours</calcite-option>
-          <calcite-option value="days">days</calcite-option>
-        </calcite-select>
-      </calcite-label>
+      <calcite-popover
+        heading="Edit time extent"
+        label="Edit time extent"
+        reference-element="edit-time-button"
+        closable
+        placement="top"
+      >
+        <div id="popover-time">
+          <calcite-label id="date-picker-start">
+            Start Date:
+            <calcite-input-date-picker id="start-date"></calcite-input-date-picker>
+            <calcite-input-time-picker
+              id="start-time"
+              hour-format="24"
+            ></calcite-input-time-picker>
+          </calcite-label>
+          <calcite-label>
+            Current Date:
+            <calcite-input-date-picker id="end-date"></calcite-input-date-picker>
+            <calcite-input-time-picker
+              id="end-time"
+              hour-format="24"
+            ></calcite-input-time-picker>
+          </calcite-label>
 
-      <calcite-label layout="inline" scale="s">
-        Speed:
-        <calcite-select id="speed" scale="s">
-          <calcite-option value={1000}>slow</calcite-option>
-          <calcite-option value={500} selected>
-            normal
-          </calcite-option>
-          <calcite-option value={100}>fast</calcite-option>
-        </calcite-select>
-      </calcite-label>
+          <calcite-button id="apply-range" appearance="solid">
+            Apply
+          </calcite-button>
+        </div>
+      </calcite-popover>
+      <calcite-button
+        id="edit-time-button"
+        icon-start="pencil"
+        appearance="transparent"
+      ></calcite-button>
+
+      <arcgis-time-slider
+        layout="compact"
+        reference-element="scene-div"
+        position="bottom-right"
+        mode="time-window"
+        play-rate="100"
+        time-visible="true"
+        loop
+        stops-interval-value="1"
+        stops-interval-unit="minutes"
+      ></arcgis-time-slider>
+    </div>
+  );
+};
+
+const Gauges = () => {
+  return (
+    <div>
+      <canvas
+        id="speedGauge"
+        data-width="270"
+        data-height="270"
+        data-type="radial-gauge"
+        data-units="km/h"
+        data-title="Speed"
+        data-min-value="0"
+        data-max-value="30"
+        data-highlights="[]"
+        data-major-ticks='["0", "5", "10", "15", "20", "25", "30"]'
+        data-minor-ticks="5"
+        data-value-int="1"
+        data-value-dec="0"
+        data-stroke-ticks="true"
+        data-borders="false"
+        data-font-title-size="30"
+        data-font-ticks-size="50"
+        data-font-units-size="30"
+        data-font-value-size="50"
+        data-value-box-stroke="0"
+        data-color-value-text="#aed8cc"
+        data-color-value-box-background="false"
+        data-color-plate="#192a276e"
+        data-color-title="#aed8cc"
+        data-color-units="#aed8cc"
+        data-color-numbers="#aed8cc"
+        data-color-major-ticks="#aed8cc"
+        data-color-minor-ticks="#aed8cc"
+        data-color-needle="#aed8cc"
+        data-color-needle-end="#aed8cc"
+        data-color-needle-circle-outer="#aed8cc"
+        data-color-needle-circle-inner="#aed8cc"
+        data-value-text-shadow="true"
+        data-color-value-text-shadow="#aed8cc"
+        data-needle-circle-size="7"
+        data-needle-circle-outer="true"
+        data-needle-circle-inner="false"
+        data-value-box="true"
+        data-animation-rule="linear"
+        data-animation-duration="40"
+        data-value="0"
+      ></canvas>
+
+      <canvas
+        id="headingGauge"
+        data-width="230"
+        data-height="230"
+        data-type="radial-gauge"
+        data-title=""
+        data-min-value="0"
+        data-max-value="360"
+        data-highlights="[]"
+        data-major-ticks='["N", "NE", "E", "SE", "S", "SW", "W", "NW", "N"]'
+        data-minor-ticks="22"
+        data-ticks-angle="360"
+        data-start-angle="180"
+        data-value-int="1"
+        data-value-dec="0"
+        data-stroke-ticks="false"
+        data-borders="false"
+        data-needle-type="arrow"
+        data-needle-start="60"
+        data-needle-end="80"
+        data-needle-width="5"
+        data-border-inner-width="0"
+        data-border-middle-width="0"
+        data-border-outer-width="10"
+        data-color-border-outer="#aed8cc"
+        data-color-border-outer-end="#aed8cc"
+        data-border-shadow-width="0"
+        data-animation-target="plate"
+        data-color-plate="#192a276e"
+        data-color-title="#aed8cc"
+        data-color-units="#aed8cc"
+        data-color-numbers="#aed8cc"
+        data-color-major-ticks="#aed8cc"
+        data-color-minor-ticks="#aed8cc"
+        data-color-needle="#aed8cc"
+        data-color-needle-end="#aed8cc"
+        data-color-needle-circle-outer="#aed8cc"
+        data-color-needle-circle-inner="#aed8cc"
+        data-needle-circle-size="7"
+        data-needle-circle-outer="true"
+        data-needle-circle-inner="false"
+        data-animation-rule="linear"
+        data-animation-duration="40"
+        data-value="0"
+        data-value-box="false"
+      ></canvas>
+
+      <canvas
+        id="altitudeGauge"
+        data-width="150"
+        data-height="450"
+        data-type="linear-gauge"
+        data-title="Altitude"
+        data-units="m.a.s.l."
+        data-min-value="0"
+        data-max-value="5000"
+        data-highlights="[]"
+        data-major-ticks='["0", "500", "1500", "2000", "2500", "3000", "3500", "4000", "4500", "5000"]'
+        data-minor-ticks="5"
+        data-value-int="1"
+        data-value-dec="0"
+        data-stroke-ticks="true"
+        data-bar-width="20"
+        data-color-plate="#192a276e"
+        data-border-shadow-width="0"
+        data-borders="false"
+        data-needle-type="arrow"
+        data-needle-width="2"
+        data-animation-duration="40"
+        data-animation-rule="linear"
+        data-tick-side="left"
+        data-number-side="left"
+        data-needle-side="left"
+        data-bar-stroke-width="0"
+        data-bar-begin-circle="false"
+        data-value-box-stroke="0"
+        data-color-value-box-background="false"
+        data-color-title="#aed8cc"
+        data-color-value-text="#aed8cc"
+        data-color-units="#aed8cc"
+        data-color-numbers="#aed8cc"
+        data-color-major-ticks="#aed8cc"
+        data-color-minor-ticks="#aed8cc"
+        data-color-needle="#aed8cc"
+        data-color-needle-end="#aed8cc"
+        data-color-bar-progress="#aed8cc"
+        data-color-bar="#192a276e"
+        data-font-title-size="30"
+        data-font-units-size="30"
+        data-font-value-size="50"
+        data-value-text-shadow="true"
+        data-color-value-text-shadow="#aed8cc"
+        data-value="0"
+      ></canvas>
     </div>
   );
 };

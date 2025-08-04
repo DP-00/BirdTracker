@@ -4,7 +4,6 @@ import Graphic from "@arcgis/core/Graphic";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 
 import Papa from "papaparse";
-import { setBirdPerspective } from "./birdPerspective";
 import { setCharts } from "./charts";
 import {
   createCylinderLayer,
@@ -15,11 +14,11 @@ import {
   createLineLayer,
   createTimeMarkersLayer,
 } from "./layers";
-import { setTimeSlider } from "./mapControls";
 import { setSingleVis, summarizeData } from "./singleVisualization";
+import { setTimeSlider } from "./timeSlider";
 
 import TimeExtent from "@arcgis/core/time/TimeExtent";
-import { removeLayersByTitles } from "./utils";
+import { formatDate, removeLayersByTitles } from "./utils";
 import { setWeather } from "./weather";
 
 export async function loadData(arcgisScene: HTMLArcgisSceneElement) {
@@ -120,6 +119,7 @@ export async function loadData(arcgisScene: HTMLArcgisSceneElement) {
       [dataProcessed, statJSON] = result;
 
       await createGroupVisView(arcgisScene, dataProcessed);
+      console.log("Parsed CSV Data:", dataProcessed);
     } catch (err) {
       console.error(err);
     } finally {
@@ -171,12 +171,9 @@ async function createGroupVisView(
   );
   const groupLineLayer = await createGroupLineLayer(dataProcessed);
   const iconLayer = await createIconLayer(dataProcessed);
-
-  // arcgisScene.map?.addMany([generalizedLayer, iconLayer]);
   arcgisScene.map?.addMany([generalizedLayer, groupLineLayer, iconLayer]);
 
   let birdIds = Object.keys(dataProcessed);
-  console.log(birdIds);
   document.getElementById("nr-of-paths")!.innerText = birdIds.length;
   await createBirdList(birdIds, generalizedLayer, arcgisScene);
 
@@ -199,6 +196,7 @@ async function createGroupVisView(
   });
 
   document.body.classList.toggle("bird-mode", true);
+  const startDatePickerSection = document.getElementById("date-picker-start")!;
 
   document
     .getElementById("show-group-vis")!
@@ -212,6 +210,8 @@ async function createGroupVisView(
       ]);
       await setTimeSlider(arcgisScene, timeExtent, dataProcessed, []);
       document.body.classList.toggle("bird-mode", true);
+      startDatePickerSection.style.display = "none";
+
       groupLineLayer.visible = true;
       await arcgisScene.view.goTo(generalizedLayer.fullExtent);
       document.getElementById("dashboard-group-vis")!.style.display = "block";
@@ -235,11 +235,6 @@ async function createBirdList(birdIds: string[], featureLayer, arcgisScene) {
       const listItem = document.createElement("calcite-list-item");
       listItem.setAttribute("label", `Bird ${birdId}`);
       listItem.setAttribute("value", birdId);
-      const formatDate = (date: number) =>
-        new Date(date).toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "2-digit",
-        });
       const dateRange = `${formatDate(startDate)} - ${formatDate(endDate)}`;
 
       const durationMs = endDate - startDate;
@@ -340,9 +335,6 @@ export async function createSingleVisView(
   );
 
   await setCharts(polyline, secondaryLayer, arcgisScene, birdSummary);
-
-  await setBirdPerspective(arcgisScene, secondaryLayer);
-
   await setTimeSlider(
     arcgisScene,
     primaryLayer.timeInfo?.fullTimeExtent,
@@ -358,6 +350,8 @@ export async function createSingleVisView(
   const gaugeContainer = document.getElementById("gauges-container");
   let animationSwitch = document.getElementById("play-group-animation")!;
   let animationPlayRate = document.getElementById("animation-playrate");
+  const startDatePickerSection = document.getElementById("date-picker-start")!;
+  startDatePickerSection.style.display = "block";
   gaugeContainer!.style.display = "none";
   animationPlayRate!.style.display = "none";
   animationSwitch!.style.display = "none";
@@ -466,8 +460,6 @@ function processCSV(
           const latitude = parseFloat(
             parseFloat(row[getCol("latitude")]).toFixed(6),
           );
-          // const longitude = parseFloat(row[getCol("longitude")]);
-          // const latitude = parseFloat(row[getCol("latitude")]);
           if (
             isNaN(longitude) ||
             isNaN(latitude) ||
@@ -483,7 +475,7 @@ function processCSV(
               parseFloat(row[getCol("altitude")]).toFixed(3),
             ),
             speed: parseFloat(parseFloat(row[getCol("speed")]).toFixed(3)),
-            timestamp: new Date(row[getCol("timestamp")]),
+            timestamp: new Date(row[getCol("timestamp")] + "Z"), // show that UTC
             ...Object.fromEntries(
               headers
                 .filter((h: any) => !excludeKeys.includes(h))

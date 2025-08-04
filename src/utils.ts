@@ -7,14 +7,45 @@ export function timeout(timeoutInMilliseconds: number) {
   });
 }
 
-export function removeLayersByTitles(view: __esri.SceneView, titles: string[]) {
-  const layersToRemove = view.map.allLayers.filter((layer) =>
-    titles.includes(layer.title),
-  );
+export function toDateInput(date: Date) {
+  return date.toISOString().split("T")[0];
+}
 
+export function toTimeInput(date: Date) {
+  return date.toISOString().slice(11, 16);
+}
+
+export function formatDate(time) {
+  const now = new Date(time);
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "UTC",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  const formatted = formatter.format(now).toUpperCase().replace(",", "");
+
+  return formatted;
+}
+
+export function findLayersByTitles(
+  view: __esri.SceneView,
+  titles: string | string[],
+) {
+  const titleArray = Array.isArray(titles) ? titles : [titles];
+  const matched = view.map.allLayers.filter((layer) =>
+    titleArray.includes(layer.title),
+  );
+  return Array.isArray(titles) ? matched : matched.getItemAt(0);
+}
+
+export function removeLayersByTitles(view: __esri.SceneView, titles: string[]) {
+  const layersToRemove = findLayersByTitles(view, titles);
   layersToRemove.forEach((layer) => {
     view.map.remove(layer);
-    console.log(`Removed layer: ${layer.title}`);
   });
 }
 
@@ -34,15 +65,26 @@ export const lerp = (a, b, t, modulo) => {
   }
   return a + d * t;
 };
-// A, B - GRAPHIC geometry, T - NUMBER
+
 export const interpolate = (a, b, t) => {
-  const origin = new Point({
-    spatialReference: a.spatialReference,
-    x: lerp(a.x, b.x, t),
-    y: lerp(a.y, b.y, t),
-    z: lerp(a.z, b.z, t),
+  const isArray = Array.isArray(a) && Array.isArray(b);
+
+  const ax = isArray ? a[0] : a.x;
+  const ay = isArray ? a[1] : a.y;
+  const az = isArray ? (a[2] ?? 0) : (a.z ?? 0);
+
+  const bx = isArray ? b[0] : b.x;
+  const by = isArray ? b[1] : b.y;
+  const bz = isArray ? (b[2] ?? 0) : (b.z ?? 0);
+
+  return new Point({
+    x: lerp(ax, bx, t),
+    y: lerp(ay, by, t),
+    z: lerp(az, bz, t),
+    spatialReference: isArray
+      ? { wkid: 4326 }
+      : (a.spatialReference ?? { wkid: 4326 }),
   });
-  return origin;
 };
 
 export function getCoordinatesFromFeatures(features: Graphic[]): number[][] {
