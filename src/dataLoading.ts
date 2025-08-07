@@ -106,11 +106,11 @@ export async function loadData(arcgisScene: HTMLArcgisSceneElement) {
       csvText = await res.text();
 
       const mappedCols = {
-        birdid: "individual-local-identifier",
-        longitude: "location-long",
-        latitude: "location-lat",
-        altitude: "height-above-ellipsoid",
-        speed: "ground-speed",
+        birdid: "individual_local_identifier",
+        longitude: "location_long",
+        latitude: "location_lat",
+        altitude: "height_above_ellipsoid",
+        speed: "ground_speed",
         timestamp: "timestamp",
       };
 
