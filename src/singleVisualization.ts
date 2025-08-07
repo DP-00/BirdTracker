@@ -25,6 +25,8 @@ export async function setSingleVis(
   birdSummary: Record<string, any>,
   primaryValue: string,
   secondaryValue: string,
+  birdData,
+  polyline,
 ) {
   const primaryVisSelect = document.getElementById(
     "primary-vis-select",
@@ -37,18 +39,26 @@ export async function setSingleVis(
   const secondaryLegend = document.getElementById("legend-secondary");
   const primaryColorScale = document.getElementById("color-slider-primary");
   const secondaryColorScale = document.getElementById("color-slider-secondary");
-  const lineVisibility = document.getElementById("visibility-line");
-  const cylinderVisibility = document.getElementById("visibility-cylinders");
-  const generalizedVisibility = document.getElementById(
-    "visibility-generalized",
-  );
-  const extremumsVisibility = document.getElementById("visibility-extremums");
-  const timeMarksVisibility = document.getElementById("visibility-timemarks");
+
+  if (!geodeticLengthOperator.isLoaded()) {
+    await geodeticLengthOperator.load();
+  }
+
+  const length = geodeticLengthOperator.execute(polyline.geometry);
+
+  const startTime = new Date(birdData[0].timestamp).getTime();
+  const endTime = new Date(birdData[birdData.length - 1].timestamp).getTime();
+  let durationSeconds = (endTime - startTime) / 1000;
+  const days = Math.floor(durationSeconds / (3600 * 24));
+  durationSeconds -= days * 3600 * 24;
+  const hours = Math.floor(durationSeconds / 3600);
+
+  document.getElementById("dashboard-birdid")!.innerText = birdData[0].birdid;
+  document.getElementById("dashboard-duration")!.innerHTML =
+    `Whole path: <b style="font-weight:800;">${(length / 1000).toFixed(2)} km</b> for <b style="font-weight:800;">${days} days and ${hours} hours</b>`;
 
   setLayerVisibility();
 
-  createAttributeSelects(birdSummary, primaryVisSelect, primaryValue);
-  createAttributeSelects(birdSummary, secondaryVisSelect, secondaryValue);
   createDynamicPopupTemplate(primaryLayer, primaryValue, birdSummary);
   createDynamicPopupTemplate(secondaryLayer, secondaryValue, birdSummary);
 
@@ -66,6 +76,11 @@ export async function setSingleVis(
     document.getElementById("sec-filter-container")!,
     secondaryValue,
   );
+
+  createAttributeSelects(birdSummary, primaryVisSelect, primaryValue);
+  primaryVisSelect.value = primaryValue;
+  createAttributeSelects(birdSummary, secondaryVisSelect, secondaryValue);
+  secondaryVisSelect.value = secondaryValue;
 
   document.getElementById("line-variable")!.innerText =
     primaryVisSelect.value.charAt(0).toUpperCase() +
@@ -90,6 +105,16 @@ export async function setSingleVis(
       layer: secondaryLayer,
     },
   ];
+
+  console.log("bef", primaryColorScale);
+
+  primaryColorScale.innerHTML = "";
+  primaryColorScale.className = "";
+  secondaryColorScale.innerHTML = "";
+  secondaryColorScale.className = "";
+
+  console.log("aft", primaryColorScale);
+
   await createColorSlider(primaryVisSelect.value, primaryLayer, "primary");
   await createColorSlider(
     secondaryVisSelect.value,
@@ -184,6 +209,13 @@ export async function setSingleVis(
   });
 
   function setLayerVisibility() {
+    const lineVisibility = document.getElementById("visibility-line");
+    const cylinderVisibility = document.getElementById("visibility-cylinders");
+    const generalizedVisibility = document.getElementById(
+      "visibility-generalized",
+    );
+    const extremumsVisibility = document.getElementById("visibility-extremums");
+    const timeMarksVisibility = document.getElementById("visibility-timemarks");
     lineVisibility?.addEventListener("calciteCheckboxChange", async () => {
       primaryLayer.visible = !primaryLayer.visible;
     });
@@ -215,15 +247,15 @@ export async function setSingleVis(
     select.innerHTML = "";
     const attributes = Object.keys(birdSummary);
 
-    // if (!attributes.includes("---single color---")) {
-    //   attributes.unshift("---single color---");
-    // }
-
     attributes.forEach((attribute) => {
       const option = document.createElement("calcite-option");
       option.value = option.label = option.textContent = attribute;
+      if (attribute === defaultValue) {
+        option.setAttribute("selected", ""); // for second rerendering
+      }
       select.appendChild(option);
     });
+
     select.value = defaultValue;
   }
 
@@ -237,22 +269,25 @@ export async function setSingleVis(
     let container;
     let colorScaleContainer;
     let legendContainer;
+
     if (layerType == "primary") {
       container = "color-slider-primary";
+      resetSliderContainer(container);
       colorScaleContainer = primaryColorScale;
       legendContainer = primaryLegend;
     } else {
       container = "color-slider-secondary";
+      resetSliderContainer(container);
       colorScaleContainer = secondaryColorScale;
       legendContainer = secondaryLegend;
     }
 
-    if (!summary || variable === "---single color---") {
+    if (!summary) {
       legendContainer!.style.display = "block";
       colorScaleContainer!.style.display = "none";
       return;
     } else if (summary.type === "number") {
-      colorScaleContainer.innerHTML = null;
+      colorScaleContainer.innerHTML = "";
       legendContainer!.style.display = "none";
       colorScaleContainer!.style.display = "block";
     } else {
@@ -432,6 +467,16 @@ export async function setSingleVis(
 
       return Color.blendColors(minStop.color, maxStop.color, weightedPosition);
     }
+  }
+
+  function resetSliderContainer(containerId: string): HTMLDivElement {
+    const oldContainer = document.getElementById(containerId);
+    if (!oldContainer || !oldContainer.parentNode) return null;
+
+    const newContainer = document.createElement("div");
+    newContainer.id = containerId;
+    oldContainer.parentNode.replaceChild(newContainer, oldContainer);
+    return newContainer;
   }
 }
 
@@ -798,7 +843,7 @@ export function updateArrowLayer(
 export function updateLayerColorVariables(variable, layer, birdSummary) {
   const summary = birdSummary[variable];
   const currentRenderer = layer.renderer.clone();
-  if (!summary || variable === "---single color---") {
+  if (!summary) {
     // currentRenderer.visualVariables = [];
     // currentRenderer.uniqueValueInfos = [];
     // currentRenderer.type = "simple";
@@ -881,7 +926,6 @@ function createUniqueValueRenderer(variable, uniqueValues, currentRenderer) {
 function createVisualVariablesRenderer(variable, summary, currentRenderer) {
   let symbol;
   let type;
-  console.log("type", currentRenderer.type);
   if (currentRenderer.type === "unique-value") {
     type = currentRenderer.uniqueValueInfos[0].symbol.type;
   } else if (currentRenderer.type === "class-breaks") {

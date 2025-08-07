@@ -46,6 +46,7 @@ import "@esri/calcite-components/dist/components/calcite-input-date-picker";
 import "@esri/calcite-components/dist/components/calcite-input-time-picker";
 import "@esri/calcite-components/dist/components/calcite-input-time-zone";
 import "@esri/calcite-components/dist/components/calcite-label";
+import "@esri/calcite-components/dist/components/calcite-link";
 import "@esri/calcite-components/dist/components/calcite-list";
 import "@esri/calcite-components/dist/components/calcite-list-item";
 import "@esri/calcite-components/dist/components/calcite-list-item-group";
@@ -90,16 +91,19 @@ class App extends Widget<AppProperties> {
       accentColor: [55, 200, 100, 0.75],
       textColor: "green",
     };
-    view.popup!.defaultPopupTemplateEnabled = true;
     view.timeZone = "Etc/UTC";
     //@ts-ignore
     view.qualitySettings.bloom = true;
     view.popup = {
+      defaultPopupTemplateEnabled: true,
       dockEnabled: false,
       dockOptions: {
         breakpoint: false,
         position: "top-right",
       },
+    };
+    view.environment.lighting = {
+      cameraTrackingEnabled: false,
     };
     await loadData(arcgisScene);
     await setMapControls(arcgisScene);
@@ -333,6 +337,11 @@ class App extends Widget<AppProperties> {
                   <ChartsDashboard></ChartsDashboard>
                 </calcite-tab>
                 <calcite-tab>
+                  <calcite-notice icon="information" open>
+                    <div slot="message">
+                      Zoom the chart by scrolling with your mouse wheel
+                    </div>
+                  </calcite-notice>
                   <arcgis-elevation-profile
                     label="test"
                     reference-element="scene-div"
@@ -482,7 +491,6 @@ const ChartsDashboard = () => {
           <calcite-segmented-control-item
             id="chart-selection-map"
             icon-start="cursor-selection"
-            checked
           >
             Selection with Map Sync
           </calcite-segmented-control-item>
@@ -495,6 +503,7 @@ const ChartsDashboard = () => {
           <calcite-segmented-control-item
             id="chart-zoom"
             icon-start="magnifying-glass"
+            checked
           >
             Zoom
           </calcite-segmented-control-item>
@@ -558,6 +567,16 @@ const WeatherControls = () => {
       </div>
       <div id="weather-symbology-container">
         <h3>Weather symbology</h3>
+        <calcite-notice icon="information" open>
+          <div slot="message">
+            Spatial and temporal resolution of the data varies depending on the
+            available data in the region, see{" "}
+            <calcite-link href="https://open-meteo.com/en/docs/model-updates#historical_weather_api">
+              documentation
+            </calcite-link>
+            for more details
+          </div>
+        </calcite-notice>
         <div class="two-col-grid">
           <div>
             <calcite-label layout="inline">

@@ -1,4 +1,3 @@
-import * as geodeticLengthOperator from "@arcgis/core/geometry/operators/geodeticLengthOperator";
 import Polyline from "@arcgis/core/geometry/Polyline";
 import Graphic from "@arcgis/core/Graphic";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
@@ -218,11 +217,103 @@ async function createGroupVisView(
     });
 }
 
+export async function createSingleVisView(
+  arcgisScene: HTMLArcgisSceneElement,
+  dataProcessed: any,
+  birdid: string,
+) {
+  document.getElementById("details-button")!.loading = true;
+  document.getElementById("dashboard")!.loading = true;
+  document.getElementById("dashboard-group-vis")!.style.display = "none";
+  document.getElementById("dashboard-single-vis")!.style.display = "block";
+
+  document.body.classList.toggle("bird-mode", false);
+
+  const groupLineLayer = arcgisScene.view.map.allLayers.find(
+    (layer) => layer.title === "Group visualization",
+  );
+  groupLineLayer.visible = false;
+
+  removeLayersByTitles(arcgisScene.view, [
+    "Line visualization",
+    "Cylinder visualization",
+    "Time and distance visualization",
+    "Extremum visualization",
+  ]);
+
+  const primaryValue = "altitude";
+  const secondaryValue = "speed";
+
+  const birdPath = dataProcessed[birdid];
+  const birdSummary = summarizeData(birdPath);
+  const birdGraphics = createGraphics(birdPath);
+  const polyline = await createPolyline(birdPath);
+  const primaryLayer = await createLineLayer(birdPath, birdSummary);
+  const secondaryLayer = createCylinderLayer(birdGraphics, birdSummary);
+  const dayLayer = await createTimeMarkersLayer(birdGraphics);
+  const arrowLayer = new GraphicsLayer({
+    title: `Extremum visualization`,
+  });
+
+  arcgisScene.map?.addMany([
+    primaryLayer,
+    secondaryLayer,
+    arrowLayer,
+    dayLayer,
+  ]);
+  await primaryLayer.when();
+  await arcgisScene.view.goTo(primaryLayer.fullExtent);
+  await secondaryLayer.when();
+
+  await setSingleVis(
+    arcgisScene,
+    primaryLayer,
+    secondaryLayer,
+    arrowLayer,
+    dayLayer,
+    birdSummary,
+    primaryValue,
+    secondaryValue,
+    birdPath,
+    polyline,
+  );
+  await setTimeSlider(
+    arcgisScene,
+    primaryLayer.timeInfo?.fullTimeExtent,
+    dataProcessed,
+    birdGraphics,
+  );
+  await setWeather(arcgisScene, secondaryLayer, birdid);
+  await setCharts(polyline, secondaryLayer, arcgisScene, birdSummary);
+
+  document.getElementById("camera-control")!.value = "line";
+  document.getElementById("date-picker-start")!.style.display = "block";
+  document.getElementById("gauges-container")!.style.display = "none";
+  document.getElementById("animation-playrate")!.style.display = "none";
+  document.getElementById("play-group-animation")!.style.display = "none";
+  document.getElementById("dashboard")!.loading = false;
+  document.getElementById("details-button")!.loading = false;
+}
+
+async function createPolyline(birdData) {
+  const polyline = new Polyline({
+    spatialReference: { wkid: 4326 },
+    paths: birdData.map(
+      (pt: { longitude: any; latitude: any; altitude: any }) => [
+        pt.longitude,
+        pt.latitude,
+        pt.altitude,
+      ],
+    ),
+  });
+  const lineGraphic = new Graphic({ geometry: polyline });
+  return lineGraphic;
+}
+
 async function createBirdList(birdIds: string[], featureLayer, arcgisScene) {
   const list = document.getElementById("bird-list") as HTMLCalciteListElement;
   list.innerHTML = "";
   let view = arcgisScene.view;
-  let highlight;
   for (let birdId of birdIds) {
     const features = await featureLayer.queryFeatures({
       where: `birdid = '${birdId}'`,
@@ -270,126 +361,6 @@ async function createBirdList(birdIds: string[], featureLayer, arcgisScene) {
       list.appendChild(listItem);
     }
   }
-}
-
-export async function createSingleVisView(
-  arcgisScene: HTMLArcgisSceneElement,
-  dataProcessed: any,
-  birdid: string,
-) {
-  document.getElementById("details-button")!.loading = true;
-
-  document.getElementById("dashboard")!.loading = true;
-
-  document.getElementById("dashboard-group-vis")!.style.display = "none";
-  document.body.classList.toggle("bird-mode", false);
-
-  const groupLineLayer = arcgisScene.view.map.allLayers.find(
-    (layer) => layer.title === "Group visualization",
-  );
-  groupLineLayer.visible = false;
-
-  removeLayersByTitles(arcgisScene.view, [
-    "Line visualization",
-    "Cylinder visualization",
-    "Time and distance visualization (hours)",
-    "Time and distance visualization (days)",
-    "Extremum visualization",
-  ]);
-
-  const primaryValue = "altitude";
-  const secondaryValue = "speed";
-
-  const birdPath = dataProcessed[birdid];
-  const birdSummary = summarizeData(birdPath);
-  const birdGraphics = createGraphics(birdPath);
-  const primaryLayer = await createLineLayer(birdPath, birdSummary);
-  const secondaryLayer = createCylinderLayer(birdGraphics, birdSummary);
-  const dayLayer = await createTimeMarkersLayer(birdGraphics);
-
-  const arrowLayer = new GraphicsLayer({
-    title: `Extremum visualization`,
-  });
-
-  arcgisScene.map?.addMany([
-    primaryLayer,
-    secondaryLayer,
-    arrowLayer,
-    dayLayer,
-  ]);
-  await primaryLayer.when();
-  await arcgisScene.view.goTo(primaryLayer.fullExtent);
-  await secondaryLayer.when();
-
-  let polyline = await createPolylineAndDashboardInfo(birdPath);
-  await setWeather(arcgisScene, secondaryLayer, polyline);
-  await setSingleVis(
-    arcgisScene,
-    primaryLayer,
-    secondaryLayer,
-    arrowLayer,
-    dayLayer,
-    birdSummary,
-    primaryValue,
-    secondaryValue,
-  );
-
-  await setCharts(polyline, secondaryLayer, arcgisScene, birdSummary);
-  await setTimeSlider(
-    arcgisScene,
-    primaryLayer.timeInfo?.fullTimeExtent,
-    dataProcessed,
-    birdGraphics,
-  );
-
-  const cameraControl = document.getElementById(
-    "camera-control",
-  ) as HTMLCalciteSegmentedControlElement;
-  cameraControl.value = "line";
-  document.getElementById("dashboard-single-vis")!.style.display = "block";
-  const gaugeContainer = document.getElementById("gauges-container");
-  let animationSwitch = document.getElementById("play-group-animation")!;
-  let animationPlayRate = document.getElementById("animation-playrate");
-  const startDatePickerSection = document.getElementById("date-picker-start")!;
-  startDatePickerSection.style.display = "block";
-  gaugeContainer!.style.display = "none";
-  animationPlayRate!.style.display = "none";
-  animationSwitch!.style.display = "none";
-  document.getElementById("dashboard")!.loading = false;
-  document.getElementById("details-button")!.loading = false;
-}
-
-async function createPolylineAndDashboardInfo(birdData) {
-  const polyline = new Polyline({
-    spatialReference: { wkid: 4326 },
-    paths: birdData.map(
-      (pt: { longitude: any; latitude: any; altitude: any }) => [
-        pt.longitude,
-        pt.latitude,
-        pt.altitude,
-      ],
-    ),
-  });
-
-  if (!geodeticLengthOperator.isLoaded()) {
-    await geodeticLengthOperator.load();
-  }
-
-  const length = geodeticLengthOperator.execute(polyline);
-
-  const startTime = new Date(birdData[0].timestamp).getTime();
-  const endTime = new Date(birdData[birdData.length - 1].timestamp).getTime();
-  let durationSeconds = (endTime - startTime) / 1000;
-  const days = Math.floor(durationSeconds / (3600 * 24));
-  durationSeconds -= days * 3600 * 24;
-  const hours = Math.floor(durationSeconds / 3600);
-
-  document.getElementById("dashboard-birdid")!.innerText = birdData[0].birdid;
-  document.getElementById("dashboard-duration")!.innerHTML =
-    `Whole path: <b style="font-weight:800;">${(length / 1000).toFixed(2)} km</b> for <b style="font-weight:800;">${days} days and ${hours} hours</b>`;
-
-  const lineGraphic = new Graphic({ geometry: polyline });
-  return lineGraphic;
 }
 
 function createColumnSelects(

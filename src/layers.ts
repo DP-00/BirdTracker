@@ -145,7 +145,7 @@ export async function createGeneralizedLineLayer(
 
     const generalizedPolyline = await generalizeOperator.execute(
       polyline,
-      0.001,
+      0.002,
     );
 
     const lineGraphic = new Graphic({
@@ -157,6 +157,23 @@ export async function createGeneralizedLineLayer(
         length,
         color,
       },
+      symbol: new LineSymbol3D({
+        symbolLayers: [
+          new LineSymbol3DLayer({
+            cap: "round",
+            join: "round",
+            material: {
+              color: "#82b974ff",
+              // @ts-ignore
+              emissive: {
+                strength: 3,
+                source: "color",
+              },
+            },
+            size: 5,
+          }),
+        ],
+      }),
     });
 
     lineGraphics.push(lineGraphic);
@@ -194,19 +211,16 @@ export async function createGeneralizedLineLayer(
           type: "custom",
           creator: (event) => {
             const container = document.createElement("div");
-
             const button = document.createElement("calcite-button");
             button.id = "details-button";
             button.setAttribute("appearance", "outline");
             button.setAttribute("width", "full");
-            button.innerText = "Investigate the path";
-
+            button.innerText = "Investigate the track";
             const birdid = event.graphic.attributes.birdid;
             button.addEventListener("click", async () => {
               await createSingleVisView(arcgisScene, groupedData, birdid);
               arcgisScene.popup.close();
             });
-
             container.appendChild(button);
             return container;
           },
@@ -214,6 +228,7 @@ export async function createGeneralizedLineLayer(
       ],
     },
     elevationInfo: { mode: "on-the-ground" },
+    opacity: 0.5,
     renderer: {
       type: "simple",
       symbol: new LineSymbol3D({
@@ -222,24 +237,26 @@ export async function createGeneralizedLineLayer(
             cap: "round",
             join: "round",
             material: {
-              color: "#192a27b5",
-            },
-            // pattern: new LineStylePattern3D({
-            //   style: "solid",
-            // }),
-            size: 4,
-          }),
+              color: "#8a8f8dff",
 
+              // @ts-ignore
+              emissive: {
+                strength: 3,
+                source: "color",
+              },
+            },
+            //   pattern: new LineStylePattern3D({
+            //     style: "solid",
+            //   }),
+            size: 9,
+          }),
           new LineSymbol3DLayer({
             cap: "round",
             join: "round",
             material: {
-              color: "#aed8cc3b",
+              color: "#2e2c2cff",
             },
-            // pattern: new LineStylePattern3D({
-            //   style: "solid",
-            // }),
-            size: 2,
+            size: 6,
           }),
         ],
       }),
@@ -328,7 +345,7 @@ export async function createGroupLineLayer(groupedData) {
             },
             cap: "round",
             join: "round",
-            size: 3,
+            size: 2,
           }),
         ],
       }),
@@ -351,12 +368,7 @@ export async function createLineLayer(
 ) {
   const lineGraphics = [];
   let idCounter = 1;
-  // const firstBirdId = Object.keys(groupedData)[0];
-  // const allKeys = Object.keys(groupedData[firstBirdId][0]);
   const allKeys = Object.keys(data[0]);
-
-  // for (const birdid in groupedData) {
-  // const data = groupedData[birdid];
 
   for (let i = 0; i < data.length - 1; i++) {
     const startPoint = data[i];
@@ -407,7 +419,6 @@ export async function createLineLayer(
     elevationInfo: { mode: "absolute-height", offset: 3 },
     fields: generateLayerFields(birdSummary),
     outFields: ["*"],
-    // popupTemplate: popupTemplate,
     timeInfo: {
       startField: "timestamp",
       endField: "timestamp",
@@ -451,7 +462,6 @@ export function createCylinderLayer(graphics: any, birdSummary: any) {
       endField: "timestamp",
       interval: { value: 1, unit: "minutes" },
     },
-    // popupTemplate: popTemplate,
     opacity: 0.75,
     renderer: {
       type: "simple",
@@ -513,8 +523,6 @@ export async function createTimeMarkersLayer(graphics) {
   let i = 0;
   for (let d = startDate; d < endDate; d.setDate(d.getDate() + 1)) {
     let currentIndex = getClosestFeatureIndexInTime(graphics, d);
-    console.log(d, graphics[currentIndex].attributes.timestamp);
-
     let point = getClosestPointInTime(graphics, d, currentIndex);
     const line = new Polyline({
       spatialReference: { wkid: 4326 },

@@ -43,7 +43,7 @@ export async function setCharts(
   setElevationProfile();
 
   await setLineChart();
-  // await setBarChart();
+  await setBarChart();
 
   function setElevationProfile() {
     let elevProfile = document.querySelector("arcgis-elevation-profile");

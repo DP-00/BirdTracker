@@ -9,7 +9,7 @@ import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 import { ArcgisLegend } from "@arcgis/map-components/dist/components/arcgis-legend";
 import { ArcgisTimeSlider } from "@arcgis/map-components/dist/components/arcgis-time-slider";
 import { fetchWeatherApi } from "openmeteo";
-
+import { findLayersByTitles } from "./utils";
 const fields = [
   {
     name: "ObjectID",
@@ -52,7 +52,7 @@ const fields = [
   },
   {
     name: "windSpeed10",
-    alias: "Wind Speed (km/h)",
+    alias: "Wind Speed (m/s)",
     type: "double",
   },
   {
@@ -229,7 +229,7 @@ const precipitationRenderer = {
         { value: 1, color: colors[1] },
         { value: 3, color: colors[2] },
         { value: 8, color: colors[3] },
-        { value: 50, color: colors[4] },
+        { value: 10, color: colors[4] },
       ],
     },
   ],
@@ -297,10 +297,10 @@ const windRenderer = {
       field: "windSpeed10",
       stops: [
         { value: 0, color: colors[0] },
-        { value: 5, color: colors[1] },
-        { value: 10, color: colors[2] },
-        { value: 15, color: colors[3] },
-        { value: 20, color: colors[4] },
+        { value: 1, color: colors[1] },
+        { value: 3, color: colors[2] },
+        { value: 8, color: colors[3] },
+        { value: 10, color: colors[4] },
       ],
     },
     {
@@ -348,7 +348,7 @@ const windRenderer = {
   ],
 };
 
-export async function setWeather(arcgisScene, secondaryLayer, polyline) {
+export async function setWeather(arcgisScene, secondaryLayer, birdid) {
   const weatherSelect = document.getElementById(
     "weather-select",
   ) as HTMLCalciteSelectElement;
@@ -401,11 +401,26 @@ export async function setWeather(arcgisScene, secondaryLayer, polyline) {
     },
   ];
 
+  const polylineLayer = findLayersByTitles(
+    arcgisScene.view,
+    "Generlized visualization",
+  );
+
+  console.log("l", polylineLayer);
+
+  const polylineFeatureSet = await polylineLayer.queryFeatures({
+    returnGeometry: true,
+    where: `birdid = '${birdid}'`,
+  });
+  console.log("set", polylineFeatureSet);
+
+  const polyline = polylineFeatureSet.features[0].geometry;
+
   buttonTiles?.addEventListener("click", async () => {
-    tiles = await generateWeatherExtent(arcgisScene, secondaryLayer, polyline);
+    tiles = await generateWeatherExtent(arcgisScene, secondaryLayer);
   });
   buttonWeather?.addEventListener("click", async () => {
-    updateWeatherLayer();
+    await updateWeatherLayer();
 
     // weatherSelect.disabled = false;
     // weatherTimeSwitch.disabled = false;
@@ -469,7 +484,7 @@ export async function setWeather(arcgisScene, secondaryLayer, polyline) {
     return weatherLayer;
   }
 
-  async function generateWeatherExtent(arcgisScene, layer, polyline) {
+  async function generateWeatherExtent(arcgisScene, layer) {
     buttonTiles.loading = true;
     try {
       const existing = await weatherLayer.queryFeatures();
@@ -532,12 +547,7 @@ export async function setWeather(arcgisScene, secondaryLayer, polyline) {
         spatialReference: { wkid: 3857 },
       });
 
-      const tiles = await generateTiles(
-        polygon,
-        polyline,
-        firstTimestamp,
-        lastTimestamp,
-      );
+      const tiles = await generateTiles(polygon, firstTimestamp, lastTimestamp);
 
       await weatherLayer.applyEdits({
         addFeatures: tiles,
@@ -562,12 +572,7 @@ export async function setWeather(arcgisScene, secondaryLayer, polyline) {
     }
   }
 
-  async function generateTiles(
-    polygon,
-    polyline,
-    firstTimestamp,
-    lastTimestamp,
-  ) {
+  async function generateTiles(polygon, firstTimestamp, lastTimestamp) {
     const step = weatherSize.value * 1000;
     const extent = polygon.extent;
 
@@ -576,12 +581,9 @@ export async function setWeather(arcgisScene, secondaryLayer, polyline) {
     const ymin = extent.ymin;
     const ymax = extent.ymax;
 
-    // const polylineFeatureSet = await polyline.queryFeatures({
-    //   returnGeometry: true,
-    //   where: "1=1",
-    // });
-    const polylineWGS84 = polyline.geometry;
-    let polylineWM = webMercatorUtils.geographicToWebMercator(polylineWGS84);
+    let polylineWM = webMercatorUtils.geographicToWebMercator(polyline);
+    console.log("setWM", polylineWM);
+
     const tiles = [];
     for (let x = xmin; x < xmax; x += step) {
       for (let y = ymin; y < ymax; y += step) {
@@ -653,6 +655,7 @@ export async function setWeather(arcgisScene, secondaryLayer, polyline) {
         "wind_direction_100m",
         "wind_speed_100m",
       ],
+      wind_speed_unit: "ms",
     };
     const url = "https://archive-api.open-meteo.com/v1/archive";
     try {
@@ -801,7 +804,7 @@ export async function setWeather(arcgisScene, secondaryLayer, polyline) {
         ) as Point;
 
         const currentPoint = geodesicProximityOperator.getNearestVertex(
-          polyline.geometry,
+          polyline,
           tilePoint,
         );
 
@@ -876,7 +879,7 @@ export async function setWeather(arcgisScene, secondaryLayer, polyline) {
       }
       case "Wind": {
         weatherRenderer = windRenderer;
-        popupText = "Wind: {windSpeed10} km/h   {windDirection10} °";
+        popupText = "Wind: {windSpeed10} m/s   {windDirection10} °";
         break;
       }
     }
@@ -887,9 +890,9 @@ export async function setWeather(arcgisScene, secondaryLayer, polyline) {
       { fieldName: "temperature", label: "Temperature (°C)" },
       { fieldName: "pressure", label: "Pressure (hPa)" },
       { fieldName: "precipitation", label: "Precipitation (mm)" },
-      { fieldName: "windSpeed10", label: "Wind Speed @10m (km/h)" },
+      { fieldName: "windSpeed10", label: "Wind Speed @10m (m/s)" },
       { fieldName: "windDirection10", label: "Wind Direction @10m (°)" },
-      { fieldName: "windSpeed100", label: "Wind Speed @100m (km/h)" },
+      { fieldName: "windSpeed100", label: "Wind Speed @100m (m/s)" },
       { fieldName: "windDirection100", label: "Wind Direction @100m (°)" },
     ];
 
@@ -955,7 +958,7 @@ export async function setWeather(arcgisScene, secondaryLayer, polyline) {
           rawValues = String(attrs.windSpeed10All)
             .split(",")
             .map((v) => parseFloat(v.trim()));
-          label = "Wind Speed 10m (km/h)";
+          label = "Wind Speed 10m (m/s)";
           break;
       }
 
