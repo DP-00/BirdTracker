@@ -178,23 +178,42 @@ class App extends Widget<AppProperties> {
           <calcite-panel id="dashboard">
             <div id="dashboard-group-vis">
               <p>
-                <h2>
+                <h2 class="outlined">
                   BirdTracker
-                  <calcite-button
+                  <img
+                    src="/public/birdIcon3.svg"
+                    width="25px"
+                    height="25px"
+                  ></img>
+                  {/* <calcite-button
                     appearance="transparent"
                     icon-start="information"
                     kind="neutral"
                     round
                     scale="l"
-                  ></calcite-button>
+                  ></calcite-button> */}
                 </h2>
-                <span id="nr-of-paths"></span> birds tracks:
-                <calcite-button
-                  icon-start="layer-zoom-to"
-                  id="zoom-group"
-                ></calcite-button>
               </p>
-              <calcite-list id="bird-list" label="Bird list"></calcite-list>
+
+              <calcite-tabs layout="center" scale="l">
+                <calcite-tab-nav slot="title-group">
+                  <calcite-tab-title selected>Your tracks</calcite-tab-title>
+                </calcite-tab-nav>
+                <calcite-tab>
+                  <calcite-list
+                    id="bird-list"
+                    label="Bird list"
+                    scale="l"
+                  ></calcite-list>
+                </calcite-tab>
+              </calcite-tabs>
+              <calcite-button
+                icon-end="layer-zoom-to"
+                id="zoom-group"
+                scale="l"
+              >
+                Show all <span id="nr-of-paths"></span> birds tracks
+              </calcite-button>
             </div>
             <div id="dashboard-single-vis">
               <calcite-label>
@@ -222,8 +241,7 @@ class App extends Widget<AppProperties> {
                 </calcite-segmented-control>
               </calcite-label>
               <p>
-                <h2>
-                  Bird <span id="dashboard-birdid"></span>
+                <h2 id="birdid-header">
                   <calcite-button
                     id="show-group-vis"
                     appearance="transparent"
@@ -232,6 +250,7 @@ class App extends Widget<AppProperties> {
                     round
                     scale="l"
                   ></calcite-button>
+                  Bird <span id="dashboard-birdid"></span>
                 </h2>
                 <p id="dashboard-duration"></p>
                 <p id="dashboard-duration-selected"></p>
@@ -322,7 +341,7 @@ class App extends Widget<AppProperties> {
                         checked
                       ></calcite-checkbox>
                       Generalized line
-                      <span id="generalize-legend"></span>
+                      {/* <span id="generalize-legend"></span> */}
                     </calcite-label>
                     <calcite-label layout="inline" alignment="center">
                       <calcite-checkbox
@@ -708,12 +727,12 @@ const TimeControls = () => {
         appearance="transparent"
         kind="info"
       ></calcite-button>
-      <calcite-input-time-zone
+      {/* <calcite-input-time-zone
         mode="name"
         id="timezone-picker"
         scale="s"
         value="Etc/UTC"
-      ></calcite-input-time-zone>
+      ></calcite-input-time-zone> */}
       <calcite-combobox
         id="animation-playrate"
         placeholder="Animation speed"
@@ -783,7 +802,9 @@ const TimeControls = () => {
         icon-start="pencil"
         appearance="transparent"
       ></calcite-button>
-
+      <span id="time-utc">UTC Zone</span>
+      <span id="time-duration"></span>
+      <span id="time-distance"></span>
       <arcgis-time-slider
         layout="compact"
         reference-element="scene-div"

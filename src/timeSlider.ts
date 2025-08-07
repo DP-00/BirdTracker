@@ -29,7 +29,7 @@ export async function setTimeSlider(
   const oneDay = 24 * 60 * 60 * 1000;
   const view = arcgisScene.view;
   const timeSlider = document.querySelector("arcgis-time-slider")!;
-  const timezonePicker = document.getElementById("timezone-picker")!;
+  // const timezonePicker = document.getElementById("timezone-picker")!;
   const startDatePickerSection = document.getElementById("date-picker-start")!;
   const playAnimation = document.getElementById("play-group-animation")!;
   const animationPlayRate = document.getElementById("animation-playrate")!;
@@ -84,9 +84,9 @@ export async function setTimeSlider(
       updateCalculations(birdData, timeSlider);
     }
   });
-  timezonePicker.addEventListener("calciteInputTimeZoneChange", () => {
-    view.timeZone = timezonePicker.value;
-  });
+  // timezonePicker.addEventListener("calciteInputTimeZoneChange", () => {
+  //   view.timeZone = timezonePicker.value;
+  // });
   setDatePicker();
 
   // set mode change

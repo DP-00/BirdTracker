@@ -26,13 +26,32 @@ import {
 } from "./utils";
 
 // Esri color ramps - Falling Leaves
+// const colors = [
+//   "rgba(92, 152, 202, 1)",
+//   "rgba(62, 117, 109, 1)",
+//   "rgba(68, 73, 139, 1)",
+//   "rgba(115, 36, 31, 1)",
+//   "rgba(138, 81, 64, 1)",
+//   "rgba(152, 149, 71, 1)",
+// ];
+
+// const colors = [
+//   "rgba(139, 84, 75, 1)", // Muted brick red
+//   "rgba(92, 112, 153, 1)", // Soft slate blue
+//   "rgba(100, 140, 135, 1)", // Desaturated teal
+//   "rgba(181, 162, 110, 1)", // Dusty gold
+//   "rgba(168, 108, 129, 1)", // Soft mauve
+//   "rgba(122, 134, 113, 1)", // Olive gray
+//   "rgba(160, 123, 92, 1)", // Warm clay brown
+// ];
+
 const colors = [
-  "rgba(115, 36, 31, 1)",
-  "rgba(68, 73, 139, 1)",
-  "rgba(92, 152, 202, 1)",
-  "rgba(62, 117, 109, 1)",
-  "rgba(217, 215, 140, 1)",
-  "rgba(184, 107, 83, 1)",
+  "rgba(95, 92, 160, 1)", // Warm clay brown
+  "rgba(92, 134, 153, 1)", // Soft slate blue
+  "rgba(100, 140, 103, 1)", // Desaturated teal
+  "rgba(181, 144, 110, 1)", // Dusty gold
+  "rgba(139, 75, 75, 1)", // Muted brick red
+  "rgba(168, 108, 144, 1)", // Soft mauve
 ];
 
 const specialKeys = new Set([
@@ -145,7 +164,7 @@ export async function createGeneralizedLineLayer(
 
     const generalizedPolyline = await generalizeOperator.execute(
       polyline,
-      0.002,
+      0.003,
     );
 
     const lineGraphic = new Graphic({

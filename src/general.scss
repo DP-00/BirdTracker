@@ -61,6 +61,8 @@ body {
   width: 100%;
   background-color: #192a27;
   color: #aed8cc;
+  letter-spacing: 0.05em; /* Adjust spacing as needed */
+
   // text-shadow: #aed8cc 0 0 1.5px;
   // font-weight: 900;
 }
@@ -115,6 +117,13 @@ b {
   background-color: #aed8cc;
 }
 
+.esri-time-slider__time-extent-start-date,
+.esri-time-slider__time-extent-start-time,
+.esri-time-slider__time-extent-end-date,
+.esri-time-slider__time-extent-end-time {
+  --calcite-label-text-color: #aed8cc;
+}
+
 .esri-widget--button {
   background-color: #0d1a1500 !important;
   color: #aed8cc !important;
@@ -161,7 +170,7 @@ arcgis-chart {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0 0 0 3rem;
+  padding: 0 3rem 0 3rem;
 }
 
 .filter-container {
@@ -205,6 +214,18 @@ b {
   font-weight: bolder;
 }
 
+h2 {
+  letter-spacing: 0.3em; /* Adjust spacing as needed */
+  text-transform: uppercase; /* Optional for that title-case look */
+}
+
+// h2.outlined {
+//   color: transparent;
+//   -webkit-text-stroke: 1px currentColor; /* For Chrome/Safari */
+//   text-stroke: 1px currentColor; /* Standard syntax (less supported) */
+//   letter-spacing: 0.15em; /* You can combine both styles */
+//   font-weight: bold; /* Optional for better stroke visibility */
+// }
 input[type="file"]::file-selector-button {
   border: 0 solid #000000;
   padding: 0.5em 0.5em;
@@ -230,7 +251,7 @@ calcite-segmented-control-item[checked] {
 }
 
 #scene-wrapper {
-  flex: 1;
+  flex: 2;
   position: relative; /* required for absolute children */
   overflow: hidden;
 }
@@ -315,17 +336,49 @@ calcite-segmented-control-item[checked] {
 // }
 
 #dashboard {
-  flex: 1;
+  // flex: 1;
   padding: 0.5rem;
   font-weight: 36;
   text-align: center;
-  max-width: 40rem;
+  // max-width: 40rem;
   background-color: #192a27;
   --calcite-panel-background-color: #192a27;
+  text-align: center;
+  width: 5rem;
+  // max-width: 50vh;
+  // display: flex;
+  // flex-direction: column;
+  // align-items: center;
+  // transition: width 0.3s ease;
+}
+
+#dashboard::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    ellipse 95% 90% at center,
+    rgba(0, 0, 0, 0) 50%,
+    rgba(0, 0, 0, 0.7) 100%
+  );
+  mix-blend-mode: multiply;
+  z-index: 10;
 }
 
 #dashboard-single-vis {
   display: none;
+  // width: 40rem;
+  margin: 0 auto;
+  width: fit-content;
+}
+
+#dashboard-group-vis {
+  width: fit-content;
+  margin: 0 auto;
 }
 
 #dashboard-info {
@@ -341,6 +394,15 @@ calcite-segmented-control-item[checked] {
   margin: 0;
 }
 
+#birdid-header {
+  display: inline-flex; /* shrink to content width */
+  align-items: center; /* vertical alignment */
+  justify-content: center; /* center text + button */
+  gap: 0.5rem; /* spacing between button and text */
+  margin: 0 auto; /* center the whole <h2> block */
+  text-align: center;
+}
+
 calcite-tab {
   padding: 1.5rem;
 }
@@ -353,6 +415,22 @@ calcite-tab {
   padding-bottom: 3rem;
 }
 
+.esri-color-slider .esri-slider .esri-slider__content {
+  flex-direction: row;
+  height: 200px;
+  margin: 0 -5rem 0 0;
+}
+
+.esri-color-slider .esri-histogram {
+  width: auto;
+}
+
+.esri-color-slider .esri-histogram__svg {
+  width: 6rem;
+  height: 100%;
+  display: inline-block;
+  overflow: hidden;
+}
 .esri-color-slider .esri-slider .esri-slider__min {
   padding: 0;
   margin: 3px auto;
@@ -434,16 +512,6 @@ calcite-tab {
   transform: translateX(-50%);
 }
 
-#timezone-picker {
-  width: 20%;
-  position: absolute;
-  z-index: 1;
-  top: 0.1rem;
-  left: 0;
-  --calcite-combobox-input-border-color: rgba(0, 0, 0, 0);
-  --calcite-combobox-input-background-color: rgba(0, 0, 0, 0);
-}
-
 calcite-accordion-item {
   max-height: 50vh;
   overflow-y: auto;
@@ -503,6 +571,7 @@ calcite-tab-title {
 
 #bird-list {
   max-height: 75vh;
+  // max-width: 40rem;
   overflow-y: auto;
   padding: 1rem 1rem 0rem 2rem;
 }
@@ -520,12 +589,57 @@ calcite-tab-title {
   --calcite-action-background-color-hover: #090e0d;
 }
 
-#edit-time-button {
-  right: 50%;
-  transform: translateX(6.75rem);
+#timezone-picker {
+  width: 20%;
   position: absolute;
   z-index: 1;
   top: 0.1rem;
+  left: 0;
+  --calcite-combobox-input-border-color: rgba(0, 0, 0, 0);
+  --calcite-combobox-input-background-color: rgba(0, 0, 0, 0);
+}
+
+#edit-time-button {
+  right: 50%;
+  transform: translateX(7.75rem);
+  position: absolute;
+  z-index: 1;
+  top: 0.1rem;
+}
+
+// .explore-mode {
+//   display: none;
+// }
+
+#time-utc {
+  right: 50%;
+  transform: translateX(2rem);
+  position: absolute;
+  z-index: 1;
+  bottom: 0.2rem;
+  font-size: 11px;
+  display: none;
+}
+
+#time-duration {
+  // width: 20%;
+  padding-right: 0.5rem;
+  position: absolute;
+  z-index: 1;
+  top: 0.1rem;
+  right: 0;
+  display: none;
+}
+
+#time-distance {
+  // width: 20%;
+  padding-left: 0.5rem;
+  position: absolute;
+  z-index: 1;
+  top: 0.1rem;
+  left: 0;
+  display: none;
+  font-size: 11px;
 }
 
 #popover-time {

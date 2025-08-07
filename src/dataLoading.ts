@@ -208,7 +208,11 @@ async function createGroupVisView(
         "Extremum visualization",
       ]);
       await setTimeSlider(arcgisScene, timeExtent, dataProcessed, []);
+      document.getElementById("time-utc")!.style.display = "none";
+      document.getElementById("time-duration")!.style.display = "none";
+      document.getElementById("time-distance")!.style.display = "none";
       document.body.classList.toggle("bird-mode", true);
+
       startDatePickerSection.style.display = "none";
 
       groupLineLayer.visible = true;
@@ -226,6 +230,9 @@ export async function createSingleVisView(
   document.getElementById("dashboard")!.loading = true;
   document.getElementById("dashboard-group-vis")!.style.display = "none";
   document.getElementById("dashboard-single-vis")!.style.display = "block";
+  document.getElementById("time-utc")!.style.display = "block";
+  document.getElementById("time-duration")!.style.display = "block";
+  document.getElementById("time-distance")!.style.display = "block";
 
   document.body.classList.toggle("bird-mode", false);
 
@@ -324,7 +331,7 @@ async function createBirdList(birdIds: string[], featureLayer, arcgisScene) {
     if (feature) {
       const { length, startDate, endDate, color } = feature.attributes;
       const listItem = document.createElement("calcite-list-item");
-      listItem.setAttribute("label", `Bird ${birdId}`);
+      listItem.setAttribute("label", `BIRD ${birdId}`);
       listItem.setAttribute("value", birdId);
       const dateRange = `${formatDate(startDate)} - ${formatDate(endDate)}`;
 
@@ -332,7 +339,7 @@ async function createBirdList(birdIds: string[], featureLayer, arcgisScene) {
       const durationHrs = Math.floor(durationMs / (1000 * 60 * 60));
       const days = Math.floor(durationHrs / 24);
       const hours = durationHrs % 24;
-      const description = `${length} km for ${days} day${days !== 1 ? "s" : ""} and ${hours} hour${hours !== 1 ? "s" : ""} (${dateRange})`;
+      const description = `${days} d ${hours} h |  ${dateRange}   |   ${length} km `;
       listItem.setAttribute("description", description);
       listItem.addEventListener("pointerenter", async () => {
         const layerView = await arcgisScene.view.whenLayerView(featureLayer);

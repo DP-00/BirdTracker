@@ -15,7 +15,7 @@ import Polyline from "@arcgis/core/geometry/Polyline";
 import * as colorRendererCreator from "@arcgis/core/smartMapping/renderers/color.js";
 import IconSymbol3DLayer from "@arcgis/core/symbols/IconSymbol3DLayer";
 import PointSymbol3D from "@arcgis/core/symbols/PointSymbol3D";
-import { getClosestFeatureIndexInTime } from "./utils";
+import { formatDate, getClosestFeatureIndexInTime } from "./utils";
 export async function setSingleVis(
   arcgisScene: HTMLArcgisSceneElement,
   primaryLayer: __esri.FeatureLayer,
@@ -55,7 +55,7 @@ export async function setSingleVis(
 
   document.getElementById("dashboard-birdid")!.innerText = birdData[0].birdid;
   document.getElementById("dashboard-duration")!.innerHTML =
-    `Whole path: <b style="font-weight:800;">${(length / 1000).toFixed(2)} km</b> for <b style="font-weight:800;">${days} days and ${hours} hours</b>`;
+    `${days} d ${hours} h  |  ${formatDate(startTime)} - ${formatDate(endTime)}  | ${(length / 1000).toFixed(2)} km <br>`;
 
   setLayerVisibility();
 
@@ -535,11 +535,14 @@ export async function updateCalculations(birdData, timeSlider) {
     );
     let distanceToLine2 = geodeticLengthOperator.execute(newLine);
 
-    document.getElementById("dashboard-duration-selected")!.innerHTML =
-      `Selected path: <b style="font-weight:800;">${(distanceToLine2 / 1000).toFixed(2)}km</b> for <b style="font-weight:800;">${daysSelected} days and ${hoursSelected} hours</b>
-  <br> Horizontal speed: <b style="font-weight:800;">${(distanceToLine / 1000 / sumHoursSelected).toFixed(2)} km/h</b>
-  Vertical speed: <b style="font-weight:800;">${(verticalDiff / 1000 / sumHoursSelected).toFixed(2)} km/h</b>
-  `;
+    document.getElementById("time-distance")!.innerHTML =
+      `${(distanceToLine2 / 1000).toFixed(2)}km  |
+    Horizontal speed: ${(distanceToLine / 1000 / sumHoursSelected).toFixed(2)} km/h | <br>
+    Vertical speed: ${(verticalDiff / 1000 / sumHoursSelected).toFixed(2)} km/h
+    `;
+
+    document.getElementById("time-duration")!.innerHTML =
+      `${daysSelected} days and ${hoursSelected} hours`;
   }
 }
 
