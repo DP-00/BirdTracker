@@ -181,7 +181,7 @@ class App extends Widget<AppProperties> {
                 <h2 class="outlined">
                   BirdTracker
                   <img
-                    src="/public/birdIcon3.svg"
+                    src="./public/birdIcon3.svg"
                     width="25px"
                     height="25px"
                   ></img>
@@ -592,7 +592,7 @@ const WeatherControls = () => {
             available data in the region, see{" "}
             <calcite-link href="https://open-meteo.com/en/docs/model-updates#historical_weather_api">
               documentation
-            </calcite-link>
+            </calcite-link>{" "}
             for more details
           </div>
         </calcite-notice>

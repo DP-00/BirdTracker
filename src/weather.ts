@@ -561,7 +561,9 @@ export async function setWeather(arcgisScene, secondaryLayer, birdid) {
         return;
       } else {
         buttonWeather.disabled = false;
-        await arcgisScene.view.goTo(tiles);
+        if (tiles) {
+          await arcgisScene.view.goTo(tiles);
+        }
       }
 
       return tiles;

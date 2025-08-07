@@ -55,7 +55,7 @@ export async function setSingleVis(
 
   document.getElementById("dashboard-birdid")!.innerText = birdData[0].birdid;
   document.getElementById("dashboard-duration")!.innerHTML =
-    `${days} d ${hours} h  |  ${formatDate(startTime)} - ${formatDate(endTime)}  | ${(length / 1000).toFixed(2)} km <br>`;
+    `${days} d ${hours} h  |  ${formatDate(startTime)} - ${formatDate(endTime)}  | ${(length / 1000).toFixed(0)} km <br>`;
 
   setLayerVisibility();
 
@@ -536,9 +536,9 @@ export async function updateCalculations(birdData, timeSlider) {
     let distanceToLine2 = geodeticLengthOperator.execute(newLine);
 
     document.getElementById("time-distance")!.innerHTML =
-      `${(distanceToLine2 / 1000).toFixed(2)}km  |
-    Horizontal speed: ${(distanceToLine / 1000 / sumHoursSelected).toFixed(2)} km/h | <br>
-    Vertical speed: ${(verticalDiff / 1000 / sumHoursSelected).toFixed(2)} km/h
+      `Speed: ${(distanceToLine / 1000 / sumHoursSelected).toFixed(2)}  km/h (horizontal) | 
+     ${(verticalDiff / 1000 / sumHoursSelected).toFixed(2)} km/h (vertical) <br>
+    Distance: ${(distanceToLine2 / 1000).toFixed(0)}km 
     `;
 
     document.getElementById("time-duration")!.innerHTML =
