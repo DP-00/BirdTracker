@@ -180,11 +180,7 @@ class App extends Widget<AppProperties> {
               <p>
                 <h2 class="outlined">
                   BirdTracker
-                  <img
-                    src="./public/birdIcon3.svg"
-                    width="25px"
-                    height="25px"
-                  ></img>
+                  <img src="./birdIcon3.svg" width="25px" height="25px"></img>
                   {/* <calcite-button
                     appearance="transparent"
                     icon-start="information"
