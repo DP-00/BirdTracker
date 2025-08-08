@@ -189,36 +189,51 @@ async function createGroupVisView(
 
   await setTimeSlider(arcgisScene, timeExtent, dataProcessed, []);
 
-  arcgisScene.view.goTo(generalizedLayer.fullExtent);
+  arcgisScene.view.goTo({
+    target: generalizedLayer.fullExtent,
+    heading: 0,
+    tilt: 0,
+  });
   document.getElementById("zoom-group")!.addEventListener("click", async () => {
-    arcgisScene.view.goTo(generalizedLayer.fullExtent);
+    arcgisScene.view.goTo({
+      target: generalizedLayer.fullExtent,
+      heading: 0,
+      tilt: 0,
+    });
   });
 
   document.body.classList.toggle("bird-mode", true);
   const startDatePickerSection = document.getElementById("date-picker-start")!;
+  const homeBtn = document.getElementById("show-group-vis")!;
+  homeBtn.addEventListener("click", async () => {
+    homeBtn.loading = true;
+    document.getElementById("dashboard-single-vis").loading = true;
+    document.getElementById("dashboard-single-vis")!.style.display = "none";
+    removeLayersByTitles(arcgisScene.view, [
+      "Line visualization",
+      "Cylinder visualization",
+      "Time and distance visualization",
+      "Extremum visualization",
+    ]);
+    await setTimeSlider(arcgisScene, timeExtent, dataProcessed, []);
+    document.getElementById("time-zoom")!.style.display = "none";
+    document.getElementById("time-duration")!.style.display = "none";
+    document.getElementById("time-distance")!.style.display = "none";
+    document.body.classList.toggle("bird-mode", true);
 
-  document
-    .getElementById("show-group-vis")!
-    .addEventListener("click", async () => {
-      document.getElementById("dashboard-single-vis")!.style.display = "none";
-      removeLayersByTitles(arcgisScene.view, [
-        "Line visualization",
-        "Cylinder visualization",
-        "Time and distance visualization",
-        "Extremum visualization",
-      ]);
-      await setTimeSlider(arcgisScene, timeExtent, dataProcessed, []);
-      document.getElementById("time-utc")!.style.display = "none";
-      document.getElementById("time-duration")!.style.display = "none";
-      document.getElementById("time-distance")!.style.display = "none";
-      document.body.classList.toggle("bird-mode", true);
+    startDatePickerSection.style.display = "none";
 
-      startDatePickerSection.style.display = "none";
-
-      groupLineLayer.visible = true;
-      await arcgisScene.view.goTo(generalizedLayer.fullExtent);
-      document.getElementById("dashboard-group-vis")!.style.display = "block";
+    groupLineLayer.visible = true;
+    await arcgisScene.view.goTo({
+      target: generalizedLayer.fullExtent,
+      heading: 0,
+      tilt: 0,
     });
+    homeBtn.loading = false;
+    document.getElementById("dashboard-single-vis").loading = false;
+
+    document.getElementById("dashboard-group-vis")!.style.display = "block";
+  });
 }
 
 export async function createSingleVisView(
@@ -230,12 +245,6 @@ export async function createSingleVisView(
   document.getElementById("dashboard")!.loading = true;
   document.getElementById("dashboard-group-vis")!.style.display = "none";
   document.getElementById("dashboard-single-vis")!.style.display = "block";
-  document.getElementById("time-utc")!.style.display = "block";
-  document.getElementById("time-duration")!.style.display = "block";
-  document.getElementById("time-distance")!.style.display = "block";
-
-  document.body.classList.toggle("bird-mode", false);
-
   const groupLineLayer = arcgisScene.view.map.allLayers.find(
     (layer) => layer.title === "Group visualization",
   );
@@ -269,7 +278,12 @@ export async function createSingleVisView(
     dayLayer,
   ]);
   await primaryLayer.when();
-  await arcgisScene.view.goTo(primaryLayer.fullExtent);
+  // await arcgisScene.view.goTo(primaryLayer.fullExtent);
+  await arcgisScene.view.goTo({
+    target: primaryLayer.fullExtent,
+    heading: 0,
+    tilt: 0,
+  });
   await secondaryLayer.when();
 
   await setSingleVis(
@@ -292,12 +306,16 @@ export async function createSingleVisView(
   );
   await setWeather(arcgisScene, secondaryLayer, birdid);
   await setCharts(polyline, secondaryLayer, arcgisScene, birdSummary);
-
-  document.getElementById("camera-control")!.value = "line";
-  document.getElementById("date-picker-start")!.style.display = "block";
   document.getElementById("gauges-container")!.style.display = "none";
   document.getElementById("animation-playrate")!.style.display = "none";
   document.getElementById("play-group-animation")!.style.display = "none";
+  document.getElementById("date-picker-start")!.style.display = "block";
+  document.getElementById("time-zoom")!.style.display = "block";
+  document.getElementById("time-duration")!.style.display = "block";
+  document.getElementById("time-distance")!.style.display = "block";
+
+  document.body.classList.toggle("bird-mode", false);
+  document.getElementById("camera-control")!.value = "line";
   document.getElementById("dashboard")!.loading = false;
   document.getElementById("details-button")!.loading = false;
 }
@@ -341,20 +359,31 @@ async function createBirdList(birdIds: string[], featureLayer, arcgisScene) {
       const hours = durationHrs % 24;
       const description = `${days} d ${hours} h |  ${dateRange}   |   ${length} km `;
       listItem.setAttribute("description", description);
-      listItem.addEventListener("pointerenter", async () => {
-        const layerView = await arcgisScene.view.whenLayerView(featureLayer);
-        let highlight = layerView.highlight(feature);
-        setTimeout(() => highlight.remove(), 500);
-      });
-      const action = document.createElement("calcite-action");
-      action.setAttribute("slot", "actions-end");
-      action.setAttribute("icon", "layer-zoom-to");
-      action.setAttribute("text", "Select");
-      action.style.setProperty("--calcite-action-text-color", color);
-      listItem.style.setProperty("--calcite-list-label-text-color", color);
+      listItem.setAttribute("icon-end", "layer-zoom-to");
+      let activeHighlight = null;
 
-      action.addEventListener("click", async () => {
-        await view.goTo(feature.geometry);
+      listItem.addEventListener("pointerenter", async () => {
+        if (activeHighlight) {
+          activeHighlight.remove();
+          activeHighlight = null;
+        }
+
+        const layerView = await arcgisScene.view.whenLayerView(featureLayer);
+        activeHighlight = layerView.highlight(feature);
+      });
+
+      listItem.addEventListener("pointerleave", () => {
+        if (activeHighlight) {
+          activeHighlight.remove();
+          activeHighlight = null;
+        }
+      });
+      listItem.addEventListener("click", async () => {
+        await arcgisScene.view.goTo({
+          target: feature.geometry,
+          heading: 0,
+          tilt: 0,
+        });
         const layerView = await arcgisScene.view.whenLayerView(featureLayer);
         let highlight = layerView.highlight(feature);
         setTimeout(() => {
@@ -364,7 +393,7 @@ async function createBirdList(birdIds: string[], featureLayer, arcgisScene) {
           features: [feature],
         });
       });
-      listItem.appendChild(action);
+      listItem.style.setProperty("--calcite-list-label-text-color", color);
       list.appendChild(listItem);
     }
   }

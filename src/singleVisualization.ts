@@ -121,6 +121,20 @@ export async function setSingleVis(
     secondaryLayer,
     "secondary",
   );
+
+  document.getElementById("time-zoom")!.addEventListener("click", async () => {
+    const layerView = await arcgisScene.view.whenLayerView(primaryLayer);
+
+    const { extent } = await layerView.queryExtent();
+    if (extent) {
+      arcgisScene.view.goTo({
+        target: extent,
+        heading: 0,
+        tilt: 0,
+      });
+    }
+  });
+
   primaryVisSelect?.addEventListener("calciteSelectChange", async () => {
     arcgisScene.view.whenLayerView(primaryLayer).then((layerView) => {
       layerView.filter = null;
@@ -534,10 +548,8 @@ export async function updateCalculations(birdData, timeSlider) {
       lastPoint,
     );
     let distanceToLine2 = geodeticLengthOperator.execute(newLine);
-
     document.getElementById("time-distance")!.innerHTML =
-      `Speed: ${(distanceToLine / 1000 / sumHoursSelected).toFixed(2)}  km/h (horizontal) | 
-     ${(verticalDiff / 1000 / sumHoursSelected).toFixed(2)} km/h (vertical) <br>
+      `Speed: →  ${(distanceToLine / 1000 / sumHoursSelected).toFixed(2)} ↑ ${(verticalDiff / 1000 / sumHoursSelected).toFixed(2)}  km/h<br>
     Distance: ${(distanceToLine2 / 1000).toFixed(0)}km 
     `;
 

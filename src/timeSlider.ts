@@ -125,12 +125,16 @@ export async function setTimeSlider(
   document
     .getElementById("camera-zoom")!
     .addEventListener("click", async () => {
-      view.goTo(pointLayer.fullExtent);
+      await view.goTo({
+        target: pointLayer.fullExtent,
+        heading: 0,
+        tilt: 0,
+      });
     });
 
   // set animations
   let isPlaying = false;
-  animationPlayRate.value = 10000;
+  animationPlayRate.value = 50000;
   playAnimation.addEventListener("click", () => {
     isPlaying = !isPlaying;
     if (isPlaying) {

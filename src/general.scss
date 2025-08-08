@@ -62,18 +62,7 @@ body {
   background-color: #192a27;
   color: #aed8cc;
   letter-spacing: 0.05em; /* Adjust spacing as needed */
-
-  // text-shadow: #aed8cc 0 0 1.5px;
-  // font-weight: 900;
 }
-
-// calcite-icon {
-//   filter: drop-shadow(0 0 1.5px #aed8cc) !important;
-// }
-
-// svg {
-//   filter: drop-shadow(0 0 1.5px #aed8cc) !important;
-// }
 
 b {
   font-weight: 900;
@@ -186,25 +175,38 @@ arcgis-chart {
   font-weight: 800;
 }
 
-.legend-label-container {
-  display: grid;
-  grid-template-columns: auto auto auto;
-  gap: 1rem;
-  padding-left: 0.5rem;
-}
-
-// .legend-label-container > calcite-label {
-//   max-width: 10rem;
+// .legend-label-container {
+//   display: flex;
+//   flex-direction: column;
+//   align-items: center;
+//   gap: 0.25rem;
+//   text-align: center;
 // }
 
-#generalize-legend {
-  background-color: rgba(31, 29, 29, 0.75);
-  max-width: 100px;
-  min-width: 50px;
-  height: 10px;
-  border-radius: 10rem;
-  padding-right: 1rem;
-}
+// .legend-icon {
+//   display: inline-block;
+//   margin: 0 0 0.4rem 0;
+//   vertical-align: middle;
+// }
+
+// .legend-icon.square {
+//   width: 15px;
+//   height: 15px;
+//   background-color: #3d1513;
+// }
+
+// .legend-icon.triangle {
+//   width: 0;
+//   height: 0;
+//   border-left: 9px solid transparent;
+//   border-right: 9px solid transparent;
+//   border-bottom: 15px solid #3d1513;
+// }
+
+// .legend-icon.upside-down {
+//   border-bottom: none;
+//   border-top: 15px solid rgb(3, 17, 9);
+// }
 
 input {
   margin: 1rem 0;
@@ -214,18 +216,32 @@ b {
   font-weight: bolder;
 }
 
-h2 {
-  letter-spacing: 0.3em; /* Adjust spacing as needed */
-  text-transform: uppercase; /* Optional for that title-case look */
+h1 {
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  padding-bottom: 4rem;
 }
 
-// h2.outlined {
-//   color: transparent;
-//   -webkit-text-stroke: 1px currentColor; /* For Chrome/Safari */
-//   text-stroke: 1px currentColor; /* Standard syntax (less supported) */
-//   letter-spacing: 0.15em; /* You can combine both styles */
-//   font-weight: bold; /* Optional for better stroke visibility */
-// }
+h2 {
+  letter-spacing: 0.2em;
+  font-size: 1.15rem;
+  text-transform: uppercase;
+}
+
+#dashboard h2 {
+  line-height: 0.5;
+}
+
+h1,
+h2,
+calcite-tab-nav {
+  text-shadow: #aed8cc4f 0px 0 5px;
+}
+
+calcite-list {
+  text-shadow: #aed8cc25 0px 0 5px;
+}
+
 input[type="file"]::file-selector-button {
   border: 0 solid #000000;
   padding: 0.5em 0.5em;
@@ -331,16 +347,12 @@ calcite-segmented-control-item[checked] {
   pointer-events: auto;
 }
 
-// #scene-div {
-//   flex: 1;
-// }
-
 #dashboard {
   // flex: 1;
-  padding: 0.5rem;
+  padding: 0.5rem 1rem;
   font-weight: 36;
   text-align: center;
-  // max-width: 40rem;
+  min-width: 42rem;
   background-color: #192a27;
   --calcite-panel-background-color: #192a27;
   text-align: center;
@@ -371,22 +383,49 @@ calcite-segmented-control-item[checked] {
 
 #dashboard-single-vis {
   display: none;
-  // width: 40rem;
+  width: 38rem;
   margin: 0 auto;
-  width: fit-content;
+  overflow-x: hidden;
+  // width: fit-content;
 }
 
 #dashboard-group-vis {
-  width: fit-content;
+  // width: fit-content;
   margin: 0 auto;
+  width: 38rem;
+}
+
+#dashboard-modes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+  padding: 0.5rem 0 2.5rem 0;
+}
+
+#dashboard-modes calcite-segmented-control {
+  width: 60%;
+}
+
+#dashboard-modes calcite-button {
+  position: absolute;
+  right: -0.5rem;
+  z-index: 3;
+}
+
+.esri-icon {
+  font-family: "CalciteWebCoreIcons"; /* Esri icon font */
+  font-size: 1.8rem;
+  line-height: 1;
 }
 
 #dashboard-info {
   display: grid;
   grid-template-columns: auto auto;
-  gap: 10px;
-  padding-bottom: 2rem;
-  padding: 1.5rem;
+  gap: 1.5rem;
+  padding: 0.5rem;
+  padding-bottom: 3.5rem;
 }
 
 #dashboard-info p {
@@ -394,17 +433,22 @@ calcite-segmented-control-item[checked] {
   margin: 0;
 }
 
+#dashboard-duration {
+  padding: 0;
+  margin: 0;
+}
+
 #birdid-header {
-  display: inline-flex; /* shrink to content width */
-  align-items: center; /* vertical alignment */
-  justify-content: center; /* center text + button */
-  gap: 0.5rem; /* spacing between button and text */
-  margin: 0 auto; /* center the whole <h2> block */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0 auto;
   text-align: center;
 }
 
 calcite-tab {
-  padding: 1.5rem;
+  padding: 0.5rem 0.5rem;
 }
 
 #color-scale-container {
@@ -412,7 +456,7 @@ calcite-tab {
   grid-template-columns: auto auto;
   gap: 3px;
   overflow-x: clip;
-  padding-bottom: 3rem;
+  padding-bottom: 2.5rem;
 }
 
 .esri-color-slider .esri-slider .esri-slider__content {
@@ -569,11 +613,16 @@ calcite-tab-title {
   font-weight: 600;
 }
 
+#zoom-group {
+  width: 85%;
+  margin: 1rem 1rem 3rem 2rem;
+  // margin: auto 0;
+}
+
 #bird-list {
-  max-height: 75vh;
-  // max-width: 40rem;
+  max-height: 50vh;
   overflow-y: auto;
-  padding: 1rem 1rem 0rem 2rem;
+  padding: 1rem 1rem 3rem 2rem;
 }
 
 #bird-list calcite-list-item {
@@ -611,9 +660,9 @@ calcite-tab-title {
 //   display: none;
 // }
 
-#time-utc {
+#time-zoom {
   right: 50%;
-  transform: translateX(2rem);
+  transform: translateX(5.5rem);
   position: absolute;
   z-index: 1;
   bottom: 0.2rem;
@@ -724,4 +773,71 @@ calcite-tab-title {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #090e0d;
+}
+
+.legend-label-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* center the whole box horizontally */
+  gap: 0.5rem;
+}
+
+.legend-label-container h3 {
+  margin-bottom: 0.5rem;
+}
+
+.legend-row {
+  display: flex;
+  // align-items: center;
+  justify-content: right;
+  width: 20rem;
+}
+
+.legend-text {
+  margin-left: 0.4rem;
+  flex: 1;
+  text-align: left;
+}
+
+// .legend-icon-group {
+//   // display: inline-flex;
+//   // gap: 2px;
+// }
+
+.legend-icon {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.legend-icon.square {
+  width: 15px;
+  height: 15px;
+  background-color: #3d1513;
+}
+
+.legend-icon.triangle {
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+}
+
+.legend-icon.triangle.red {
+  border-bottom: 15px solid #3d1513;
+}
+
+.legend-icon.triangle.green {
+  border-top: 15px solid rgb(5, 24, 13);
+}
+
+#generalize-legend {
+  background-color: rgba(31, 29, 29, 0.75);
+  width: 18px;
+  height: 13px;
+  border-radius: 10rem;
+  padding-right: 1rem;
+}
+
+calcite-notice {
+  padding-bottom: 1.5rem;
 }

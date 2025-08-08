@@ -15,15 +15,15 @@ export async function setMapControls(arcgisScene: HTMLArcgisSceneElement) {
 }
 function setBasemaps() {
   const customBasemaps = [
-    Basemap.fromId("topo-3d"),
-    Basemap.fromId("osm-3d"),
-    Basemap.fromId("gray-3d"),
-    Basemap.fromId("dark-gray-3d"),
     Basemap.fromId("satellite"),
     Basemap.fromId("hybrid"),
-    Basemap.fromId("oceans"),
+    Basemap.fromId("topo-3d"),
+    // Basemap.fromId("osm-3d"),
+    // Basemap.fromId("gray-3d"),
+    // Basemap.fromId("dark-gray-3d"),
+    // Basemap.fromId("oceans"),
     Basemap.fromId("topo"),
-    Basemap.fromId("gray"),
+    // Basemap.fromId("gray"),
     Basemap.fromId("dark-gray"),
     Basemap.fromId("osm"),
     new Basemap({
@@ -77,7 +77,7 @@ async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
 
   const landCoverLayer = new ImageryLayer({
     url: "https://ic.imagery1.arcgis.com/arcgis/rest/services/Sentinel2_10m_LandCover/ImageServer",
-    title: "Land Cover (Sentinel-2 10m)",
+    title: "Land Cover",
     visible: false,
   });
 
@@ -171,8 +171,8 @@ async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
   });
 
   await arcgisScene.addLayers([
-    windspeedLayer,
-    footprintLayer,
+    // windspeedLayer,
+    // footprintLayer,
     biointactnessLayer,
     conopyLayer,
     ecosystemLayer,
@@ -200,6 +200,12 @@ async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
     item.panel = {
       content: "legend",
     };
+
+    item.watch("visible", (newVal) => {
+      if (newVal) {
+        item.panel.open = true;
+      }
+    });
   };
 }
 

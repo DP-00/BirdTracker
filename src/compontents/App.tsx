@@ -69,6 +69,7 @@ import "@esri/calcite-components/dist/components/calcite-tab";
 import "@esri/calcite-components/dist/components/calcite-tab-nav";
 import "@esri/calcite-components/dist/components/calcite-tab-title";
 import "@esri/calcite-components/dist/components/calcite-tabs";
+import "@esri/calcite-components/dist/components/calcite-tooltip";
 
 import * as intl from "@arcgis/core/intl.js";
 import { loadData } from "../dataLoading";
@@ -178,7 +179,7 @@ class App extends Widget<AppProperties> {
           <calcite-panel id="dashboard">
             <div id="dashboard-group-vis">
               <p>
-                <h2 class="outlined">
+                <h1 class="outlined">
                   BirdTracker
                   <img src="./birdIcon3.svg" width="25px" height="25px"></img>
                   {/* <calcite-button
@@ -188,31 +189,43 @@ class App extends Widget<AppProperties> {
                     round
                     scale="l"
                   ></calcite-button> */}
-                </h2>
+                </h1>
               </p>
 
               <calcite-tabs layout="center" scale="l">
                 <calcite-tab-nav slot="title-group">
-                  <calcite-tab-title selected>Your tracks</calcite-tab-title>
+                  <calcite-tab-title icon-start="question">
+                    Tutorial
+                  </calcite-tab-title>
+                  <calcite-tab-title icon-start="line" selected>
+                    Navigate tracks
+                  </calcite-tab-title>
+
+                  <calcite-tab-title icon-start="information">
+                    About
+                  </calcite-tab-title>
                 </calcite-tab-nav>
+                <calcite-tab></calcite-tab>
+
                 <calcite-tab>
                   <calcite-list
                     id="bird-list"
                     label="Bird list"
                     scale="l"
                   ></calcite-list>
+                  <calcite-button
+                    icon-end="layer-zoom-to"
+                    id="zoom-group"
+                    scale="l"
+                  >
+                    Center all <span id="nr-of-paths"></span> birds tracks
+                  </calcite-button>
                 </calcite-tab>
+                <calcite-tab></calcite-tab>
               </calcite-tabs>
-              <calcite-button
-                icon-end="layer-zoom-to"
-                id="zoom-group"
-                scale="l"
-              >
-                Show all <span id="nr-of-paths"></span> birds tracks
-              </calcite-button>
             </div>
             <div id="dashboard-single-vis">
-              <calcite-label>
+              <div id="dashboard-modes">
                 <calcite-segmented-control
                   id="camera-control"
                   width="full"
@@ -235,29 +248,46 @@ class App extends Widget<AppProperties> {
                     Explore path
                   </calcite-segmented-control-item>
                 </calcite-segmented-control>
-              </calcite-label>
+                <calcite-button
+                  id="show-group-vis"
+                  appearance="transparent"
+                  kind="neutral"
+                  scale="s"
+                >
+                  <span class="esri-icon">&#xe62f;</span>
+                </calcite-button>
+                <calcite-tooltip
+                  reference-element="show-group-vis"
+                  placement="bottom"
+                >
+                  Go to Home Page
+                </calcite-tooltip>
+              </div>
               <p>
                 <h2 id="birdid-header">
-                  <calcite-button
-                    id="show-group-vis"
-                    appearance="transparent"
-                    icon-start="home"
-                    kind="neutral"
-                    round
-                    scale="l"
-                  ></calcite-button>
                   Bird <span id="dashboard-birdid"></span>
                 </h2>
                 <p id="dashboard-duration"></p>
-                <p id="dashboard-duration-selected"></p>
+                {/* <p id="dashboard-duration-selected"></p> */}
               </p>
 
               <div id="dashboard-info">
+                <calcite-label alignment="start">
+                  Line visualization:
+                  <calcite-select id="primary-vis-select"></calcite-select>
+                </calcite-label>
+                <calcite-label alignment="end">
+                  Cylinder visualization:
+                  <calcite-select id="secondary-vis-select"></calcite-select>
+                </calcite-label>
+              </div>
+              {/* 
+                            <div id="dashboard-info">
                 <p>Line visualization:</p>
                 <p> Cylinder visualization:</p>
                 <calcite-select id="primary-vis-select"></calcite-select>
                 <calcite-select id="secondary-vis-select"></calcite-select>
-              </div>
+              </div> */}
 
               <calcite-tabs layout="center">
                 <calcite-tab-nav slot="title-group" id="dashboard-tabs-nav">
@@ -324,28 +354,42 @@ class App extends Widget<AppProperties> {
                     </div>
                   </div>
                   <div class="legend-label-container">
-                    <calcite-label layout="inline" alignment="center">
+                    <h3>Helpers:</h3>
+
+                    <div class="legend-row">
                       <calcite-checkbox
                         id="visibility-extremums"
                         checked
                       ></calcite-checkbox>
-                      Extremums along line visualization
-                    </calcite-label>
-                    <calcite-label layout="inline" alignment="center">
+                      <span class="legend-text">
+                        Extremums of line visualization
+                      </span>
+                      <span class="legend-icon-group">
+                        <span class="legend-icon triangle green"></span>
+                        <span class="legend-icon triangle red"></span>
+                      </span>
+                    </div>
+                    <div class="legend-row">
                       <calcite-checkbox
                         id="visibility-generalized"
                         checked
                       ></calcite-checkbox>
-                      Generalized line
-                      {/* <span id="generalize-legend"></span> */}
-                    </calcite-label>
-                    <calcite-label layout="inline" alignment="center">
+                      <span class="legend-text">Generalized line</span>
+                      <span
+                        id="generalize-legend"
+                        class="legend-icon generalized"
+                      ></span>
+                    </div>
+                    <div class="legend-row">
                       <calcite-checkbox
                         id="visibility-timemarks"
                         checked
                       ></calcite-checkbox>
-                      Time marks along path
-                    </calcite-label>
+                      <span class="legend-text">
+                        Time and distance marks along path
+                      </span>
+                      <span class="legend-icon square"></span>
+                    </div>
                   </div>
                 </calcite-tab>
                 <calcite-tab>
@@ -402,13 +446,14 @@ const LoadingPanel = () => {
         escape-disabled="true"
         outside-close-disabled="true"
         id="loading-dialog"
-        heading="Welcome to the BirdTracker app!"
+        heading="BIRDTRACKER"
+        headingLevel={1}
       >
         <calcite-tabs>
           <calcite-tab-nav slot="title-group">
             <calcite-tab-title selected>Data loading</calcite-tab-title>
-            <calcite-tab-title>About</calcite-tab-title>
             <calcite-tab-title>Tutorial</calcite-tab-title>
+            <calcite-tab-title>About</calcite-tab-title>
           </calcite-tab-nav>
 
           <calcite-tab selected>
@@ -736,18 +781,24 @@ const TimeControls = () => {
         selection-mode="single"
         selection-display="all"
       >
+        <calcite-combobox-item value={1} heading="x 1"></calcite-combobox-item>
         <calcite-combobox-item
-          value={1}
-          heading="x 1"
+          value={5}
+          heading="x 5"
           selected
         ></calcite-combobox-item>
         <calcite-combobox-item
           value={10}
           heading="x 10"
         ></calcite-combobox-item>
+        <calcite-combobox-item value={5} heading="x 50"></calcite-combobox-item>
         <calcite-combobox-item
           value={100}
           heading="x 100"
+        ></calcite-combobox-item>
+        <calcite-combobox-item
+          value={500}
+          heading="x 500"
         ></calcite-combobox-item>
         <calcite-combobox-item
           value={1000}
@@ -756,6 +807,10 @@ const TimeControls = () => {
         <calcite-combobox-item
           value={10000}
           heading="x 10 000"
+        ></calcite-combobox-item>
+        <calcite-combobox-item
+          value={50000}
+          heading="x 50 000"
         ></calcite-combobox-item>
         <calcite-combobox-item
           value={100000}
@@ -798,9 +853,23 @@ const TimeControls = () => {
         icon-start="pencil"
         appearance="transparent"
       ></calcite-button>
-      <span id="time-utc">UTC Zone</span>
+      {/* <span id="time-utc">UTC Zone</span> */}
+      <calcite-button
+        icon-start="layer-zoom-to"
+        id="time-zoom"
+        appearance="transparent"
+      >
+        Center visible path
+      </calcite-button>
+
       <span id="time-duration"></span>
+
       <span id="time-distance"></span>
+      <calcite-tooltip reference-element="time-distance" placement="top">
+        → Horizontal speed: straight-line distance ÷ time <br></br>↑ Vertical
+        speed: elevation diff ÷ time <br></br>Distance: Sum of distances between
+        all points
+      </calcite-tooltip>
       <arcgis-time-slider
         layout="compact"
         reference-element="scene-div"
