@@ -36,6 +36,8 @@ import "@esri/calcite-components/dist/components/calcite-action-group";
 import "@esri/calcite-components/dist/components/calcite-action-pad";
 import "@esri/calcite-components/dist/components/calcite-alert";
 import "@esri/calcite-components/dist/components/calcite-button";
+import "@esri/calcite-components/dist/components/calcite-carousel";
+import "@esri/calcite-components/dist/components/calcite-carousel-item";
 import "@esri/calcite-components/dist/components/calcite-combobox";
 import "@esri/calcite-components/dist/components/calcite-combobox-item";
 import "@esri/calcite-components/dist/components/calcite-dialog";
@@ -64,6 +66,8 @@ import "@esri/calcite-components/dist/components/calcite-segmented-control-item"
 import "@esri/calcite-components/dist/components/calcite-slider";
 import "@esri/calcite-components/dist/components/calcite-sort-handle";
 import "@esri/calcite-components/dist/components/calcite-sortable-list";
+import "@esri/calcite-components/dist/components/calcite-stepper";
+import "@esri/calcite-components/dist/components/calcite-stepper-item";
 import "@esri/calcite-components/dist/components/calcite-switch";
 import "@esri/calcite-components/dist/components/calcite-tab";
 import "@esri/calcite-components/dist/components/calcite-tab-nav";
@@ -205,7 +209,9 @@ class App extends Widget<AppProperties> {
                     About
                   </calcite-tab-title>
                 </calcite-tab-nav>
-                <calcite-tab></calcite-tab>
+                <calcite-tab>
+                  <Tutorial></Tutorial>
+                </calcite-tab>
 
                 <calcite-tab>
                   <calcite-list
@@ -221,7 +227,9 @@ class App extends Widget<AppProperties> {
                     Center all <span id="nr-of-paths"></span> birds tracks
                   </calcite-button>
                 </calcite-tab>
-                <calcite-tab></calcite-tab>
+                <calcite-tab>
+                  <About></About>
+                </calcite-tab>
               </calcite-tabs>
             </div>
             <div id="dashboard-single-vis">
@@ -323,7 +331,7 @@ class App extends Widget<AppProperties> {
                       <span id="cylinder-variable"></span> (Cylinder layer)
                     </calcite-label>
 
-                    <div>
+                    <div class="focus-padding">
                       <div id="color-slider-primary"></div>
                       <arcgis-legend
                         id="legend-primary"
@@ -338,7 +346,7 @@ class App extends Widget<AppProperties> {
                       </div>
                     </div>
 
-                    <div>
+                    <div class="focus-padding">
                       <div id="color-slider-secondary"></div>
                       <arcgis-legend
                         id="legend-secondary"
@@ -409,6 +417,7 @@ class App extends Widget<AppProperties> {
                     hideSettingsButton={true}
                     hideSketchButton={true}
                     highlightEnabled={false}
+                    class="focus-padding"
                   ></arcgis-elevation-profile>
                 </calcite-tab>
                 <calcite-tab>
@@ -493,9 +502,13 @@ const LoadingPanel = () => {
             </calcite-panel>
           </calcite-tab>
 
-          <calcite-tab></calcite-tab>
+          <calcite-tab>
+            <Tutorial></Tutorial>
+          </calcite-tab>
 
-          <calcite-tab></calcite-tab>
+          <calcite-tab>
+            <About></About>
+          </calcite-tab>
         </calcite-tabs>
         <calcite-button id="sample-button" slot="footer-end" kind="brand">
           Use sample data
@@ -764,7 +777,7 @@ const TimeControls = () => {
       <calcite-button
         id="play-group-animation"
         icon-start="play-f"
-        scale="l"
+        scale="m"
         appearance="transparent"
         kind="info"
       ></calcite-button>
@@ -824,11 +837,15 @@ const TimeControls = () => {
         reference-element="edit-time-button"
         closable
         placement="top"
+        id="popover-time"
       >
-        <div id="popover-time">
+        <div>
           <calcite-label id="date-picker-start">
             Start Date:
-            <calcite-input-date-picker id="start-date"></calcite-input-date-picker>
+            <calcite-input-date-picker
+              id="start-date"
+              lang="en-GB"
+            ></calcite-input-date-picker>
             <calcite-input-time-picker
               id="start-time"
               hour-format="24"
@@ -836,7 +853,10 @@ const TimeControls = () => {
           </calcite-label>
           <calcite-label>
             Current Date:
-            <calcite-input-date-picker id="end-date"></calcite-input-date-picker>
+            <calcite-input-date-picker
+              id="end-date"
+              lang="en-GB"
+            ></calcite-input-date-picker>
             <calcite-input-time-picker
               id="end-time"
               hour-format="24"
@@ -1056,4 +1076,349 @@ const Slides = () => {
   );
 };
 
+const Tutorial = () => {
+  return (
+    <calcite-stepper id="tutorial" numbered>
+      <calcite-stepper-item heading="Data Loading" selected>
+        <ul class="data-guidelines">
+          <li>Data must include at least 6 attributes:</li>
+          <ul>
+            <li>
+              <strong>ID:</strong> differentiates individual birds
+            </li>
+            <li>
+              <strong>Longitude, Latitude, Altitude:</strong> 3D position of the
+              bird
+            </li>
+            <li>
+              <strong>Time:</strong> UTC timestamp for each location
+            </li>
+            <li>
+              <strong>Speed:</strong> horizontal speed
+            </li>
+          </ul>
+          <li>Remove outliers before uploading</li>
+          <li>If issues occur, reload the page or try a smaller dataset</li>
+        </ul>
+        <calcite-notice icon="exclamation-point-f" open width="full">
+          <div slot="title">Limit your data</div>
+          <div slot="message">
+            To optimize the performance include only necessary attributes and
+            points in the dataset
+          </div>
+        </calcite-notice>
+      </calcite-stepper-item>
+      <calcite-stepper-item heading="App Structure" class="tutorial">
+        <p>
+          The app has always four main sections:
+          <div class="image-placeholder">
+            <img src="placeholder-image.png" alt="Instruction video" />
+          </div>
+          <ol>
+            <li>
+              <strong>Map:</strong> Displays various layers with popups
+            </li>
+            <li>
+              <strong>Map Controls:</strong> Independent of the tracks; used to
+              change basemaps, toggle thematic layers, adjust lighting, etc.
+            </li>
+            <li>
+              <strong>Timeline:</strong> Controls time range or animation
+            </li>
+            <li>
+              <strong>Dashboard:</strong> Displays track(s) information and
+              settings
+            </li>
+          </ol>
+        </p>
+        <p class="data-guidelines">
+          The application has two main views, that are described in details
+          later:
+          <ul class="data-guidelines">
+            <li>
+              <strong>Group View:</strong> all uploaded tracks
+            </li>
+            <li>
+              <strong>Single View:</strong> details on one track with different
+              focus modes
+            </li>
+            <ul>
+              <li>
+                <strong>Explore mode:</strong> visualize the date with different
+                variables and charts having the big overview
+              </li>
+              <li>
+                <strong>Follow mode:</strong> focus on the bird perspective as
+                they were flying
+              </li>
+            </ul>
+          </ul>
+        </p>
+      </calcite-stepper-item>
+      <calcite-stepper-item heading="Map Navigation">
+        <calcite-carousel arrow-type="edge">
+          <calcite-carousel-item>
+            <div class="image-placeholder">
+              <img src="placeholder-gif.gif" alt="Instruction video" />
+            </div>
+            <h3>Spatial Navigation</h3>
+
+            <p>
+              Control the map with mouse or button - add icons before
+              <ul class="nav-guidelines">
+                <li>
+                  <span class="esri-nav-icon">&#xe667;</span>{" "}
+                  <strong>Pan: </strong> Right-click + drag to move sideways
+                </li>
+                <li>
+                  <span class="esri-nav-icon">&#xe66e;</span>
+                  <strong>Rotate: </strong> Left-click + drag to spin the view
+                  around a point
+                </li>
+
+                <li>
+                  <span class="esri-nav-icon">&#xe680;</span>{" "}
+                  <strong>Tilt: </strong> Middle-click + drag up/down to change
+                  the angle
+                </li>
+
+                <li>
+                  <span class="esri-nav-icon">&#xe680;</span>{" "}
+                  <strong>Compass: </strong> Click N to set the nort-up view
+                </li>
+                <li>
+                  <span class="esri-nav-icon">&#xe620; &#xe621;</span>{" "}
+                  <strong>Zoom: </strong> Mouse wheel forward/backward to zoom
+                  in or out
+                </li>
+              </ul>
+            </p>
+          </calcite-carousel-item>
+          <calcite-carousel-item>
+            <div class="image-placeholder">
+              <img src="placeholder-gif.gif" alt="Instruction video" />
+            </div>
+            <h3>Temporal Navigation</h3>
+
+            <p>
+              Use the timeline to set the visible path — via slider, play
+              controls or date picker.
+            </p>
+          </calcite-carousel-item>
+          <calcite-carousel-item>
+            <div class="image-placeholder">
+              <img src="placeholder-gif.gif" alt="Instruction video" />
+            </div>
+            <h3>Data Navigation</h3>
+
+            <p>Switch between layers to explore different datasets.</p>
+          </calcite-carousel-item>
+        </calcite-carousel>
+      </calcite-stepper-item>
+      <calcite-stepper-item heading="Group view">
+        <calcite-carousel arrow-type="edge">
+          <calcite-carousel-item>
+            <div class="image-placeholder">
+              <img src="placeholder-gif.gif" alt="Instruction video" />
+            </div>
+            <h3>Animate movement</h3>
+            <p>
+              Get overview of all the bird journeys using timeline. The gray
+              line shows the whole track, while the colored one last 24 hours.
+            </p>
+          </calcite-carousel-item>
+          <calcite-carousel-item>
+            <div class="image-placeholder">
+              <img src="placeholder-gif.gif" alt="Instruction video" />
+            </div>
+            <h3>Check by ID and paramenter</h3>
+            <p>
+              Investigate based on list and get reference on the map. Hover to
+              highlight the track and click to open the path pop-up.
+            </p>
+          </calcite-carousel-item>
+          <calcite-carousel-item>
+            <div class="image-placeholder">
+              <img src="placeholder-gif.gif" alt="Instruction video" />
+            </div>
+            <h3>Investigate further</h3>
+            <p>
+              Or select the genrelized path directly on the map to get a popup
+              and go to the single view by clicking on the Investigate button.
+            </p>
+          </calcite-carousel-item>
+        </calcite-carousel>
+      </calcite-stepper-item>
+      <calcite-stepper-item heading="Single view">
+        <calcite-carousel arrow-type="edge">
+          <calcite-carousel-item>
+            <div class="image-placeholder">
+              <img src="placeholder-gif.gif" alt="Instruction video" />
+            </div>
+            <h3>Control Time and Camera</h3>
+            <p>
+              <ul class="data-guidelines">
+                <li>
+                  Set the time range to the part to investigate. The shorter the
+                  line the better performance. Some functionality like Charts
+                  and Weather depends on the selected path.
+                </li>
+                <li>
+                  Read the selected path depended info on the timeline
+                  (duration, distance, speed)
+                </li>
+                <li>
+                  Use the button on the timeline to zoom to selected path or
+                  Explore Button to zoom to whole extent
+                </li>
+              </ul>
+            </p>
+          </calcite-carousel-item>
+          <calcite-carousel-item>
+            <div class="image-placeholder">
+              <img src="placeholder-gif.gif" alt="Instruction video" />
+            </div>
+            <h3>Path symbology</h3>
+            <p>
+              <ul class="data-guidelines">
+                <li>
+                  Set the variables to color the line and cylinderalong the path
+                </li>
+                <li>Change the color scale</li>
+                <li>Change the visibility of information along the path</li>
+                <ul>
+                  <li>
+                    <strong>Line: </strong> seen from all zoom levels for
+                    selected time
+                  </li>
+                  <li>
+                    <strong>Cylinder: </strong> seen at closer level and showing
+                    acctual data position for selected time
+                  </li>
+                  <li>
+                    <strong>Time markers: </strong>show day and distance
+                    distribution, set at 00:00 of each day
+                  </li>
+                  <li>
+                    <strong>Generalized line: </strong> shows simlpified
+                  </li>
+                  <li>
+                    <strong>Extremums: </strong> shows minimum and maximum value
+                    of the line variable
+                  </li>
+                </ul>
+                <li>
+                  Click on each element on the map to get more information in
+                  the popup
+                </li>
+              </ul>
+            </p>
+          </calcite-carousel-item>
+          <calcite-carousel-item>
+            <div class="image-placeholder">
+              <img src="placeholder-gif.gif" alt="Instruction video" />
+            </div>
+            <h3>Charts</h3>
+            <p>
+              <ul class="data-guidelines">
+                <li>
+                  Show how the selected variables are changing along the
+                  selected
+                </li>
+                <li>
+                  line variable - shape of the path, cylinder variable - color
+                </li>
+                <li>
+                  In case of too many points error minimize the selected path
+                  with timeline
+                </li>
+              </ul>
+            </p>
+          </calcite-carousel-item>
+          <calcite-carousel-item>
+            <div class="image-placeholder">
+              <img src="placeholder-gif.gif" alt="Instruction video" />
+            </div>
+            <h3>Elevation profile</h3>
+            <p>
+              <ul class="data-guidelines">
+                <li>See track and ground changes along the distance</li>
+                <li>
+                  Hover over the chart to hihglight corresponding place on the
+                  map and get exact value
+                </li>
+                <li>See statisctic about both elevation profiles</li>
+              </ul>
+            </p>
+          </calcite-carousel-item>
+          <calcite-carousel-item>
+            <div class="image-placeholder">
+              <img src="placeholder-gif.gif" alt="Instruction video" />
+            </div>
+            <h3>Weather</h3>
+            <p>
+              <ul class="data-guidelines">
+                <li>Choose only relevant part of the path with the timeline</li>
+                <li>
+                  Generate the tiles and if the placement is correct get the
+                  weather data
+                </li>
+                <li>
+                  In case of too many requested grid cells minimize the selected
+                  path with timeline or set bigger size tile with smaller
+                  distance from the path
+                </li>
+                <li>
+                  Click on the grid elements to get exact values and see
+                  corresponding variables
+                </li>
+              </ul>
+            </p>
+          </calcite-carousel-item>
+          <calcite-carousel-item>
+            <div class="image-placeholder">
+              <img src="placeholder-gif.gif" alt="Instruction video" />
+            </div>
+            <h3>Follow Bird</h3>
+            <p>
+              <ul class="data-guidelines">
+                <li>See what the bird saw during the flight</li>
+                <li>Control the camera angle with the upper-screen buttons</li>
+                <li>Control the place and speed with the timeline control</li>
+                <li>Read the current values from the gauges</li>
+                <li>Hide the uneccesary layers to improve animation</li>
+                <li>
+                  Go back to the Explore mode using the buttons at the top of
+                  the dashboard
+                </li>
+              </ul>
+            </p>
+          </calcite-carousel-item>
+        </calcite-carousel>
+      </calcite-stepper-item>
+    </calcite-stepper>
+  );
+};
+
+const About = () => {
+  return (
+    <calcite-stepper id="about" numbered>
+      <calcite-stepper-item heading="Teaser" selected>
+        <p>TO BE ADDED</p>
+      </calcite-stepper-item>
+      <calcite-stepper-item heading="Inspiration"></calcite-stepper-item>
+      <calcite-stepper-item heading="Authors"></calcite-stepper-item>
+      <calcite-stepper-item heading="Attributions">
+        <calcite-notice width="full" open>
+          <div slot="title">Step 4 content</div>
+        </calcite-notice>
+      </calcite-stepper-item>
+      <calcite-stepper-item heading="Disclaimers">
+        <calcite-notice width="full" open>
+          <div slot="title">Step 4 content</div>
+        </calcite-notice>
+      </calcite-stepper-item>
+    </calcite-stepper>
+  );
+};
 export default App;

@@ -65,8 +65,15 @@ export async function setTimeSlider(
   // set timeslider
   timeSlider.view = view;
   timeSlider.fullTimeExtent = fullTimeExtent;
+  const isMoreThanOneDay =
+    timeSlider.fullTimeExtent.end.getTime() -
+      timeSlider.fullTimeExtent.start.getTime() >
+    oneDay;
   const start = timeSlider.fullTimeExtent.start;
-  const end = start.getTime() + oneDay;
+
+  const end = isMoreThanOneDay
+    ? start.getTime() + oneDay
+    : timeSlider.fullTimeExtent.end.getTime();
   timeSlider.timeExtent = new TimeExtent({ start, end });
   timeSlider.stops = { interval: { value: 10, unit: "minutes" } };
 
@@ -76,10 +83,12 @@ export async function setTimeSlider(
     updateIcon(currentTime);
     if (groupLineLayer.visible) {
       updateGroupLines(currentTime);
-      timeSlider.timeExtent.start = Math.max(
-        currentTime - oneDay,
-        timeSlider.fullTimeExtent.start,
-      ); // ensure 24 hour tail
+      if (isMoreThanOneDay) {
+        timeSlider.timeExtent.start = Math.max(
+          currentTime - oneDay,
+          timeSlider.fullTimeExtent.start,
+        ); // ensure 24 hour tail
+      }
     } else {
       updateCalculations(birdData, timeSlider);
     }
@@ -107,6 +116,9 @@ export async function setTimeSlider(
       } catch (err) {}
       document.body.classList.toggle("bird-mode", true);
       startDatePickerSection.style.display = "none";
+      document.getElementById("time-duration")!.style.display = "none";
+      document.getElementById("time-distance")!.style.display = "none";
+      document.getElementById("time-zoom")!.style.display = "none";
       gaugeContainer!.style.display = "block";
       animationPlayRate!.style.display = "block";
       playAnimation!.style.display = "block";
@@ -119,6 +131,9 @@ export async function setTimeSlider(
       gaugeContainer!.style.display = "none";
       animationPlayRate!.style.display = "none";
       playAnimation!.style.display = "none";
+      document.getElementById("time-duration")!.style.display = "block";
+      document.getElementById("time-distance")!.style.display = "block";
+      document.getElementById("time-zoom")!.style.display = "block";
     }
   });
 
@@ -170,10 +185,12 @@ export async function setTimeSlider(
     }
     timeSlider.timeExtent.end = currentTime;
 
-    timeSlider.timeExtent.start = Math.max(
-      currentTime - oneDay,
-      timeSlider.fullTimeExtent.start,
-    ); // ensure 24 hour tail
+    if (isMoreThanOneDay) {
+      timeSlider.timeExtent.start = Math.max(
+        currentTime - oneDay,
+        timeSlider.fullTimeExtent.start,
+      ); // ensure 24 hour tail
+    }
 
     view.environment.lighting.date = timeSlider.timeExtent.end;
 
@@ -343,12 +360,13 @@ export async function setTimeSlider(
         );
         timeSlider.timeExtent.start = start;
       } else {
+        // if (isMoreThanOneDay) {
         timeSlider.timeExtent.start = Math.max(
           end - oneDay,
           timeSlider.fullTimeExtent.start,
-        );
+        ); // ensure 24 hour tail
+        // }
       }
-
       datePickerPopover.open = false;
     });
 

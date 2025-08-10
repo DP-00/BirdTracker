@@ -519,10 +519,10 @@ export async function createTimeMarkersLayer(graphics) {
       new Date(startTimestamp).getUTCFullYear(),
       new Date(startTimestamp).getUTCMonth(),
       new Date(startTimestamp).getUTCDate(),
-      0,
-      0,
-      0,
-      0,
+      23,
+      59,
+      59,
+      59,
     ),
   );
 

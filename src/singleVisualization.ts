@@ -550,7 +550,7 @@ export async function updateCalculations(birdData, timeSlider) {
     let distanceToLine2 = geodeticLengthOperator.execute(newLine);
     document.getElementById("time-distance")!.innerHTML =
       `Speed: →  ${(distanceToLine / 1000 / sumHoursSelected).toFixed(2)} ↑ ${(verticalDiff / 1000 / sumHoursSelected).toFixed(2)}  km/h<br>
-    Distance: ${(distanceToLine2 / 1000).toFixed(0)}km 
+    Distance: ${(distanceToLine2 / 1000).toFixed(0)} km 
     `;
 
     document.getElementById("time-duration")!.innerHTML =

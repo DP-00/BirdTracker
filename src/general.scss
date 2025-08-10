@@ -36,7 +36,7 @@
   --calcite-border-width-sm: 2px;
   --calcite-font-weight-light: 400;
   --calcite-font-weight-normal: 500;
-  --calcite-font-weight-medium: 600;
+  // --calcite-font-weight-medium: 400;
   --calcite-font-weight-bold: 700;
 }
 
@@ -235,11 +235,11 @@ h2 {
 h1,
 h2,
 calcite-tab-nav {
-  text-shadow: #aed8cc4f 0px 0 5px;
+  text-shadow: #aed8cc8a 0px 0 6px;
 }
 
 calcite-list {
-  text-shadow: #aed8cc25 0px 0 5px;
+  text-shadow: #aed8cc88 0px 0 6px;
 }
 
 input[type="file"]::file-selector-button {
@@ -283,6 +283,14 @@ calcite-segmented-control-item[checked] {
   left: 1rem;
   right: 1rem;
   z-index: 1;
+}
+
+#time-slider calcite-button {
+  background-color: rgba(25, 42, 39, 0.431372549);
+}
+
+#time-slider calcite-combobox {
+  background-color: rgba(25, 42, 39, 0.431372549);
 }
 
 #gauges-container {
@@ -410,7 +418,7 @@ calcite-segmented-control-item[checked] {
 
 #dashboard-modes calcite-button {
   position: absolute;
-  right: -0.5rem;
+  right: 0;
   z-index: 3;
 }
 
@@ -420,6 +428,11 @@ calcite-segmented-control-item[checked] {
   line-height: 1;
 }
 
+.esri-nav-icon {
+  font-family: "CalciteWebCoreIcons"; /* Esri icon font */
+  font-size: 1rem;
+  margin-right: 0.5rem;
+}
 #dashboard-info {
   display: grid;
   grid-template-columns: auto auto;
@@ -539,8 +552,8 @@ calcite-tab {
 #animation-playrate {
   position: absolute;
   z-index: 1;
-  top: 0.1rem;
-  right: 0;
+  top: 0.15rem;
+  right: 0.15rem;
   // width: 10rem;
   --calcite-select-border-color: rgba(0, 0, 0, 0);
   --calcite-segmented-control-background-color: rgba(0, 0, 0, 0);
@@ -551,7 +564,7 @@ calcite-tab {
 #play-group-animation {
   position: absolute;
   z-index: 1;
-  bottom: 0.1rem;
+  bottom: 0.15rem;
   left: 50%;
   transform: translateX(-50%);
 }
@@ -653,7 +666,7 @@ calcite-tab-title {
   transform: translateX(7.75rem);
   position: absolute;
   z-index: 1;
-  top: 0.1rem;
+  top: 0.15rem;
 }
 
 // .explore-mode {
@@ -685,13 +698,13 @@ calcite-tab-title {
   padding-left: 0.5rem;
   position: absolute;
   z-index: 1;
-  top: 0.1rem;
+  top: -0.1rem;
   left: 0;
   display: none;
-  font-size: 12px;
+  font-size: 11px;
 }
 
-#popover-time {
+#popover-time > div {
   padding: 1rem;
 }
 
@@ -840,4 +853,88 @@ calcite-tab-title {
 
 calcite-notice {
   padding-bottom: 1.5rem;
+}
+
+.focus-padding {
+  padding: 0 2px;
+}
+
+calcite-stepper {
+  // max-width: 800px;
+  // margin: 0 auto;
+}
+
+.image-placeholder {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.image-placeholder img {
+  max-width: 100%;
+  border: 2px dashed #ccc;
+  padding: 5px;
+  background: #fafafa;
+}
+
+.caption {
+  font-size: 0.9rem;
+  color: #555;
+  margin-top: 4px;
+}
+
+calcite-notice {
+  --calcite-notice-background-color: #233935;
+}
+
+.data-guidelines {
+  list-style: none;
+  font-size: 1rem;
+}
+
+.data-guidelines > li {
+  margin-bottom: 0.8rem;
+  margin-top: 1rem;
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.data-guidelines > li::before {
+  // content: "✔";
+  content: "";
+
+  position: absolute;
+  left: 0;
+
+  width: 16px;
+  height: 16px;
+
+  background-image: url("/public/birdIcon3.svg"); /* adjust path as needed */
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-color: transparent !important;
+  border-color: transparent !important;
+}
+
+#tutorial,
+#about {
+  padding: 1.5rem;
+  font-size: 1rem;
+}
+
+calcite-carousel-item {
+  text-align: center;
+  // padding: 1rem;
+}
+
+.nav-guidelines {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.nav-guidelines li {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
 }
