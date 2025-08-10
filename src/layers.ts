@@ -1,3 +1,4 @@
+import * as geodeticDistanceOperator from "@arcgis/core/geometry/operators/geodeticDistanceOperator";
 import * as geodeticLengthOperator from "@arcgis/core/geometry/operators/geodeticLengthOperator";
 
 import * as generalizeOperator from "@arcgis/core/geometry/operators/generalizeOperator";
@@ -394,21 +395,48 @@ export async function createLineLayer(
     const endPoint = data[i + 1];
     if (!startPoint || !endPoint) continue;
 
-    const altitude = (startPoint.altitude + endPoint.altitude) / 2;
+    if (!geodeticDistanceOperator.isLoaded()) {
+      await geodeticDistanceOperator.load();
+    }
+
+    let distance = geodeticDistanceOperator.execute(
+      new Point({
+        longitude: startPoint.longitude,
+        latitude: startPoint.latitude,
+        z: startPoint.altitude,
+        spatialReference: { wkid: 4326 },
+      }),
+      new Point({
+        longitude: endPoint.longitude,
+        latitude: endPoint.latitude,
+        z: endPoint.altitude,
+        spatialReference: { wkid: 4326 },
+      }),
+    );
 
     const attributes: any = {
       ObjectID: idCounter++,
       birdid: startPoint.birdid,
-      altitude,
-      speed: startPoint.speed,
       timestamp: new Date(startPoint.timestamp).getTime(),
       longitude: startPoint.longitude,
       latitude: startPoint.latitude,
     };
 
-    for (const key of allKeys) {
-      if (!specialKeys.has(key)) {
-        attributes[key] = startPoint[key];
+    if (distance > 100) {
+      attributes.speed = null;
+      attributes.altitude = null;
+      for (const key of allKeys) {
+        if (!specialKeys.has(key)) {
+          attributes[key] = null;
+        }
+      }
+    } else {
+      attributes.altitude = (startPoint.altitude + endPoint.altitude) / 2;
+      attributes.speed = startPoint.speed;
+      for (const key of allKeys) {
+        if (!specialKeys.has(key)) {
+          attributes[key] = startPoint[key];
+        }
       }
     }
 
@@ -453,7 +481,7 @@ export async function createLineLayer(
             type: "line",
             size: 6,
             cap: "round",
-            material: { color: [104, 0, 0] },
+            material: { color: [100, 0, 0] },
           },
         ],
       },

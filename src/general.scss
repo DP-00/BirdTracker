@@ -144,8 +144,12 @@ b {
   left: -12px;
 }
 
-arcgis-chart {
+.chart-container {
   height: 20rem;
+  padding-bottom: 1rem;
+}
+arcgis-chart {
+  flex: 1;
 }
 .esri-elevation-profile {
   --chart-height: 20rem;
@@ -238,8 +242,8 @@ calcite-tab-nav {
   text-shadow: #aed8cc8a 0px 0 6px;
 }
 
-calcite-list {
-  text-shadow: #aed8cc88 0px 0 6px;
+#dashboard calcite-list {
+  text-shadow: #aed8cc4d 0px 0 5px;
 }
 
 input[type="file"]::file-selector-button {
@@ -513,6 +517,8 @@ calcite-tab {
   grid-template-columns: auto auto;
   gap: 10px;
   padding: 0.2rem;
+  align-items: center;
+  // justify-items: center;
 }
 
 // #weather-tiles-container {
@@ -585,10 +591,7 @@ calcite-accordion-item {
   align-items: center;
 }
 
-#bar-chart {
-  display: none;
-}
-#set-time-chart {
+#chart-notice {
   display: none;
 }
 
@@ -886,19 +889,35 @@ calcite-notice {
   --calcite-notice-background-color: #233935;
 }
 
-.data-guidelines {
-  list-style: none;
+calcite-stepper-item h3 {
   font-size: 1rem;
+  text-align: center;
+
+  // margin-bottom: 0;
+  // padding: 0.5rem;
 }
 
-.data-guidelines > li {
+calcite-stepper-item ol {
+  font-size: 0.9rem;
+}
+
+calcite-stepper-item strong {
+  margin-right: 0.3rem;
+}
+
+.tutorial-guidelines {
+  list-style: none;
+  font-size: 0.9rem;
+}
+
+.tutorial-guidelines > li {
   margin-bottom: 0.8rem;
-  margin-top: 1rem;
+  // margin-top: 1rem;
   position: relative;
   padding-left: 1.5rem;
 }
 
-.data-guidelines > li::before {
+.tutorial-guidelines > li::before {
   // content: "✔";
   content: "";
 
@@ -922,11 +941,6 @@ calcite-notice {
   font-size: 1rem;
 }
 
-calcite-carousel-item {
-  text-align: center;
-  // padding: 1rem;
-}
-
 .nav-guidelines {
   list-style: none;
   padding: 0;
@@ -937,4 +951,29 @@ calcite-carousel-item {
   align-items: center;
   margin-bottom: 0.5rem;
   font-size: 0.95rem;
+}
+
+// .esri-legend {
+//   font-size: 12px; /* smaller text */
+//   max-width: 200px; /* control width */
+// }
+
+// .esri-legend__layer {
+//   margin-bottom: 8px; /* less spacing between layers */
+// }
+
+// .esri-legend__list {
+//   padding-left: 8px; /* smaller padding */
+// }
+
+// .esri-legend__item {
+//   margin-bottom: 4px; /* less space between items */
+// }
+
+// #chart-secondary-legend .esri-legend__layer > div:first-of-type {
+//   display: none;
+// }
+
+#chart-secondary-legend .esri-legend__layer > div:not(:nth-of-type(2)) {
+  display: none;
 }

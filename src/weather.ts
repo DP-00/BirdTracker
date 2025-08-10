@@ -388,6 +388,7 @@ export async function setWeather(arcgisScene, secondaryLayer, birdid) {
   const weatherSymbologyContainer = document.getElementById(
     "weather-symbology-container",
   )!;
+  const weatherVisibility = document.getElementById("weather-visibility")!;
 
   let weatherLayer: FeatureLayer;
   let tiles: any;
@@ -441,6 +442,10 @@ export async function setWeather(arcgisScene, secondaryLayer, birdid) {
   buttonNewTiles?.addEventListener("click", async () => {
     weatherSymbologyContainer.style.display = "none";
     weatherTilesContainer.style.display = "block";
+  });
+
+  weatherVisibility?.addEventListener("calciteCheckboxChange", async () => {
+    weatherLayer.visible = !weatherLayer.visible;
   });
 
   async function createWeatherLayer(arcgisScene) {

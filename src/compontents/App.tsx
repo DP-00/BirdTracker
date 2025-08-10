@@ -268,7 +268,7 @@ class App extends Widget<AppProperties> {
                   reference-element="show-group-vis"
                   placement="bottom"
                 >
-                  Go to Home Page
+                  Go back to the Group View
                 </calcite-tooltip>
               </div>
               <p>
@@ -303,7 +303,7 @@ class App extends Widget<AppProperties> {
                     Path<br></br>symbolization
                   </calcite-tab-title>
                   <calcite-tab-title icon-start="graph-time-series">
-                    Values<br></br>over time
+                    Line<br></br>chart
                   </calcite-tab-title>
                   <calcite-tab-title icon-start="altitude">
                     Elevation<br></br>profile
@@ -336,6 +336,7 @@ class App extends Widget<AppProperties> {
                       <arcgis-legend
                         id="legend-primary"
                         reference-element="scene-div"
+                        style="card"
                       ></arcgis-legend>
                       <div class="filters-container">
                         <calcite-icon icon="filter" scale="m" />
@@ -351,6 +352,7 @@ class App extends Widget<AppProperties> {
                       <arcgis-legend
                         id="legend-secondary"
                         reference-element="scene-div"
+                        style="card"
                       ></arcgis-legend>
                       <div class="filters-container">
                         <calcite-icon icon="filter" scale="m" />
@@ -528,62 +530,49 @@ const LoadingPanel = () => {
 
 const ChartsDashboard = () => {
   return (
-    <div class="chart-container">
-      <arcgis-chart id="line-chart"></arcgis-chart>
-      <arcgis-chart id="bar-chart"></arcgis-chart>
-
-      {/* <calcite-button id="set-line-chart">Set chart</calcite-button>
-      <calcite-button id="set-bar-chart">Set bar chart</calcite-button> */}
-      <calcite-label id="set-time-chart" layout="inline">
-        Time binning:
-        <calcite-segmented-control>
-          <calcite-segmented-control-item
-            id="chart-time-days"
-            icon-start="calendar"
-          >
-            Days
-          </calcite-segmented-control-item>
-          <calcite-segmented-control-item
-            id="chart-time-hours"
-            icon-start="date-time"
-          >
-            Hours
-          </calcite-segmented-control-item>
-          <calcite-segmented-control-item
-            id="chart-time-minutes"
-            icon-start="clock"
-            checked
-          >
-            Minutes
-          </calcite-segmented-control-item>
-        </calcite-segmented-control>
-      </calcite-label>
-      <calcite-label layout="inline" id="chart-cursor-mode">
-        Cursor mode
-        <calcite-segmented-control>
-          <calcite-segmented-control-item
-            id="chart-selection-map"
-            icon-start="cursor-selection"
-          >
-            Selection with Map Sync
-          </calcite-segmented-control-item>
-          <calcite-segmented-control-item
-            id="chart-selection"
-            icon-start="select"
-          >
-            Selection
-          </calcite-segmented-control-item>
-          <calcite-segmented-control-item
-            id="chart-zoom"
-            icon-start="magnifying-glass"
-            checked
-          >
-            Zoom
-          </calcite-segmented-control-item>
-        </calcite-segmented-control>
-      </calcite-label>
-      {/* <calcite-button id="zoom-chart">zoom chart</calcite-button>
-      <calcite-button id="select-chart">select chart</calcite-button> */}
+    <div>
+      <calcite-notice icon="information" id="chart-notice" open>
+        <div slot="message">
+          Select numerical line variable to see the chart
+        </div>
+      </calcite-notice>
+      <div id="chart-all-container">
+        <h3>Values over selected time</h3>
+        <div class="chart-container">
+          <arcgis-chart id="line-chart"></arcgis-chart>
+        </div>
+        <div class="two-col-grid">
+          <calcite-label id="chart-cursor-mode">
+            Cursor mode
+            <calcite-segmented-control layout="vertical" width="auto">
+              <calcite-segmented-control-item
+                id="chart-selection-map"
+                icon-start="cursor-selection"
+              >
+                Selection with Map Sync
+              </calcite-segmented-control-item>
+              <calcite-segmented-control-item
+                id="chart-selection"
+                icon-start="select"
+              >
+                Selection
+              </calcite-segmented-control-item>
+              <calcite-segmented-control-item
+                id="chart-zoom"
+                icon-start="magnifying-glass"
+                checked
+              >
+                Zoom
+              </calcite-segmented-control-item>
+            </calcite-segmented-control>
+          </calcite-label>
+          <arcgis-legend
+            id="chart-secondary-legend"
+            reference-element="scene-div"
+            style="card"
+          ></arcgis-legend>
+        </div>
+      </div>
     </div>
   );
 };
@@ -592,7 +581,7 @@ const WeatherControls = () => {
   return (
     <div>
       <div id="weather-tiles-container">
-        <h3>Generate weather tiles</h3>
+        <h3>Generate weather tiles for selected time</h3>
         <calcite-notice icon="information" open>
           <div slot="message">
             Due to the weather API call limit: daily (10 000) and hourly (600)
@@ -644,7 +633,10 @@ const WeatherControls = () => {
           <div slot="message">
             Spatial and temporal resolution of the data varies depending on the
             available data in the region, see{" "}
-            <calcite-link href="https://open-meteo.com/en/docs/model-updates#historical_weather_api">
+            <calcite-link
+              href="https://open-meteo.com/en/docs/model-updates#historical_weather_api"
+              target="_blank"
+            >
               documentation
             </calcite-link>{" "}
             for more details
@@ -652,12 +644,13 @@ const WeatherControls = () => {
         </calcite-notice>
         <div class="two-col-grid">
           <div>
+            <calcite-label layout="inline"></calcite-label>
             <calcite-label layout="inline">
-              Visible:
-              <calcite-switch checked></calcite-switch>
-            </calcite-label>
-            <calcite-label layout="inline">
-              Variable:
+              <calcite-checkbox
+                id="weather-visibility"
+                checked
+              ></calcite-checkbox>
+              Weather variable:
               <calcite-select id="weather-select">
                 <calcite-option value="Temperature" selected>
                   Temperature
@@ -669,7 +662,7 @@ const WeatherControls = () => {
                 <calcite-option value="Wind">Wind</calcite-option>
               </calcite-select>
             </calcite-label>
-            <calcite-label layout="inline">
+            <calcite-label id="weather-time-mapping" layout="inline">
               Temporal mapping:
               <calcite-label layout="inline">
                 Along path
@@ -680,11 +673,19 @@ const WeatherControls = () => {
             <calcite-label layout="inline">
               <div id="weather-time-container"></div>
             </calcite-label>
+            <calcite-tooltip
+              reference-element="weather-time-mapping"
+              placement="top"
+            >
+              Along path: shows the value based on time of the closest point on
+              the path (ideal for migratory birds) <br></br>Constant: control
+              the time at which values are shown(ideal resident birds)
+            </calcite-tooltip>
           </div>
           <arcgis-legend
             id="weather-legend"
             reference-element="scene-div"
-            style="classic"
+            style="card"
           ></arcgis-legend>
         </div>
         <calcite-button id="new-tiles-button" kind="neutral" appearance="solid">
@@ -742,7 +743,6 @@ const MapControls = () => {
         <arcgis-basemap-gallery></arcgis-basemap-gallery>
       </arcgis-expand>
       <arcgis-expand group="top-left" expand-tooltip="Set thematic layers">
-        {/* <arcgis-legend id="thematic-layers-legend"></arcgis-legend> */}
         <arcgis-layer-list id="thematic-layers"></arcgis-layer-list>
       </arcgis-expand>
       <arcgis-expand group="top-left" expand-tooltip="Control light">
@@ -886,9 +886,9 @@ const TimeControls = () => {
 
       <span id="time-distance"></span>
       <calcite-tooltip reference-element="time-distance" placement="top">
-        → Horizontal speed: straight-line distance ÷ time <br></br>↑ Vertical
-        speed: elevation diff ÷ time <br></br>Distance: Sum of distances between
-        all points
+        ⏲↠ Horizontal speed: straight-line distance ÷ time <br></br>⏲↟
+        Vertical speed: elevation diff ÷ time <br></br>⇤⇥ Distance: Sum of
+        distances between all points
       </calcite-tooltip>
       <arcgis-time-slider
         layout="compact"
@@ -1080,7 +1080,7 @@ const Tutorial = () => {
   return (
     <calcite-stepper id="tutorial" numbered>
       <calcite-stepper-item heading="Data Loading" selected>
-        <ul class="data-guidelines">
+        <ul class="tutorial-guidelines">
           <li>Data must include at least 6 attributes:</li>
           <ul>
             <li>
@@ -1109,109 +1109,111 @@ const Tutorial = () => {
         </calcite-notice>
       </calcite-stepper-item>
       <calcite-stepper-item heading="App Structure" class="tutorial">
-        <p>
-          The app has always four main sections:
-          <div class="image-placeholder">
-            <img src="placeholder-image.png" alt="Instruction video" />
-          </div>
-          <ol>
+        <div class="image-placeholder">
+          <img src="placeholder-image.png" alt="Instruction video" />
+        </div>
+        <h3>Application sections</h3>
+
+        <ol>
+          <li>
+            <strong>Map:</strong> Displays various layers with popups
+          </li>
+          <li>
+            <strong>Map Controls:</strong> Independent of the tracks; used to
+            change basemaps, toggle thematic layers, adjust lighting, etc.
+          </li>
+          <li>
+            <strong>Timeline:</strong> Controls time range or animation
+          </li>
+          <li>
+            <strong>Dashboard:</strong> Displays track(s) information and
+            settings
+          </li>
+        </ol>
+
+        <h3>Application modes</h3>
+        <ul class="tutorial-guidelines">
+          <li>
+            <strong>Group View:</strong> all uploaded tracks
+          </li>
+          <li>
+            <strong>Single View:</strong> details on one track with different
+            focus modes
+          </li>
+          <ul>
             <li>
-              <strong>Map:</strong> Displays various layers with popups
+              <strong>Explore mode:</strong> visualize the date with different
+              variables and charts having the big overview
             </li>
             <li>
-              <strong>Map Controls:</strong> Independent of the tracks; used to
-              change basemaps, toggle thematic layers, adjust lighting, etc.
+              <strong>Follow mode:</strong> focus on the bird perspective as
+              they were flying
             </li>
-            <li>
-              <strong>Timeline:</strong> Controls time range or animation
-            </li>
-            <li>
-              <strong>Dashboard:</strong> Displays track(s) information and
-              settings
-            </li>
-          </ol>
-        </p>
-        <p class="data-guidelines">
-          The application has two main views, that are described in details
-          later:
-          <ul class="data-guidelines">
-            <li>
-              <strong>Group View:</strong> all uploaded tracks
-            </li>
-            <li>
-              <strong>Single View:</strong> details on one track with different
-              focus modes
-            </li>
-            <ul>
-              <li>
-                <strong>Explore mode:</strong> visualize the date with different
-                variables and charts having the big overview
-              </li>
-              <li>
-                <strong>Follow mode:</strong> focus on the bird perspective as
-                they were flying
-              </li>
-            </ul>
           </ul>
-        </p>
+        </ul>
       </calcite-stepper-item>
       <calcite-stepper-item heading="Map Navigation">
         <calcite-carousel arrow-type="edge">
           <calcite-carousel-item>
-            <div class="image-placeholder">
-              <img src="placeholder-gif.gif" alt="Instruction video" />
-            </div>
             <h3>Spatial Navigation</h3>
-
-            <p>
-              Control the map with mouse or button - add icons before
-              <ul class="nav-guidelines">
-                <li>
-                  <span class="esri-nav-icon">&#xe667;</span>{" "}
-                  <strong>Pan: </strong> Right-click + drag to move sideways
-                </li>
-                <li>
-                  <span class="esri-nav-icon">&#xe66e;</span>
-                  <strong>Rotate: </strong> Left-click + drag to spin the view
-                  around a point
-                </li>
-
-                <li>
-                  <span class="esri-nav-icon">&#xe680;</span>{" "}
-                  <strong>Tilt: </strong> Middle-click + drag up/down to change
-                  the angle
-                </li>
-
-                <li>
-                  <span class="esri-nav-icon">&#xe680;</span>{" "}
-                  <strong>Compass: </strong> Click N to set the nort-up view
-                </li>
-                <li>
-                  <span class="esri-nav-icon">&#xe620; &#xe621;</span>{" "}
-                  <strong>Zoom: </strong> Mouse wheel forward/backward to zoom
-                  in or out
-                </li>
-              </ul>
-            </p>
+            <ul class="nav-guidelines">
+              <li>
+                <span class="esri-nav-icon">&#xe667;</span>{" "}
+                <strong>Pan: </strong> Right-click + drag to move sideways
+              </li>
+              <li>
+                <span class="esri-nav-icon">&#xe66e;</span>
+                <strong>Rotate: </strong> Left-click + drag to spin the view
+                around a point
+              </li>
+              <li>
+                <span class="esri-nav-icon">&#xe680;</span>{" "}
+                <strong>Compass: </strong> Click N to set the nort-up view
+              </li>
+              <li>
+                <span class="esri-nav-icon">&#xe620; &#xe621;</span>{" "}
+                <strong>Zoom: </strong> Mouse wheel forward/backward to zoom in
+                or out
+              </li>
+            </ul>
           </calcite-carousel-item>
           <calcite-carousel-item>
             <div class="image-placeholder">
               <img src="placeholder-gif.gif" alt="Instruction video" />
             </div>
             <h3>Temporal Navigation</h3>
-
-            <p>
-              Use the timeline to set the visible path — via slider, play
-              controls or date picker.
-            </p>
+            <ul class="tutorial-guidelines">
+              <li>
+                The options on the timeline change depending on the appliation
+                view and mode
+              </li>
+              <li>Drag the bar to set the selected path time</li>
+              <li>Use date picker for precise timespan</li>
+              <li>
+                When possible use the play button to start the animation and
+                control the speed with right-upper corner control
+              </li>
+            </ul>
+            <p></p>
           </calcite-carousel-item>
           <calcite-carousel-item>
             <div class="image-placeholder">
               <img src="placeholder-gif.gif" alt="Instruction video" />
             </div>
             <h3>Data Navigation</h3>
+            <ul class="tutorial-guidelines">
+              <li>
+                Change basemaps for better suitable background and information
+              </li>
+              <li>
+                Switch between thematic layers to explore different datasets
+              </li>
 
-            <p>Switch between layers to explore different datasets.</p>
+              <li>
+                Try not to perform the actions on the map when you see the
+                loading indicatior
+              </li>
+            </ul>
           </calcite-carousel-item>
         </calcite-carousel>
       </calcite-stepper-item>
@@ -1222,30 +1224,38 @@ const Tutorial = () => {
               <img src="placeholder-gif.gif" alt="Instruction video" />
             </div>
             <h3>Animate movement</h3>
-            <p>
-              Get overview of all the bird journeys using timeline. The gray
-              line shows the whole track, while the colored one last 24 hours.
-            </p>
+            <ul class="tutorial-guidelines">
+              <li>Get overview of all the bird journeys using timeline</li>
+              <li>The gray line shows the whole track</li>
+              <li>The colored line shows last 24 hours</li>
+            </ul>
           </calcite-carousel-item>
           <calcite-carousel-item>
             <div class="image-placeholder">
               <img src="placeholder-gif.gif" alt="Instruction video" />
             </div>
             <h3>Check by ID and paramenter</h3>
-            <p>
-              Investigate based on list and get reference on the map. Hover to
-              highlight the track and click to open the path pop-up.
-            </p>
+            <ul class="tutorial-guidelines">
+              <li>Investigate based on list and get reference on the map</li>
+              <li>
+                Hover to highlight the track and click to open the path pop-up
+              </li>
+            </ul>
           </calcite-carousel-item>
           <calcite-carousel-item>
             <div class="image-placeholder">
               <img src="placeholder-gif.gif" alt="Instruction video" />
             </div>
             <h3>Investigate further</h3>
-            <p>
-              Or select the genrelized path directly on the map to get a popup
-              and go to the single view by clicking on the Investigate button.
-            </p>
+            <ul class="tutorial-guidelines">
+              <li>
+                {" "}
+                Or select the genrelized path directly on the map to get a popup
+              </li>
+              <li>
+                Go to the single view by clicking on the Investigate button
+              </li>
+            </ul>
           </calcite-carousel-item>
         </calcite-carousel>
       </calcite-stepper-item>
@@ -1257,7 +1267,7 @@ const Tutorial = () => {
             </div>
             <h3>Control Time and Camera</h3>
             <p>
-              <ul class="data-guidelines">
+              <ul class="tutorial-guidelines">
                 <li>
                   Set the time range to the part to investigate. The shorter the
                   line the better performance. Some functionality like Charts
@@ -1280,7 +1290,7 @@ const Tutorial = () => {
             </div>
             <h3>Path symbology</h3>
             <p>
-              <ul class="data-guidelines">
+              <ul class="tutorial-guidelines">
                 <li>
                   Set the variables to color the line and cylinderalong the path
                 </li>
@@ -1320,7 +1330,7 @@ const Tutorial = () => {
             </div>
             <h3>Charts</h3>
             <p>
-              <ul class="data-guidelines">
+              <ul class="tutorial-guidelines">
                 <li>
                   Show how the selected variables are changing along the
                   selected
@@ -1329,8 +1339,12 @@ const Tutorial = () => {
                   line variable - shape of the path, cylinder variable - color
                 </li>
                 <li>
-                  In case of too many points error minimize the selected path
-                  with timeline
+                  Change cursor mode to be able to to interact with the map or
+                  zoom in the chart
+                </li>
+                <li>
+                  To improve performance or in case of too many points error,
+                  minimize the selected path with timeline
                 </li>
               </ul>
             </p>
@@ -1341,7 +1355,7 @@ const Tutorial = () => {
             </div>
             <h3>Elevation profile</h3>
             <p>
-              <ul class="data-guidelines">
+              <ul class="tutorial-guidelines">
                 <li>See track and ground changes along the distance</li>
                 <li>
                   Hover over the chart to hihglight corresponding place on the
@@ -1357,7 +1371,7 @@ const Tutorial = () => {
             </div>
             <h3>Weather</h3>
             <p>
-              <ul class="data-guidelines">
+              <ul class="tutorial-guidelines">
                 <li>Choose only relevant part of the path with the timeline</li>
                 <li>
                   Generate the tiles and if the placement is correct get the
@@ -1381,7 +1395,7 @@ const Tutorial = () => {
             </div>
             <h3>Follow Bird</h3>
             <p>
-              <ul class="data-guidelines">
+              <ul class="tutorial-guidelines">
                 <li>See what the bird saw during the flight</li>
                 <li>Control the camera angle with the upper-screen buttons</li>
                 <li>Control the place and speed with the timeline control</li>

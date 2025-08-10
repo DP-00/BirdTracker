@@ -166,6 +166,8 @@ export async function setSingleVis(
 
     const summary = birdSummary[primaryVisSelect.value];
     if (summary.type == "number") {
+      document.getElementById("chart-all-container")!.style.display = "block";
+      document.getElementById("chart-notice")!.style.display = "none";
       const lineChartElement = document.getElementById("line-chart")!;
       await lineChartElement.model.setNumericFields([primaryVisSelect.value]);
       lineChartElement.model.setTemporalBinningUnit("seconds");
@@ -173,18 +175,11 @@ export async function setSingleVis(
         primaryVisSelect.value.charAt(0).toUpperCase() +
           primaryVisSelect.value.slice(1),
       );
+      // lineChartElement.style.height = "20rem";
       lineChartElement.refresh();
-      document.getElementById("line-chart")!.style.display = "block";
-      document.getElementById("bar-chart")!.style.display = "none";
-      document.getElementById("set-time-chart")!.style.display = "none";
-      document.getElementById("chart-cursor-mode")!.style.display = "block";
     } else {
-      const barChartElement = document.getElementById("bar-chart")!;
-      barChartElement.refresh();
-      document.getElementById("line-chart")!.style.display = "none";
-      document.getElementById("bar-chart")!.style.display = "block";
-      document.getElementById("set-time-chart")!.style.display = "block";
-      document.getElementById("chart-cursor-mode")!.style.display = "none";
+      document.getElementById("chart-all-container")!.style.display = "none";
+      document.getElementById("chart-notice")!.style.display = "block";
     }
   });
 
@@ -549,12 +544,12 @@ export async function updateCalculations(birdData, timeSlider) {
     );
     let distanceToLine2 = geodeticLengthOperator.execute(newLine);
     document.getElementById("time-distance")!.innerHTML =
-      `Speed: →  ${(distanceToLine / 1000 / sumHoursSelected).toFixed(2)} ↑ ${(verticalDiff / 1000 / sumHoursSelected).toFixed(2)}  km/h<br>
-    Distance: ${(distanceToLine2 / 1000).toFixed(0)} km 
+      `⏲↠  ${(distanceToLine / 1000 / sumHoursSelected).toFixed(2)} ⏲↟ ${(verticalDiff / 1000 / sumHoursSelected).toFixed(2)}  km/h<br>
+   ⇤⇥ ${(distanceToLine2 / 1000).toFixed(0)} km 
     `;
 
     document.getElementById("time-duration")!.innerHTML =
-      `${daysSelected} days and ${hoursSelected} hours`;
+      `${daysSelected} d ${hoursSelected} h`;
   }
 }
 
