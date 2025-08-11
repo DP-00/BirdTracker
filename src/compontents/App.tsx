@@ -1230,9 +1230,7 @@ const Tutorial = () => {
       <calcite-stepper-item heading="Single view">
         <calcite-carousel arrow-type="edge">
           <calcite-carousel-item>
-            <div class="image-placeholder">
-              <img src="placeholder-gif.gif" alt="Instruction video" />
-            </div>
+            <img src="tutorial_pathVis_s.gif" alt="Instruction video" />
             <h3>Path symbology</h3>
             <p>
               <ul class="tutorial-guidelines">
@@ -1272,9 +1270,7 @@ const Tutorial = () => {
             </p>
           </calcite-carousel-item>
           <calcite-carousel-item>
-            <div class="image-placeholder">
-              <img src="placeholder-gif.gif" alt="Instruction video" />
-            </div>
+            <img src="tutorial_chart_s.gif" alt="Instruction video" />
             <h3>Charts</h3>
             <p>
               <ul class="tutorial-guidelines">
@@ -1293,29 +1289,29 @@ const Tutorial = () => {
                   To improve performance or in case of too many points error,
                   minimize the selected path with timeline
                 </li>
+                <li>
+                  It is expected that updating the variables takes some time
+                </li>
               </ul>
             </p>
           </calcite-carousel-item>
           <calcite-carousel-item>
-            <div class="image-placeholder">
-              <img src="placeholder-gif.gif" alt="Instruction video" />
-            </div>
+            <img src="tutorial_elevprof_m.gif" alt="Instruction video" />
             <h3>Elevation profile</h3>
             <p>
               <ul class="tutorial-guidelines">
                 <li>See track and ground changes along the distance</li>
                 <li>
-                  Hover over the chart to hihglight corresponding place on the
-                  map and get exact value
+                  Hover over the chart to mark corresponding place on the map
+                  and get exact ground and track elevation
                 </li>
+                <li>Zoom the chart by scrolling with your mouse wheel</li>
                 <li>See statisctic about both elevation profiles</li>
               </ul>
             </p>
           </calcite-carousel-item>
           <calcite-carousel-item>
-            <div class="image-placeholder">
-              <img src="placeholder-gif.gif" alt="Instruction video" />
-            </div>
+            <img src="tutorial_weather_s.gif" alt="Instruction video" />
             <h3>Weather</h3>
             <p>
               <ul class="tutorial-guidelines">
@@ -1337,9 +1333,7 @@ const Tutorial = () => {
             </p>
           </calcite-carousel-item>
           <calcite-carousel-item>
-            <div class="image-placeholder">
-              <img src="placeholder-gif.gif" alt="Instruction video" />
-            </div>
+            <img src="tutorial_follow_s.gif" alt="Instruction video" />
             <h3>Follow Bird</h3>
             <p>
               <ul class="tutorial-guidelines">
