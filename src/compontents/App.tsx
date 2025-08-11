@@ -1230,7 +1230,7 @@ const Tutorial = () => {
       <calcite-stepper-item heading="Single view">
         <calcite-carousel arrow-type="edge">
           <calcite-carousel-item>
-            <img src="tutorial_pathVis_s.gif" alt="Instruction video" />
+            <img src="./tutorial_pathVis_s.gif" alt="Instruction video" />
             <h3>Path symbology</h3>
             <p>
               <ul class="tutorial-guidelines">
@@ -1270,7 +1270,7 @@ const Tutorial = () => {
             </p>
           </calcite-carousel-item>
           <calcite-carousel-item>
-            <img src="tutorial_chart_s.gif" alt="Instruction video" />
+            <img src="./tutorial_chart_s.gif" alt="Instruction video" />
             <h3>Charts</h3>
             <p>
               <ul class="tutorial-guidelines">
@@ -1296,7 +1296,7 @@ const Tutorial = () => {
             </p>
           </calcite-carousel-item>
           <calcite-carousel-item>
-            <img src="tutorial_elevprof_m.gif" alt="Instruction video" />
+            <img src="./tutorial_elevprof_m.gif" alt="Instruction video" />
             <h3>Elevation profile</h3>
             <p>
               <ul class="tutorial-guidelines">
@@ -1311,7 +1311,7 @@ const Tutorial = () => {
             </p>
           </calcite-carousel-item>
           <calcite-carousel-item>
-            <img src="tutorial_weather_s.gif" alt="Instruction video" />
+            <img src="./tutorial_weather_s.gif" alt="Instruction video" />
             <h3>Weather</h3>
             <p>
               <ul class="tutorial-guidelines">
@@ -1333,7 +1333,7 @@ const Tutorial = () => {
             </p>
           </calcite-carousel-item>
           <calcite-carousel-item>
-            <img src="tutorial_follow_s.gif" alt="Instruction video" />
+            <img src="./tutorial_follow_s.gif" alt="Instruction video" />
             <h3>Follow Bird</h3>
             <p>
               <ul class="tutorial-guidelines">
