@@ -1109,9 +1109,7 @@ const Tutorial = () => {
         </calcite-notice>
       </calcite-stepper-item>
       <calcite-stepper-item heading="App Structure" class="tutorial">
-        <div class="image-placeholder">
-          <img src="placeholder-image.png" alt="Instruction video" />
-        </div>
+        <img src="./tutorial_structure.png" alt="Instruction image" />
         <h3>Application sections</h3>
 
         <ol>
@@ -1123,11 +1121,12 @@ const Tutorial = () => {
             change basemaps, toggle thematic layers, adjust lighting, etc.
           </li>
           <li>
-            <strong>Timeline:</strong> Controls time range or animation
-          </li>
-          <li>
             <strong>Dashboard:</strong> Displays track(s) information and
             settings
+          </li>
+          <li>
+            <strong>Timeline:</strong> Controls time range, animation and give
+            information about selected path
           </li>
         </ol>
 
@@ -1142,18 +1141,55 @@ const Tutorial = () => {
           </li>
           <ul>
             <li>
-              <strong>Explore mode:</strong> visualize the date with different
-              variables and charts having the big overview
+              <strong>Explore mode:</strong> focus on bigger scale perspective
+              with many visualizations
             </li>
             <li>
-              <strong>Follow mode:</strong> focus on the bird perspective as
-              they were flying
+              <strong>Follow mode:</strong> focus on the local bird perspective
             </li>
           </ul>
         </ul>
       </calcite-stepper-item>
       <calcite-stepper-item heading="Map Navigation">
         <calcite-carousel arrow-type="edge">
+          <calcite-carousel-item>
+            <img src="./tutorial_time_s.gif" alt="Instruction video" />
+            <h3>Temporal Navigation</h3>
+            <ul class="tutorial-guidelines">
+              <li>
+                The options on the timeline differs based on the appliation view
+              </li>
+              <li>
+                Drag the bar or set the range to set the selected path time (the
+                shorter the line the better performance)
+              </li>
+              <li>Use date picker for precise timespan</li>
+              <li>Use buttons to play animation or zoom to the path</li>
+              <li>
+                Read the selected path values (date, duration, distance, speed)
+                in the upper timline bar
+              </li>
+            </ul>
+            <p></p>
+          </calcite-carousel-item>
+          <calcite-carousel-item>
+            <img src="./tutorial_dataNav.gif" alt="Instruction video" />
+            <h3>Data Navigation</h3>
+            <ul class="tutorial-guidelines">
+              <li>
+                Change the basemap to a more suitable background and source of
+                information
+              </li>
+              <li>
+                Switch between thematic layers to explore different datasets
+              </li>
+
+              <li>
+                Try not to perform the actions on the map when you see the
+                loading indicatior
+              </li>
+            </ul>
+          </calcite-carousel-item>
           <calcite-carousel-item>
             <h3>Spatial Navigation</h3>
             <ul class="nav-guidelines">
@@ -1177,113 +1213,22 @@ const Tutorial = () => {
               </li>
             </ul>
           </calcite-carousel-item>
-          <calcite-carousel-item>
-            <div class="image-placeholder">
-              <img src="placeholder-gif.gif" alt="Instruction video" />
-            </div>
-            <h3>Temporal Navigation</h3>
-            <ul class="tutorial-guidelines">
-              <li>
-                The options on the timeline change depending on the appliation
-                view and mode
-              </li>
-              <li>Drag the bar to set the selected path time</li>
-              <li>Use date picker for precise timespan</li>
-              <li>
-                When possible use the play button to start the animation and
-                control the speed with right-upper corner control
-              </li>
-            </ul>
-            <p></p>
-          </calcite-carousel-item>
-          <calcite-carousel-item>
-            <div class="image-placeholder">
-              <img src="placeholder-gif.gif" alt="Instruction video" />
-            </div>
-            <h3>Data Navigation</h3>
-            <ul class="tutorial-guidelines">
-              <li>
-                Change basemaps for better suitable background and information
-              </li>
-              <li>
-                Switch between thematic layers to explore different datasets
-              </li>
-
-              <li>
-                Try not to perform the actions on the map when you see the
-                loading indicatior
-              </li>
-            </ul>
-          </calcite-carousel-item>
         </calcite-carousel>
       </calcite-stepper-item>
       <calcite-stepper-item heading="Group view">
-        <calcite-carousel arrow-type="edge">
-          <calcite-carousel-item>
-            <div class="image-placeholder">
-              <img src="placeholder-gif.gif" alt="Instruction video" />
-            </div>
-            <h3>Animate movement</h3>
-            <ul class="tutorial-guidelines">
-              <li>Get overview of all the bird journeys using timeline</li>
-              <li>The gray line shows the whole track</li>
-              <li>The colored line shows last 24 hours</li>
-            </ul>
-          </calcite-carousel-item>
-          <calcite-carousel-item>
-            <div class="image-placeholder">
-              <img src="placeholder-gif.gif" alt="Instruction video" />
-            </div>
-            <h3>Check by ID and paramenter</h3>
-            <ul class="tutorial-guidelines">
-              <li>Investigate based on list and get reference on the map</li>
-              <li>
-                Hover to highlight the track and click to open the path pop-up
-              </li>
-            </ul>
-          </calcite-carousel-item>
-          <calcite-carousel-item>
-            <div class="image-placeholder">
-              <img src="placeholder-gif.gif" alt="Instruction video" />
-            </div>
-            <h3>Investigate further</h3>
-            <ul class="tutorial-guidelines">
-              <li>
-                {" "}
-                Or select the genrelized path directly on the map to get a popup
-              </li>
-              <li>
-                Go to the single view by clicking on the Investigate button
-              </li>
-            </ul>
-          </calcite-carousel-item>
-        </calcite-carousel>
+        <img src="./tutorial_group_s.gif" alt="Instruction video" />
+        <h3>Get overview of tracks</h3>
+        <ul class="tutorial-guidelines">
+          <li>Use timeline to move the last visible 24 hours</li>
+          <li>Hover the list to highlight the track on the map</li>
+          <li>
+            Click on the list or on the generelized path to open the pop-up
+          </li>
+          <li>Go to the single view by clicking on the Investigate button</li>
+        </ul>
       </calcite-stepper-item>
       <calcite-stepper-item heading="Single view">
         <calcite-carousel arrow-type="edge">
-          <calcite-carousel-item>
-            <div class="image-placeholder">
-              <img src="placeholder-gif.gif" alt="Instruction video" />
-            </div>
-            <h3>Control Time and Camera</h3>
-            <p>
-              <ul class="tutorial-guidelines">
-                <li>
-                  Set the time range to the part to investigate. The shorter the
-                  line the better performance. Some functionality like Charts
-                  and Weather depends on the selected path.
-                </li>
-                <li>
-                  Read the selected path depended info on the timeline
-                  (duration, distance, speed)
-                </li>
-                <li>
-                  Use the button on the timeline to zoom to selected path or
-                  Explore Button to zoom to whole extent
-                </li>
-              </ul>
-            </p>
-          </calcite-carousel-item>
           <calcite-carousel-item>
             <div class="image-placeholder">
               <img src="placeholder-gif.gif" alt="Instruction video" />
@@ -1292,7 +1237,8 @@ const Tutorial = () => {
             <p>
               <ul class="tutorial-guidelines">
                 <li>
-                  Set the variables to color the line and cylinderalong the path
+                  Set the variables to color the line and cylinder along the
+                  path
                 </li>
                 <li>Change the color scale</li>
                 <li>Change the visibility of information along the path</li>
@@ -1321,6 +1267,7 @@ const Tutorial = () => {
                   Click on each element on the map to get more information in
                   the popup
                 </li>
+                <li>Use Explore Mode button to show the whole path extent</li>
               </ul>
             </p>
           </calcite-carousel-item>
@@ -1336,7 +1283,7 @@ const Tutorial = () => {
                   selected
                 </li>
                 <li>
-                  line variable - shape of the path, cylinder variable - color
+                  Line variable - shape of the path, cylinder variable - color
                 </li>
                 <li>
                   Change cursor mode to be able to to interact with the map or

@@ -862,27 +862,9 @@ calcite-notice {
   padding: 0 2px;
 }
 
-calcite-stepper {
-  // max-width: 800px;
-  // margin: 0 auto;
-}
-
-.image-placeholder {
-  margin-top: 10px;
-  text-align: center;
-}
-
-.image-placeholder img {
+#tutorial img {
   max-width: 100%;
-  border: 2px dashed #ccc;
-  padding: 5px;
-  background: #fafafa;
-}
-
-.caption {
-  font-size: 0.9rem;
-  color: #555;
-  margin-top: 4px;
+  margin: auto;
 }
 
 calcite-notice {
@@ -893,12 +875,16 @@ calcite-stepper-item h3 {
   font-size: 1rem;
   text-align: center;
 
-  // margin-bottom: 0;
-  // padding: 0.5rem;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 calcite-stepper-item ol {
+  margin-top: 0.5rem;
+}
+calcite-stepper-item ul {
   font-size: 0.9rem;
+  margin-top: 0.3rem;
 }
 
 calcite-stepper-item strong {
@@ -911,8 +897,7 @@ calcite-stepper-item strong {
 }
 
 .tutorial-guidelines > li {
-  margin-bottom: 0.8rem;
-  // margin-top: 1rem;
+  margin-top: 0.7rem;
   position: relative;
   padding-left: 1.5rem;
 }
@@ -927,7 +912,7 @@ calcite-stepper-item strong {
   width: 16px;
   height: 16px;
 
-  background-image: url("/public/birdIcon3.svg"); /* adjust path as needed */
+  background-image: url("/public/birdIcon3.svg");
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -941,38 +926,12 @@ calcite-stepper-item strong {
   font-size: 1rem;
 }
 
-.nav-guidelines {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
 .nav-guidelines li {
   display: flex;
   align-items: center;
   margin-bottom: 0.5rem;
   font-size: 0.95rem;
 }
-
-// .esri-legend {
-//   font-size: 12px; /* smaller text */
-//   max-width: 200px; /* control width */
-// }
-
-// .esri-legend__layer {
-//   margin-bottom: 8px; /* less spacing between layers */
-// }
-
-// .esri-legend__list {
-//   padding-left: 8px; /* smaller padding */
-// }
-
-// .esri-legend__item {
-//   margin-bottom: 4px; /* less space between items */
-// }
-
-// #chart-secondary-legend .esri-legend__layer > div:first-of-type {
-//   display: none;
-// }
 
 #chart-secondary-legend .esri-legend__layer > div:not(:nth-of-type(2)) {
   display: none;
