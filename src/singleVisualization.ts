@@ -15,13 +15,14 @@ import Polyline from "@arcgis/core/geometry/Polyline";
 import * as colorRendererCreator from "@arcgis/core/smartMapping/renderers/color.js";
 import IconSymbol3DLayer from "@arcgis/core/symbols/IconSymbol3DLayer";
 import PointSymbol3D from "@arcgis/core/symbols/PointSymbol3D";
+import Legend from "@arcgis/core/widgets/Legend";
 import { formatDate, getClosestFeatureIndexInTime } from "./utils";
 export async function setSingleVis(
   arcgisScene: HTMLArcgisSceneElement,
   primaryLayer: __esri.FeatureLayer,
   secondaryLayer: __esri.FeatureLayer,
   arrowLayer: __esri.GraphicsLayer,
-  dayLayer,
+  // dayLayer,
   birdSummary: Record<string, any>,
   primaryValue: string,
   secondaryValue: string,
@@ -35,8 +36,8 @@ export async function setSingleVis(
     "secondary-vis-select",
   ) as HTMLCalciteSelectElement;
 
-  const primaryLegend = document.getElementById("legend-primary");
-  const secondaryLegend = document.getElementById("legend-secondary");
+  const primaryLegendContainer = document.getElementById("legend-primary");
+  const secondaryLegendContainer = document.getElementById("legend-secondary");
   const primaryColorScale = document.getElementById("color-slider-primary");
   const secondaryColorScale = document.getElementById("color-slider-secondary");
 
@@ -94,15 +95,14 @@ export async function setSingleVis(
 
   updateLayerColorVariables(secondaryValue, secondaryLayer, birdSummary);
 
+  let primaryLegend = new Legend({
+    view: arcgisScene.view,
+    container: primaryLegendContainer,
+  });
+
   primaryLegend.layerInfos = [
     {
       layer: primaryLayer,
-    },
-  ];
-
-  secondaryLegend.layerInfos = [
-    {
-      layer: secondaryLayer,
     },
   ];
 
@@ -243,9 +243,9 @@ export async function setSingleVis(
     extremumsVisibility?.addEventListener("calciteCheckboxChange", async () => {
       arrowLayer.visible = !arrowLayer.visible;
     });
-    timeMarksVisibility?.addEventListener("calciteCheckboxChange", async () => {
-      dayLayer.visible = !dayLayer.visible;
-    });
+    // timeMarksVisibility?.addEventListener("calciteCheckboxChange", async () => {
+    //   dayLayer.visible = !dayLayer.visible;
+    // });
   }
 
   function createAttributeSelects(
@@ -281,15 +281,16 @@ export async function setSingleVis(
 
     if (layerType == "primary") {
       container = "color-slider-primary";
-      resetSliderContainer(container);
+      // resetSliderContainer(container);
       colorScaleContainer = primaryColorScale;
-      legendContainer = primaryLegend;
+      legendContainer = primaryLegendContainer;
     } else {
       container = "color-slider-secondary";
-      resetSliderContainer(container);
+      // resetSliderContainer(container);
       colorScaleContainer = secondaryColorScale;
-      legendContainer = secondaryLegend;
+      legendContainer = secondaryLegendContainer;
     }
+    colorScaleContainer.innerHTML = null;
 
     if (!summary) {
       legendContainer!.style.display = "block";
@@ -754,13 +755,13 @@ export function updateArrowLayer(
     {
       location: summary.minLocation,
       value: summary.min.toFixed(0),
-      color: "#192a27",
+      color: "#194138",
       direction: "down",
     },
     {
       location: summary.maxLocation,
       value: summary.max.toFixed(0),
-      color: "#4c1010bb",
+      color: "#983a22",
       direction: "up",
     },
   ];
@@ -795,6 +796,9 @@ export function updateArrowLayer(
 
     ctx.fillStyle = color;
     ctx.fill();
+    ctx.strokeStyle = "#aed8cc44";
+    ctx.lineWidth = 3;
+    ctx.stroke();
     ctx.restore();
 
     ctx.fillStyle = "#aed8cc";

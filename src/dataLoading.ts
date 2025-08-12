@@ -5,6 +5,7 @@ import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import Papa from "papaparse";
 import { setCharts } from "./charts";
 import {
+  create24hGraphics,
   createCylinderLayer,
   createGeneralizedLineLayer,
   createGraphics,
@@ -17,7 +18,7 @@ import { setSingleVis, summarizeData } from "./singleVisualization";
 import { setTimeSlider } from "./timeSlider";
 
 import TimeExtent from "@arcgis/core/time/TimeExtent";
-import { formatDate, removeLayersByTitles } from "./utils";
+import { findLayersByTitles, formatDate, removeLayersByTitles } from "./utils";
 import { setWeather } from "./weather";
 
 export async function loadData(arcgisScene: HTMLArcgisSceneElement) {
@@ -209,6 +210,8 @@ async function createGroupVisView(
     homeBtn.loading = true;
     document.getElementById("dashboard-single-vis").loading = true;
     document.getElementById("dashboard-single-vis")!.style.display = "none";
+    document.getElementById("progress-loader")!.style.display = "none";
+
     removeLayersByTitles(arcgisScene.view, [
       "Line visualization",
       "Cylinder visualization",
@@ -245,8 +248,11 @@ export async function createSingleVisView(
   document.getElementById("dashboard")!.loading = true;
   document.getElementById("dashboard-group-vis")!.style.display = "none";
   document.getElementById("dashboard-single-vis")!.style.display = "block";
-  const groupLineLayer = arcgisScene.view.map.allLayers.find(
-    (layer) => layer.title === "Group visualization",
+  document.getElementById("progress-loader")!.style.display = "block";
+
+  const groupLineLayer = findLayersByTitles(
+    arcgisScene.view,
+    "Group visualization",
   );
   groupLineLayer.visible = false;
 
@@ -263,10 +269,11 @@ export async function createSingleVisView(
   const birdPath = dataProcessed[birdid];
   const birdSummary = summarizeData(birdPath);
   const birdGraphics = createGraphics(birdPath);
+  const timeGraphics = await create24hGraphics(birdGraphics);
   const polyline = await createPolyline(birdPath);
   const primaryLayer = await createLineLayer(birdPath, birdSummary);
   const secondaryLayer = createCylinderLayer(birdGraphics, birdSummary);
-  const dayLayer = await createTimeMarkersLayer(birdGraphics);
+  const dayLayer = await createTimeMarkersLayer(timeGraphics);
   const arrowLayer = new GraphicsLayer({
     title: `Extremum visualization`,
   });
@@ -291,7 +298,7 @@ export async function createSingleVisView(
     primaryLayer,
     secondaryLayer,
     arrowLayer,
-    dayLayer,
+    // dayLayer,
     birdSummary,
     primaryValue,
     secondaryValue,
@@ -350,6 +357,8 @@ async function createBirdList(birdIds: string[], featureLayer, arcgisScene) {
       const { length, startDate, endDate, color } = feature.attributes;
       const listItem = document.createElement("calcite-list-item");
       listItem.setAttribute("label", `BIRD ${birdId}`);
+      listItem.setAttribute("scale", `l`);
+
       listItem.setAttribute("value", birdId);
       const dateRange = `${formatDate(startDate)} - ${formatDate(endDate)}`;
 
@@ -385,13 +394,15 @@ async function createBirdList(birdIds: string[], featureLayer, arcgisScene) {
           tilt: 0,
         });
         const layerView = await arcgisScene.view.whenLayerView(featureLayer);
+
         let highlight = layerView.highlight(feature);
+        view.openPopup({
+          features: [feature],
+          location: feature.geometry.center,
+        });
         setTimeout(() => {
           highlight.remove();
         }, 3000);
-        view.openPopup({
-          features: [feature],
-        });
       });
       listItem.style.setProperty("--calcite-list-label-text-color", color);
       list.appendChild(listItem);

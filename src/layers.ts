@@ -26,33 +26,13 @@ import {
   getCoordinatesFromFeatures,
 } from "./utils";
 
-// Esri color ramps - Falling Leaves
-// const colors = [
-//   "rgba(92, 152, 202, 1)",
-//   "rgba(62, 117, 109, 1)",
-//   "rgba(68, 73, 139, 1)",
-//   "rgba(115, 36, 31, 1)",
-//   "rgba(138, 81, 64, 1)",
-//   "rgba(152, 149, 71, 1)",
-// ];
-
-// const colors = [
-//   "rgba(139, 84, 75, 1)", // Muted brick red
-//   "rgba(92, 112, 153, 1)", // Soft slate blue
-//   "rgba(100, 140, 135, 1)", // Desaturated teal
-//   "rgba(181, 162, 110, 1)", // Dusty gold
-//   "rgba(168, 108, 129, 1)", // Soft mauve
-//   "rgba(122, 134, 113, 1)", // Olive gray
-//   "rgba(160, 123, 92, 1)", // Warm clay brown
-// ];
-
 const colors = [
-  "rgba(95, 92, 160, 1)", // Warm clay brown
-  "rgba(92, 134, 153, 1)", // Soft slate blue
-  "rgba(100, 140, 103, 1)", // Desaturated teal
-  "rgba(181, 144, 110, 1)", // Dusty gold
-  "rgba(139, 75, 75, 1)", // Muted brick red
-  "rgba(168, 108, 144, 1)", // Soft mauve
+  "rgba(95, 92, 160, 1)",
+  "rgba(92, 134, 153, 1)",
+  "rgba(100, 140, 103, 1)",
+  "rgba(181, 144, 110, 1)",
+  "rgba(139, 75, 75, 1)",
+  "rgba(168, 108, 144, 1)",
 ];
 
 const specialKeys = new Set([
@@ -130,6 +110,74 @@ export function createGraphics(csvData: any) {
     });
   });
   return graphics;
+}
+
+export async function create24hGraphics(graphics: any) {
+  if (!geodeticLengthOperator.isLoaded()) {
+    await geodeticLengthOperator.load();
+  }
+
+  const graphicsArray = [];
+  const coordinates = getCoordinatesFromFeatures(graphics);
+  const startTimestamp = graphics[0].attributes.timestamp;
+  const endTimestamp = graphics[graphics.length - 1].attributes.timestamp;
+
+  const startDate = new Date(
+    Date.UTC(
+      new Date(startTimestamp).getUTCFullYear(),
+      new Date(startTimestamp).getUTCMonth(),
+      new Date(startTimestamp).getUTCDate(),
+      23,
+      59,
+      59,
+      59,
+    ),
+  );
+
+  const endDate = new Date(
+    Date.UTC(
+      new Date(endTimestamp).getUTCFullYear(),
+      new Date(endTimestamp).getUTCMonth(),
+      new Date(endTimestamp).getUTCDate(),
+      23,
+      59,
+      59,
+      0,
+    ),
+  );
+
+  let prevIndex = 0;
+  let i = 0;
+  for (let d = startDate; d < endDate; d.setDate(d.getDate() + 1)) {
+    let currentIndex = getClosestFeatureIndexInTime(graphics, d);
+    let point = getClosestPointInTime(graphics, d, currentIndex);
+    const line = new Polyline({
+      spatialReference: { wkid: 4326 },
+      paths: [
+        coordinates
+          .slice(prevIndex, currentIndex + 1)
+          .concat([[point.x, point.y, point.z ?? 0]]),
+      ],
+    });
+
+    const distance = Math.round(geodeticLengthOperator.execute(line) / 1000);
+
+    graphicsArray.push(
+      new Graphic({
+        attributes: {
+          OBJECTID: i + 1,
+          distance,
+          date: d.getTime() + 1,
+        },
+        geometry: graphics[currentIndex].geometry,
+      }),
+    );
+
+    prevIndex = currentIndex;
+    i++;
+  }
+
+  return graphicsArray;
 }
 
 export async function createGeneralizedLineLayer(
@@ -265,9 +313,6 @@ export async function createGeneralizedLineLayer(
                 source: "color",
               },
             },
-            //   pattern: new LineStylePattern3D({
-            //     style: "solid",
-            //   }),
             size: 9,
           }),
           new LineSymbol3DLayer({
@@ -381,11 +426,7 @@ export async function createGroupLineLayer(groupedData) {
   return groupLineLayer;
 }
 
-export async function createLineLayer(
-  // groupedData: { [x: string]: any },
-  data,
-  birdSummary: any,
-) {
+export async function createLineLayer(data, birdSummary: any) {
   const lineGraphics = [];
   let idCounter = 1;
   const allKeys = Object.keys(data[0]);
@@ -501,7 +542,6 @@ export function createCylinderLayer(graphics: any, birdSummary: any) {
     elevationInfo: {
       mode: "absolute-height",
     },
-    // minScale: 300000,
     fields: generateLayerFields(birdSummary),
     outFields: ["*"],
     timeInfo: {
@@ -533,75 +573,11 @@ export function createCylinderLayer(graphics: any, birdSummary: any) {
 }
 
 export async function createTimeMarkersLayer(graphics) {
-  if (!geodeticLengthOperator.isLoaded()) {
-    await geodeticLengthOperator.load();
-  }
-
-  const graphicsArray = [];
-  const coordinates = getCoordinatesFromFeatures(graphics);
-  const startTimestamp = graphics[0].attributes.timestamp;
-  const endTimestamp = graphics[graphics.length - 1].attributes.timestamp;
-
-  const startDate = new Date(
-    Date.UTC(
-      new Date(startTimestamp).getUTCFullYear(),
-      new Date(startTimestamp).getUTCMonth(),
-      new Date(startTimestamp).getUTCDate(),
-      23,
-      59,
-      59,
-      59,
-    ),
-  );
-
-  const endDate = new Date(
-    Date.UTC(
-      new Date(endTimestamp).getUTCFullYear(),
-      new Date(endTimestamp).getUTCMonth(),
-      new Date(endTimestamp).getUTCDate(),
-      23,
-      59,
-      59,
-      0,
-    ),
-  );
-
-  let prevIndex = 0;
-  let i = 0;
-  for (let d = startDate; d < endDate; d.setDate(d.getDate() + 1)) {
-    let currentIndex = getClosestFeatureIndexInTime(graphics, d);
-    let point = getClosestPointInTime(graphics, d, currentIndex);
-    const line = new Polyline({
-      spatialReference: { wkid: 4326 },
-      paths: [
-        coordinates
-          .slice(prevIndex, currentIndex + 1)
-          .concat([[point.x, point.y, point.z ?? 0]]),
-      ],
-    });
-
-    const distance = Math.round(geodeticLengthOperator.execute(line) / 1000);
-
-    graphicsArray.push(
-      new Graphic({
-        attributes: {
-          OBJECTID: i + 1,
-          distance,
-          date: d.getTime() + 1,
-        },
-        geometry: graphics[currentIndex].geometry,
-      }),
-    );
-
-    prevIndex = currentIndex;
-    i++;
-  }
-
   const labelingInfo = [
     new LabelClass({
       labelExpressionInfo: {
         expression:
-          "var dateTime = $feature.date; return `${Upper(Text($feature.date, 'MMM D'))}\n${$feature.distance} km`",
+          "return `${Upper(Text($feature.date, 'MMM D'))}\n${$feature.distance} km`",
       },
       labelPlacement: "center-right",
       symbol: new LabelSymbol3D({
@@ -646,7 +622,7 @@ export async function createTimeMarkersLayer(graphics) {
   };
 
   const getUniqueValues = () => {
-    const days = Array.from({ length: graphicsArray.length }, (_, i) => i + 1);
+    const days = Array.from({ length: graphics.length }, (_, i) => i + 1);
     return days.map((day) => {
       return {
         value: day,
@@ -680,7 +656,7 @@ export async function createTimeMarkersLayer(graphics) {
   };
 
   const layer = new FeatureLayer({
-    source: graphicsArray,
+    source: graphics,
     title: "Time and distance visualization",
     geometryType: "point",
     spatialReference: SpatialReference.WGS84,

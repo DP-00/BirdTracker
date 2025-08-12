@@ -6,7 +6,7 @@ import Polygon from "@arcgis/core/geometry/Polygon";
 import * as webMercatorUtils from "@arcgis/core/geometry/support/webMercatorUtils";
 import Graphic from "@arcgis/core/Graphic";
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
-import { ArcgisLegend } from "@arcgis/map-components/dist/components/arcgis-legend";
+import Legend from "@arcgis/core/widgets/Legend";
 import { ArcgisTimeSlider } from "@arcgis/map-components/dist/components/arcgis-time-slider";
 import { fetchWeatherApi } from "openmeteo";
 import { findLayersByTitles } from "./utils";
@@ -376,9 +376,7 @@ export async function setWeather(arcgisScene, secondaryLayer, birdid) {
   const timeSlider = document.querySelector(
     "arcgis-time-slider",
   )! as ArcgisTimeSlider;
-  const weatherLegend = document.getElementById(
-    "weather-legend",
-  )! as ArcgisLegend;
+  const weatherLegendContainer = document.getElementById("weather-legend");
   const weatherTimeContainer = document.getElementById(
     "weather-time-container",
   ) as HTMLElement;
@@ -394,6 +392,11 @@ export async function setWeather(arcgisScene, secondaryLayer, birdid) {
   let tiles: any;
 
   weatherLayer = await createWeatherLayer(arcgisScene);
+
+  let weatherLegend = new Legend({
+    view: arcgisScene.view,
+    container: weatherLegendContainer,
+  });
 
   weatherLegend.layerInfos = [
     {

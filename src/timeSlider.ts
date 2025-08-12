@@ -78,6 +78,7 @@ export async function setTimeSlider(
   timeSlider.stops = { interval: { value: 10, unit: "minutes" } };
 
   timeSlider.addEventListener("arcgisPropertyChange", (event) => {
+    console.log(event);
     let currentTime = timeSlider.timeExtent.end;
     view.environment.lighting.date = currentTime;
     updateIcon(currentTime);
@@ -119,6 +120,7 @@ export async function setTimeSlider(
       document.getElementById("time-duration")!.style.display = "none";
       document.getElementById("time-distance")!.style.display = "none";
       document.getElementById("time-zoom")!.style.display = "none";
+      document.getElementById("progress-loader")!.style.display = "none";
       gaugeContainer!.style.display = "block";
       animationPlayRate!.style.display = "block";
       playAnimation!.style.display = "block";
@@ -134,12 +136,16 @@ export async function setTimeSlider(
       document.getElementById("time-duration")!.style.display = "block";
       document.getElementById("time-distance")!.style.display = "block";
       document.getElementById("time-zoom")!.style.display = "block";
+      document.getElementById("progress-loader")!.style.display = "block";
     }
   });
 
   document
     .getElementById("camera-zoom")!
     .addEventListener("click", async () => {
+      console.log(pointLayer);
+      console.log(pointLayer.fullExtent);
+
       await view.goTo({
         target: pointLayer.fullExtent,
         heading: 0,
@@ -222,6 +228,7 @@ export async function setTimeSlider(
   }
 
   function updateIcon(time) {
+    console.log("icon");
     iconLayer.graphics.forEach((iconGraphic) => {
       const birdFeature = groupedFeatures[iconGraphic.attributes.birdId];
       let i = getClosestFeatureIndexInTime(birdFeature, time);
@@ -235,7 +242,7 @@ export async function setTimeSlider(
     });
   }
 
-  async function updateBirdPerspective(time) {
+  function updateBirdPerspective(time) {
     let cameraSide = document.getElementById("camera-side");
     let isFollowing = cameraSide.value === "bird-camera-free" ? true : false;
     let isFront =

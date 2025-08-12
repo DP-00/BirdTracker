@@ -61,6 +61,8 @@ import "@esri/calcite-components/dist/components/calcite-navigation-user";
 import "@esri/calcite-components/dist/components/calcite-notice";
 import "@esri/calcite-components/dist/components/calcite-panel";
 import "@esri/calcite-components/dist/components/calcite-popover";
+import "@esri/calcite-components/dist/components/calcite-progress";
+
 import "@esri/calcite-components/dist/components/calcite-segmented-control";
 import "@esri/calcite-components/dist/components/calcite-segmented-control-item";
 import "@esri/calcite-components/dist/components/calcite-slider";
@@ -75,6 +77,7 @@ import "@esri/calcite-components/dist/components/calcite-tab-title";
 import "@esri/calcite-components/dist/components/calcite-tabs";
 import "@esri/calcite-components/dist/components/calcite-tooltip";
 
+import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
 import * as intl from "@arcgis/core/intl.js";
 import { loadData } from "../dataLoading";
 import { setMapControls } from "../mapControls";
@@ -112,6 +115,19 @@ class App extends Widget<AppProperties> {
     };
     await loadData(arcgisScene);
     await setMapControls(arcgisScene);
+    reactiveUtils.watch(
+      () => view.updating,
+      (updating) => {
+        const loader = document.getElementById("progress-loader");
+        if (loader) {
+          if (updating) {
+            loader.style.visibility = "visible";
+          } else {
+            loader.style.visibility = "hidden";
+          }
+        }
+      },
+    );
   }
 
   render() {
@@ -120,6 +136,11 @@ class App extends Widget<AppProperties> {
         <LoadingPanel></LoadingPanel>
         <div id="main-div">
           <div id="scene-wrapper">
+            <calcite-loader
+              id="progress-loader"
+              type="indeterminate"
+              scale="l"
+            ></calcite-loader>
             <arcgis-scene
               id="scene-div"
               basemap="satellite"
@@ -180,6 +201,7 @@ class App extends Widget<AppProperties> {
             </div>
             <TimeControls></TimeControls>
           </div>
+
           <calcite-panel id="dashboard">
             <div id="dashboard-group-vis">
               <p>
@@ -333,11 +355,7 @@ class App extends Widget<AppProperties> {
 
                     <div class="focus-padding">
                       <div id="color-slider-primary"></div>
-                      <arcgis-legend
-                        id="legend-primary"
-                        reference-element="scene-div"
-                        style="card"
-                      ></arcgis-legend>
+                      <div id="legend-primary"></div>
                       <div class="filters-container">
                         <calcite-icon icon="filter" scale="m" />
                         <div
@@ -349,11 +367,7 @@ class App extends Widget<AppProperties> {
 
                     <div class="focus-padding">
                       <div id="color-slider-secondary"></div>
-                      <arcgis-legend
-                        id="legend-secondary"
-                        reference-element="scene-div"
-                        style="card"
-                      ></arcgis-legend>
+                      <div id="legend-secondary"></div>
                       <div class="filters-container">
                         <calcite-icon icon="filter" scale="m" />
                         <div
@@ -566,11 +580,7 @@ const ChartsDashboard = () => {
               </calcite-segmented-control-item>
             </calcite-segmented-control>
           </calcite-label>
-          <arcgis-legend
-            id="chart-secondary-legend"
-            reference-element="scene-div"
-            style="card"
-          ></arcgis-legend>
+          <div id="chart-secondary-legend"></div>
         </div>
       </div>
     </div>
@@ -682,11 +692,7 @@ const WeatherControls = () => {
               the time at which values are shown(ideal resident birds)
             </calcite-tooltip>
           </div>
-          <arcgis-legend
-            id="weather-legend"
-            reference-element="scene-div"
-            style="card"
-          ></arcgis-legend>
+          <div id="weather-legend"></div>
         </div>
         <calcite-button id="new-tiles-button" kind="neutral" appearance="solid">
           Generate new tiles
@@ -1125,8 +1131,8 @@ const Tutorial = () => {
             settings
           </li>
           <li>
-            <strong>Timeline:</strong> Controls time range, animation and give
-            information about selected path
+            <strong>Timeline:</strong> Controls time range, animation and gives
+            information about the selected path
           </li>
         </ol>
 
@@ -1157,14 +1163,14 @@ const Tutorial = () => {
             <h3>Temporal Navigation</h3>
             <ul class="tutorial-guidelines">
               <li>
-                The options on the timeline differs based on the appliation view
+                The options on the timeline differ based on the appliation view
               </li>
               <li>
                 Drag the bar or set the range to set the selected path time (the
-                shorter the line the better performance)
+                shorter the line the better the performance)
               </li>
-              <li>Use date picker for precise timespan</li>
-              <li>Use buttons to play animation or zoom to the path</li>
+              <li>Use the date picker for a precise timespan</li>
+              <li>Use the buttons to play the animation or zoom to the path</li>
               <li>
                 Read the selected path values (date, duration, distance, speed)
                 in the upper timline bar
@@ -1204,7 +1210,7 @@ const Tutorial = () => {
               </li>
               <li>
                 <span class="esri-nav-icon">&#xe680;</span>{" "}
-                <strong>Compass: </strong> Click N to set the nort-up view
+                <strong>Compass: </strong> Press N to set the nort-up view
               </li>
               <li>
                 <span class="esri-nav-icon">&#xe620; &#xe621;</span>{" "}
@@ -1219,10 +1225,11 @@ const Tutorial = () => {
         <img src="./tutorial_group_s.gif" alt="Instruction video" />
         <h3>Get overview of tracks</h3>
         <ul class="tutorial-guidelines">
-          <li>Use timeline to move the last visible 24 hours</li>
-          <li>Hover the list to highlight the track on the map</li>
+          <li>Use the timeline to move the last visible 24 hours</li>
+          <li>Hover over the list items to highlight the track on the map</li>
           <li>
-            Click on the list or on the generelized path to open the pop-up
+            Click on the list items or on the generelized path to open the
+            pop-up
           </li>
           <li>Go to the single view by clicking on the Investigate button</li>
         </ul>
@@ -1242,7 +1249,7 @@ const Tutorial = () => {
                 <li>Change the visibility of information along the path</li>
                 <ul>
                   <li>
-                    <strong>Line: </strong> seen from all zoom levels for
+                    <strong>Line: </strong> seen from all zoom levels for the
                     selected time
                   </li>
                   <li>
@@ -1254,10 +1261,10 @@ const Tutorial = () => {
                     distribution, set at 00:00 of each day
                   </li>
                   <li>
-                    <strong>Generalized line: </strong> shows simlpified
+                    <strong>Generalized line: </strong> shows simlpified line
                   </li>
                   <li>
-                    <strong>Extremums: </strong> shows minimum and maximum value
+                    <strong>Extrema: </strong> shows minimum and maximum value
                     of the line variable
                   </li>
                 </ul>
@@ -1265,7 +1272,9 @@ const Tutorial = () => {
                   Click on each element on the map to get more information in
                   the popup
                 </li>
-                <li>Use Explore Mode button to show the whole path extent</li>
+                <li>
+                  Use the Explore Mode button to show the whole path extent
+                </li>
               </ul>
             </p>
           </calcite-carousel-item>
@@ -1276,18 +1285,18 @@ const Tutorial = () => {
               <ul class="tutorial-guidelines">
                 <li>
                   Show how the selected variables are changing along the
-                  selected
+                  selected time
                 </li>
                 <li>
-                  Line variable - shape of the path, cylinder variable - color
+                  Line variable: shape of the path; cylinder variable: color
                 </li>
                 <li>
-                  Change cursor mode to be able to to interact with the map or
-                  zoom in the chart
+                  Change the cursor mode to be able to to interact with the map
+                  or zoom in the chart
                 </li>
                 <li>
-                  To improve performance or in case of too many points error,
-                  minimize the selected path with timeline
+                  To improve performance or in case of a too many points error,
+                  minimize the selected path with the timeline
                 </li>
                 <li>
                   It is expected that updating the variables takes some time
@@ -1300,13 +1309,15 @@ const Tutorial = () => {
             <h3>Elevation profile</h3>
             <p>
               <ul class="tutorial-guidelines">
-                <li>See track and ground changes along the distance</li>
+                <li>See track and ground changes across the distance</li>
                 <li>
-                  Hover over the chart to mark corresponding place on the map
-                  and get exact ground and track elevation
+                  Hover over the chart to mark the corresponding place on the
+                  map and get exact ground and track elevation
                 </li>
-                <li>Zoom the chart by scrolling with your mouse wheel</li>
-                <li>See statisctic about both elevation profiles</li>
+                <li>
+                  Zoom within the chart by scrolling with your mouse wheel
+                </li>
+                <li>See statistics about both elevation profiles</li>
               </ul>
             </p>
           </calcite-carousel-item>
@@ -1315,14 +1326,16 @@ const Tutorial = () => {
             <h3>Weather</h3>
             <p>
               <ul class="tutorial-guidelines">
-                <li>Choose only relevant part of the path with the timeline</li>
+                <li>
+                  Choose only the relevant part of the path with the timeline
+                </li>
                 <li>
                   Generate the tiles and if the placement is correct get the
                   weather data
                 </li>
                 <li>
                   In case of too many requested grid cells minimize the selected
-                  path with timeline or set bigger size tile with smaller
+                  path with the timeline or set bigger sized tiles with smaller
                   distance from the path
                 </li>
                 <li>
@@ -1341,7 +1354,7 @@ const Tutorial = () => {
                 <li>Control the camera angle with the upper-screen buttons</li>
                 <li>Control the place and speed with the timeline control</li>
                 <li>Read the current values from the gauges</li>
-                <li>Hide the uneccesary layers to improve animation</li>
+                <li>Hide uneccesary layers to improve animation</li>
                 <li>
                   Go back to the Explore mode using the buttons at the top of
                   the dashboard

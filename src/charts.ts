@@ -1,7 +1,7 @@
 import "@arcgis/charts-components/components/arcgis-chart";
 import { defineCustomElements } from "@arcgis/charts-components/dist/loader";
 import { createModel } from "@arcgis/charts-components/model";
-
+import Legend from "@arcgis/core/widgets/Legend";
 defineCustomElements(window, {
   resourcesUrl: "https://jsdev.arcgis.com/4.33/charts-components/",
 });
@@ -25,15 +25,22 @@ export async function setCharts(
   ) as HTMLCalciteSelectElement;
 
   const lineChartElement = document.getElementById("line-chart")!;
-  const legnedChartElement = document.getElementById("chart-secondary-legend")!;
-  legnedChartElement.layerInfos = [
+  const legnedChartContainer = document.getElementById(
+    "chart-secondary-legend",
+  )!;
+
+  let chartLegend = new Legend({
+    view: arcgisScene.view,
+    container: legnedChartContainer,
+  });
+
+  chartLegend.layerInfos = [
     {
       layer: secondaryLayer,
       title: "Chart color",
     },
   ];
 
-  legnedChartElement.respectLayerVisibility = false;
   const dashboardTabsNav = document.getElementById("dashboard-tabs-nav")!;
   dashboardTabsNav?.addEventListener("calciteTabChange", async () => {
     if (dashboardTabsNav.selectedTitle.innerText.includes("Values")) {
