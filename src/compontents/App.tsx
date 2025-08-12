@@ -24,7 +24,7 @@ import "@arcgis/map-components/components/arcgis-search";
 import "@arcgis/map-components/components/arcgis-time-slider";
 import "@arcgis/map-components/components/arcgis-zoom";
 
-import AppStore from "../stores/AppStore";
+// import AppStore from "../stores/AppStore";
 import { Widget } from "./Widget";
 
 import "@arcgis/core/geometry/operators/generalizeOperator";
@@ -90,8 +90,7 @@ const params = new URLSearchParams(document.location.search.slice(1));
 @subclass()
 class App extends Widget<AppProperties> {
   @property({ constructOnly: true })
-  store = new AppStore();
-
+  // store = new AppStore();
   @property()
   private async bindView(arcgisScene: HTMLArcgisSceneElement) {
     const view = arcgisScene.view;
@@ -113,8 +112,10 @@ class App extends Widget<AppProperties> {
     view.environment.lighting = {
       cameraTrackingEnabled: false,
     };
+
     await loadData(arcgisScene);
     await setMapControls(arcgisScene);
+
     reactiveUtils.watch(
       () => view.updating,
       (updating) => {
