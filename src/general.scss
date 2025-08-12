@@ -146,7 +146,6 @@ b {
 
 .chart-container {
   height: 20rem;
-  padding-bottom: 1rem;
 }
 arcgis-chart {
   flex: 1;
@@ -933,9 +932,9 @@ calcite-stepper-item strong {
   font-size: 0.95rem;
 }
 
-#chart-secondary-legend .esri-legend__layer > div:not(:nth-of-type(2)) {
-  display: none;
-}
+// #chart-secondary-legend .esri-legend__layer > div:not(:nth-of-type(2)) {
+//   display: none;
+// }
 
 #progress-loader {
   display: none;

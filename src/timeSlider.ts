@@ -1,13 +1,17 @@
 import Camera from "@arcgis/core/Camera";
 import Mesh from "@arcgis/core/geometry/Mesh";
+import * as geodeticDistanceOperator from "@arcgis/core/geometry/operators/geodeticDistanceOperator";
+import * as geodeticLengthOperator from "@arcgis/core/geometry/operators/geodeticLengthOperator";
+
 import Point from "@arcgis/core/geometry/Point";
 import Polyline from "@arcgis/core/geometry/Polyline";
 import * as webMercatorUtils from "@arcgis/core/geometry/support/webMercatorUtils";
 import Graphic from "@arcgis/core/Graphic";
+import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import FillSymbol3DLayer from "@arcgis/core/symbols/FillSymbol3DLayer";
 import MeshSymbol3D from "@arcgis/core/symbols/MeshSymbol3D";
 import TimeExtent from "@arcgis/core/time/TimeExtent";
-import { updateCalculations } from "./singleVisualization";
+
 import {
   findLayersByTitles,
   formatDate,
@@ -19,17 +23,15 @@ import {
   toDateInput,
   toTimeInput,
 } from "./utils";
+const oneDay = 24 * 60 * 60 * 1000;
 
 export async function setTimeSlider(
   arcgisScene: HTMLArcgisSceneElement,
   fullTimeExtent,
-  groupedData,
-  birdData,
+  dataProcessed,
 ) {
-  const oneDay = 24 * 60 * 60 * 1000;
   const view = arcgisScene.view;
   const timeSlider = document.querySelector("arcgis-time-slider")!;
-  // const timezonePicker = document.getElementById("timezone-picker")!;
   const startDatePickerSection = document.getElementById("date-picker-start")!;
   const playAnimation = document.getElementById("play-group-animation")!;
   const animationPlayRate = document.getElementById("animation-playrate")!;
@@ -37,15 +39,14 @@ export async function setTimeSlider(
   const gaugeContainer = document.getElementById("gauges-container")!;
   const groupLineLayer = findLayersByTitles(view, "Group visualization");
   const iconLayer = findLayersByTitles(view, "Icon visualization");
-  const pointLayer = findLayersByTitles(view, "Line visualization");
   const groupedFeatures: Record<string, any[]> = {};
   const coordinatesData: Record<string, [number, number, number][]> = {};
 
-  // generate new data form for faster animation
-  for (const birdId in groupedData) {
+  // generate new data for for faster animation
+  for (const birdId in dataProcessed) {
     const features: any[] = [];
     const coordinates: [number, number, number][] = [];
-    for (const point of groupedData[birdId]) {
+    for (const point of dataProcessed[birdId]) {
       coordinates.push([point.longitude, point.latitude, point.altitude]);
       const { longitude, latitude, altitude, ...attributes } = point;
       features.push({
@@ -64,48 +65,36 @@ export async function setTimeSlider(
 
   // set timeslider
   timeSlider.view = view;
-  timeSlider.fullTimeExtent = fullTimeExtent;
-  const isMoreThanOneDay =
-    timeSlider.fullTimeExtent.end.getTime() -
-      timeSlider.fullTimeExtent.start.getTime() >
-    oneDay;
-  const start = timeSlider.fullTimeExtent.start;
 
-  const end = isMoreThanOneDay
-    ? start.getTime() + oneDay
-    : timeSlider.fullTimeExtent.end.getTime();
-  timeSlider.timeExtent = new TimeExtent({ start, end });
-  timeSlider.stops = { interval: { value: 10, unit: "minutes" } };
-
+  setTimeSliderExtent(timeSlider, fullTimeExtent);
+  setDatePicker();
   timeSlider.addEventListener("arcgisPropertyChange", (event) => {
-    console.log(event);
-    let currentTime = timeSlider.timeExtent.end;
-    view.environment.lighting.date = currentTime;
-    updateIcon(currentTime);
-    if (groupLineLayer.visible) {
-      updateGroupLines(currentTime);
-      if (isMoreThanOneDay) {
-        timeSlider.timeExtent.start = Math.max(
-          currentTime - oneDay,
-          timeSlider.fullTimeExtent.start,
-        ); // ensure 24 hour tail
-      }
-    } else {
-      updateCalculations(birdData, timeSlider);
+    updateTimeDeps();
+  });
+
+  document.getElementById("time-zoom")!.addEventListener("click", async () => {
+    const primaryLayer = findLayersByTitles(view, "Line visualization");
+
+    const layerView = await arcgisScene.view.whenLayerView(primaryLayer);
+
+    const { extent } = await layerView.queryExtent();
+    if (extent) {
+      arcgisScene.view.goTo({
+        target: extent,
+        heading: 0,
+        tilt: 0,
+      });
     }
   });
-  // timezonePicker.addEventListener("calciteInputTimeZoneChange", () => {
-  //   view.timeZone = timezonePicker.value;
-  // });
-  setDatePicker();
-
   // set mode change
-  const modelUrl = "./flying_crow_color_north.glb";
+
   let birdMesh, initialTransform;
-  if (birdData.length > 0) {
-    birdMesh = await setBirdModel();
-    initialTransform = birdMesh.transform?.clone();
-  }
+
+  birdMesh = await createtBirdModel(arcgisScene);
+  // const birdMesh = getBirdFromLayer(view);
+  // console.log(birdMesh);
+  initialTransform = birdMesh.transform?.clone();
+
   startDatePickerSection.style.display = "none";
   gaugeContainer.style.display = "none";
   animationPlayRate.style.display = "block";
@@ -140,19 +129,6 @@ export async function setTimeSlider(
     }
   });
 
-  document
-    .getElementById("camera-zoom")!
-    .addEventListener("click", async () => {
-      console.log(pointLayer);
-      console.log(pointLayer.fullExtent);
-
-      await view.goTo({
-        target: pointLayer.fullExtent,
-        heading: 0,
-        tilt: 0,
-      });
-    });
-
   // set animations
   let isPlaying = false;
   animationPlayRate.value = 50000;
@@ -174,7 +150,13 @@ export async function setTimeSlider(
           formatDate(currentTime);
         updateIcon(currentTime);
         if (modeControl.value == "bird") {
-          updateBirdPerspective(currentTime);
+          updateBirdPerspective(
+            currentTime,
+            birdMesh,
+            initialTransform,
+            groupedFeatures,
+            view,
+          );
         } else {
           updateGroupLines(currentTime);
         }
@@ -191,16 +173,29 @@ export async function setTimeSlider(
     }
     timeSlider.timeExtent.end = currentTime;
 
-    if (isMoreThanOneDay) {
-      timeSlider.timeExtent.start = Math.max(
-        currentTime - oneDay,
-        timeSlider.fullTimeExtent.start,
-      ); // ensure 24 hour tail
-    }
+    timeSlider.timeExtent.start = Math.max(
+      currentTime - oneDay,
+      timeSlider.fullTimeExtent.start,
+    ); // ensure 24 hour tail
 
     view.environment.lighting.date = timeSlider.timeExtent.end;
 
     return currentTime;
+  }
+
+  function updateTimeDeps() {
+    let currentTime = timeSlider.timeExtent.end;
+    view.environment.lighting.date = currentTime;
+    updateIcon(currentTime);
+    if (groupLineLayer.visible) {
+      updateGroupLines(currentTime);
+      timeSlider.timeExtent.start = Math.max(
+        currentTime - oneDay,
+        timeSlider.fullTimeExtent.start,
+      ); // ensure 24 hour tail
+    } else {
+      updateCalculations(groupedFeatures, coordinatesData, timeSlider);
+    }
   }
 
   function updateGroupLines(time) {
@@ -228,7 +223,6 @@ export async function setTimeSlider(
   }
 
   function updateIcon(time) {
-    console.log("icon");
     iconLayer.graphics.forEach((iconGraphic) => {
       const birdFeature = groupedFeatures[iconGraphic.attributes.birdId];
       let i = getClosestFeatureIndexInTime(birdFeature, time);
@@ -242,101 +236,68 @@ export async function setTimeSlider(
     });
   }
 
-  function updateBirdPerspective(time) {
-    let cameraSide = document.getElementById("camera-side");
-    let isFollowing = cameraSide.value === "bird-camera-free" ? true : false;
-    let isFront =
-      cameraSide.value === "bird-camera-back" ||
-      cameraSide.value === "bird-camera-left"
-        ? -1
-        : 1;
-    let cameraSideOffset =
-      cameraSide.value === "bird-camera-right" ||
-      cameraSide.value === "bird-camera-left"
-        ? 120
-        : 0;
+  async function updateCalculations(
+    groupedFeatures,
+    coordinatesData,
+    timeSlider,
+  ) {
+    const birdid = document.getElementById("dashboard-birdid")!.innerText;
+    const birdData = groupedFeatures[birdid];
+    const coordinates = coordinatesData[birdid];
 
-    let i = getClosestFeatureIndexInTime(birdData, time);
+    const startTime = timeSlider.timeExtent.start;
+    const endTime = timeSlider.timeExtent.end;
 
-    if (i < birdData.length - 1) {
-      const t =
-        (time - birdData[i].attributes.timestamp) /
-        (birdData[i + 1].attributes.timestamp -
-          birdData[i].attributes.timestamp);
-      const p1 = birdData[i].geometry;
-      const p2 = birdData[i + 1].geometry;
-      const point = interpolate(p1, p2, t);
-      let heading = getHeading(p1, point);
-      let altitude = Math.floor(lerp(p1.z, p2.z, t));
-      let speed = Math.floor(
-        lerp(birdData[i].attributes.speed, birdData[i + 1].attributes.speed, t),
-      );
+    let i = getClosestFeatureIndexInTime(birdData, endTime);
+    let j = getClosestFeatureIndexInTime(birdData, startTime);
 
-      birdMesh.centerAt(point);
-      birdMesh.transform = initialTransform?.clone();
-      birdMesh.offset(0, 0, 10);
-      birdMesh.rotate(0, 0, -heading);
+    if (birdData[i] && birdData[j]) {
+      const lastPoint = new Point({
+        x: coordinates[i][0],
+        y: coordinates[i][1],
+        z: coordinates[i][2],
+        spatialReference: { wkid: 4326 },
+      });
 
-      const birdOrigin = webMercatorUtils.geographicToWebMercator(
-        birdMesh.origin,
-      ) as Point;
-      const x =
-        birdOrigin.x -
-        isFront *
-          (40 + cameraSideOffset) *
-          Math.sin(((heading - cameraSideOffset) * Math.PI) / 180);
-      const y =
-        birdOrigin.y -
-        isFront *
-          (40 + cameraSideOffset) *
-          Math.cos(((heading - cameraSideOffset) * Math.PI) / 180);
-      const z = birdOrigin.z + 5;
-      if (!isFollowing) {
-        view.camera = new Camera({
-          position: new Point({
-            spatialReference: birdOrigin.spatialReference,
-            x,
-            y,
-            z,
-          }),
-          heading: heading - cameraSideOffset,
-          tilt: isFront * 90,
-          fov: 105,
-        });
+      const firstPoint = new Point({
+        x: coordinates[j][0],
+        y: coordinates[j][1],
+        z: coordinates[j][2],
+        spatialReference: { wkid: 4326 },
+      });
+
+      let durationSeconds = (endTime - startTime) / 1000;
+
+      const daysSelected = Math.floor(durationSeconds / (3600 * 24));
+      durationSeconds -= daysSelected * 3600 * 24;
+      const hoursSelected = Math.floor(durationSeconds / 3600);
+      const sumHoursSelected = daysSelected * 24 + hoursSelected;
+
+      const verticalDiff = Math.abs(firstPoint.z - lastPoint.z);
+      if (!geodeticDistanceOperator.isLoaded()) {
+        await geodeticDistanceOperator.load();
       }
 
-      document.gauges.get("speedGauge").value = speed;
-      document.gauges.get("headingGauge").value = heading;
-      document.gauges.get("altitudeGauge").value = altitude;
+      const newLine = new Polyline({
+        hasZ: true,
+        spatialReference: { wkid: 4326 },
+        paths: [coordinates.slice(j, i + 1)],
+      });
+
+      let distanceToLine = geodeticDistanceOperator.execute(
+        firstPoint,
+        lastPoint,
+      );
+      let distanceToLine2 = geodeticLengthOperator.execute(newLine);
+
+      document.getElementById("time-distance")!.innerHTML =
+        `⏲↠  ${(distanceToLine / 1000 / sumHoursSelected).toFixed(2)} ⏲↟ ${(verticalDiff / 1000 / sumHoursSelected).toFixed(2)}  km/h<br>
+       ⇤⇥ ${(distanceToLine2 / 1000).toFixed(0)} km
+        `;
+
+      document.getElementById("time-duration")!.innerHTML =
+        `${daysSelected} d ${hoursSelected} h`;
     }
-  }
-
-  async function setBirdModel() {
-    let i = getClosestFeatureIndexInTime(birdData, timeSlider.timeExtent.end);
-
-    let birdMesh = (
-      await Mesh.createFromGLTF(birdData[i].geometry, modelUrl, {
-        vertexSpace: "local",
-      })
-    ).scale(30);
-    let animationTarget = new Graphic({
-      geometry: birdMesh,
-      symbol: new MeshSymbol3D({
-        symbolLayers: [
-          new FillSymbol3DLayer({
-            material: {
-              color: [255, 255, 255],
-            },
-          }),
-        ],
-      }),
-      attributes: {
-        id: "bird-model",
-      },
-    });
-
-    view.graphics.add(animationTarget);
-    return birdMesh;
   }
 
   function setDatePicker() {
@@ -367,13 +328,12 @@ export async function setTimeSlider(
         );
         timeSlider.timeExtent.start = start;
       } else {
-        // if (isMoreThanOneDay) {
         timeSlider.timeExtent.start = Math.max(
           end - oneDay,
           timeSlider.fullTimeExtent.start,
         ); // ensure 24 hour tail
-        // }
       }
+      updateTimeDeps();
       datePickerPopover.open = false;
     });
 
@@ -409,5 +369,129 @@ export async function setTimeSlider(
         ].forEach((evt) => input.addEventListener(evt, validateInputs));
       },
     );
+  }
+}
+
+export function setTimeSliderExtent(timeSlider, fullTimeExtent) {
+  timeSlider.fullTimeExtent = fullTimeExtent;
+
+  const start = timeSlider.fullTimeExtent.start;
+
+  const end = start.getTime() + oneDay;
+
+  timeSlider.timeExtent = new TimeExtent({ start, end });
+  timeSlider.stops = { interval: { value: 10, unit: "minutes" } };
+}
+
+export async function createtBirdModel(arcgisScene) {
+  const modelUrl = "./flying_crow_color_north.glb";
+  const dummyPoint = new Point({
+    longitude: 8,
+    latitude: 48,
+    z: 100,
+    spatialReference: { wkid: 4326 },
+  });
+
+  let birdMesh = (
+    await Mesh.createFromGLTF(dummyPoint, modelUrl, {
+      vertexSpace: "local",
+    })
+  ).scale(30);
+  let animationTarget = new Graphic({
+    geometry: birdMesh,
+    symbol: new MeshSymbol3D({
+      symbolLayers: [
+        new FillSymbol3DLayer({
+          material: {
+            color: [255, 255, 255],
+          },
+        }),
+      ],
+    }),
+    attributes: {
+      id: "bird-model",
+    },
+  });
+  const layer = new GraphicsLayer({ title: `Model Visualization` });
+
+  layer.add(animationTarget);
+
+  arcgisScene.map?.addMany([layer]);
+  return birdMesh;
+}
+
+function updateBirdPerspective(
+  time,
+  birdMesh,
+  initialTransform,
+  groupedFeatures,
+  view,
+) {
+  const birdid = document.getElementById("dashboard-birdid")!.innerText;
+  const birdData = groupedFeatures[birdid];
+  let cameraSide = document.getElementById("camera-side");
+  let isFollowing = cameraSide.value === "bird-camera-free" ? true : false;
+  let isFront =
+    cameraSide.value === "bird-camera-back" ||
+    cameraSide.value === "bird-camera-left"
+      ? -1
+      : 1;
+  let cameraSideOffset =
+    cameraSide.value === "bird-camera-right" ||
+    cameraSide.value === "bird-camera-left"
+      ? 120
+      : 0;
+
+  let i = getClosestFeatureIndexInTime(birdData, time);
+
+  if (i < birdData.length - 1) {
+    const t =
+      (time - birdData[i].attributes.timestamp) /
+      (birdData[i + 1].attributes.timestamp - birdData[i].attributes.timestamp);
+    const p1 = birdData[i].geometry;
+    const p2 = birdData[i + 1].geometry;
+    const point = interpolate(p1, p2, t);
+    let heading = getHeading(p1, point);
+    let altitude = Math.floor(lerp(p1.z, p2.z, t));
+    let speed = Math.floor(
+      lerp(birdData[i].attributes.speed, birdData[i + 1].attributes.speed, t),
+    );
+
+    birdMesh.centerAt(point);
+    birdMesh.transform = initialTransform?.clone();
+    birdMesh.offset(0, 0, 10);
+    birdMesh.rotate(0, 0, -heading);
+
+    const birdOrigin = webMercatorUtils.geographicToWebMercator(
+      birdMesh.origin,
+    ) as Point;
+    const x =
+      birdOrigin.x -
+      isFront *
+        (40 + cameraSideOffset) *
+        Math.sin(((heading - cameraSideOffset) * Math.PI) / 180);
+    const y =
+      birdOrigin.y -
+      isFront *
+        (40 + cameraSideOffset) *
+        Math.cos(((heading - cameraSideOffset) * Math.PI) / 180);
+    const z = birdOrigin.z + 5;
+    if (!isFollowing) {
+      view.camera = new Camera({
+        position: new Point({
+          spatialReference: birdOrigin.spatialReference,
+          x,
+          y,
+          z,
+        }),
+        heading: heading - cameraSideOffset,
+        tilt: isFront * 90,
+        fov: 105,
+      });
+    }
+
+    document.gauges.get("speedGauge").value = speed;
+    document.gauges.get("headingGauge").value = heading;
+    document.gauges.get("altitudeGauge").value = altitude;
   }
 }

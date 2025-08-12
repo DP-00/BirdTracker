@@ -2,7 +2,6 @@ import Point from "@arcgis/core/geometry/Point";
 import Graphic from "@arcgis/core/Graphic";
 
 import Color from "@arcgis/core/Color";
-import * as geodeticDistanceOperator from "@arcgis/core/geometry/operators/geodeticDistanceOperator";
 import * as geodeticLengthOperator from "@arcgis/core/geometry/operators/geodeticLengthOperator";
 
 import histogram from "@arcgis/core/smartMapping/statistics/histogram";
@@ -11,18 +10,17 @@ import ColorSlider from "@arcgis/core/widgets/smartMapping/ColorSlider";
 
 import { createDynamicPopupTemplate } from "./layers";
 
-import Polyline from "@arcgis/core/geometry/Polyline";
 import * as colorRendererCreator from "@arcgis/core/smartMapping/renderers/color.js";
 import IconSymbol3DLayer from "@arcgis/core/symbols/IconSymbol3DLayer";
 import PointSymbol3D from "@arcgis/core/symbols/PointSymbol3D";
 import Legend from "@arcgis/core/widgets/Legend";
-import { formatDate, getClosestFeatureIndexInTime } from "./utils";
+import { formatDate } from "./utils";
 export async function setSingleVis(
   arcgisScene: HTMLArcgisSceneElement,
   primaryLayer: __esri.FeatureLayer,
   secondaryLayer: __esri.FeatureLayer,
   arrowLayer: __esri.GraphicsLayer,
-  // dayLayer,
+  dayLayer,
   birdSummary: Record<string, any>,
   primaryValue: string,
   secondaryValue: string,
@@ -121,20 +119,6 @@ export async function setSingleVis(
     secondaryLayer,
     "secondary",
   );
-
-  document.getElementById("time-zoom")!.addEventListener("click", async () => {
-    const layerView = await arcgisScene.view.whenLayerView(primaryLayer);
-
-    const { extent } = await layerView.queryExtent();
-    if (extent) {
-      arcgisScene.view.goTo({
-        target: extent,
-        heading: 0,
-        tilt: 0,
-      });
-    }
-  });
-
   primaryVisSelect?.addEventListener("calciteSelectChange", async () => {
     arcgisScene.view.whenLayerView(primaryLayer).then((layerView) => {
       layerView.filter = null;
@@ -243,9 +227,9 @@ export async function setSingleVis(
     extremumsVisibility?.addEventListener("calciteCheckboxChange", async () => {
       arrowLayer.visible = !arrowLayer.visible;
     });
-    // timeMarksVisibility?.addEventListener("calciteCheckboxChange", async () => {
-    //   dayLayer.visible = !dayLayer.visible;
-    // });
+    timeMarksVisibility?.addEventListener("calciteCheckboxChange", async () => {
+      dayLayer.visible = !dayLayer.visible;
+    });
   }
 
   function createAttributeSelects(
@@ -487,70 +471,6 @@ export async function setSingleVis(
     newContainer.id = containerId;
     oldContainer.parentNode.replaceChild(newContainer, oldContainer);
     return newContainer;
-  }
-}
-
-export async function updateCalculations(birdData, timeSlider) {
-  const startTime = timeSlider.timeExtent.start;
-  const endTime = timeSlider.timeExtent.end;
-
-  let i = getClosestFeatureIndexInTime(birdData, endTime);
-  let j = getClosestFeatureIndexInTime(birdData, startTime);
-
-  // let i = 0;
-  // while (
-  //   i < birdData.length - 1 &&
-  //   endTime > birdData[i + 1].attributes.timestamp
-  // ) {
-  //   i++;
-  // }
-
-  // let j = 0;
-  // while (
-  //   j < birdData.length - 1 &&
-  //   startTime > birdData[j + 1].attributes.timestamp
-  // ) {
-  //   j++;
-  // }
-
-  if (birdData[i] && birdData[j]) {
-    const lastPoint = birdData[i].geometry;
-    const firstPoint = birdData[j].geometry;
-
-    let durationSeconds = (endTime - startTime) / 1000;
-
-    const daysSelected = Math.floor(durationSeconds / (3600 * 24));
-    durationSeconds -= daysSelected * 3600 * 24;
-    const hoursSelected = Math.floor(durationSeconds / 3600);
-    const sumHoursSelected = daysSelected * 24 + hoursSelected;
-
-    const verticalDiff = Math.abs(firstPoint.z - lastPoint.z);
-    if (!geodeticDistanceOperator.isLoaded()) {
-      await geodeticDistanceOperator.load();
-    }
-
-    const pathPoints = birdData
-      .slice(j, i + 1)
-      .map((p) => [p.geometry.x, p.geometry.y, p.geometry.z]);
-
-    const newLine = new Polyline({
-      hasZ: true,
-      spatialReference: { wkid: 4326 },
-      paths: [pathPoints],
-    });
-
-    let distanceToLine = geodeticDistanceOperator.execute(
-      firstPoint,
-      lastPoint,
-    );
-    let distanceToLine2 = geodeticLengthOperator.execute(newLine);
-    document.getElementById("time-distance")!.innerHTML =
-      `⏲↠  ${(distanceToLine / 1000 / sumHoursSelected).toFixed(2)} ⏲↟ ${(verticalDiff / 1000 / sumHoursSelected).toFixed(2)}  km/h<br>
-   ⇤⇥ ${(distanceToLine2 / 1000).toFixed(0)} km 
-    `;
-
-    document.getElementById("time-duration")!.innerHTML =
-      `${daysSelected} d ${hoursSelected} h`;
   }
 }
 

@@ -20,11 +20,6 @@ import PointSymbol3D from "@arcgis/core/symbols/PointSymbol3D";
 import TextSymbol3DLayer from "@arcgis/core/symbols/TextSymbol3DLayer";
 import { createSingleVisView } from "./dataLoading";
 import { generateLayerFields } from "./singleVisualization";
-import {
-  getClosestFeatureIndexInTime,
-  getClosestPointInTime,
-  getCoordinatesFromFeatures,
-} from "./utils";
 
 const colors = [
   "rgba(95, 92, 160, 1)",
@@ -77,109 +72,6 @@ export function createDynamicPopupTemplate(
   layer.popupTemplate = popupTemplate;
 }
 
-export function createGraphics(csvData: any) {
-  let idCounter = 1;
-  const allKeys = Object.keys(Object.values(csvData)[0]);
-  let birdid = Object.values(csvData)[0].birdid;
-
-  const graphics = csvData.map((point: any, index: number) => {
-    const attributes: any = {
-      ObjectID: idCounter++,
-      birdid,
-      altitude: point.altitude,
-      speed: point.speed,
-      timestamp: new Date(point.timestamp).getTime(),
-      longitude: point.longitude,
-      latitude: point.latitude,
-    };
-
-    for (const key of allKeys) {
-      if (!specialKeys.has(key)) {
-        attributes[key] = point[key];
-      }
-    }
-
-    return new Graphic({
-      geometry: {
-        type: "point",
-        longitude: point.longitude,
-        latitude: point.latitude,
-        z: point.altitude,
-      },
-      attributes,
-    });
-  });
-  return graphics;
-}
-
-export async function create24hGraphics(graphics: any) {
-  if (!geodeticLengthOperator.isLoaded()) {
-    await geodeticLengthOperator.load();
-  }
-
-  const graphicsArray = [];
-  const coordinates = getCoordinatesFromFeatures(graphics);
-  const startTimestamp = graphics[0].attributes.timestamp;
-  const endTimestamp = graphics[graphics.length - 1].attributes.timestamp;
-
-  const startDate = new Date(
-    Date.UTC(
-      new Date(startTimestamp).getUTCFullYear(),
-      new Date(startTimestamp).getUTCMonth(),
-      new Date(startTimestamp).getUTCDate(),
-      23,
-      59,
-      59,
-      59,
-    ),
-  );
-
-  const endDate = new Date(
-    Date.UTC(
-      new Date(endTimestamp).getUTCFullYear(),
-      new Date(endTimestamp).getUTCMonth(),
-      new Date(endTimestamp).getUTCDate(),
-      23,
-      59,
-      59,
-      0,
-    ),
-  );
-
-  let prevIndex = 0;
-  let i = 0;
-  for (let d = startDate; d < endDate; d.setDate(d.getDate() + 1)) {
-    let currentIndex = getClosestFeatureIndexInTime(graphics, d);
-    let point = getClosestPointInTime(graphics, d, currentIndex);
-    const line = new Polyline({
-      spatialReference: { wkid: 4326 },
-      paths: [
-        coordinates
-          .slice(prevIndex, currentIndex + 1)
-          .concat([[point.x, point.y, point.z ?? 0]]),
-      ],
-    });
-
-    const distance = Math.round(geodeticLengthOperator.execute(line) / 1000);
-
-    graphicsArray.push(
-      new Graphic({
-        attributes: {
-          OBJECTID: i + 1,
-          distance,
-          date: d.getTime() + 1,
-        },
-        geometry: graphics[currentIndex].geometry,
-      }),
-    );
-
-    prevIndex = currentIndex;
-    i++;
-  }
-
-  return graphicsArray;
-}
-
 export async function createGeneralizedLineLayer(
   groupedData: {
     [x: string]: any;
@@ -225,23 +117,6 @@ export async function createGeneralizedLineLayer(
         length,
         color,
       },
-      symbol: new LineSymbol3D({
-        symbolLayers: [
-          new LineSymbol3DLayer({
-            cap: "round",
-            join: "round",
-            material: {
-              color: "#82b974ff",
-              // @ts-ignore
-              emissive: {
-                strength: 3,
-                source: "color",
-              },
-            },
-            size: 5,
-          }),
-        ],
-      }),
     });
 
     lineGraphics.push(lineGraphic);
@@ -278,13 +153,14 @@ export async function createGeneralizedLineLayer(
         {
           type: "custom",
           creator: (event) => {
+            const birdid = event.graphic.attributes.birdid;
             const container = document.createElement("div");
             const button = document.createElement("calcite-button");
-            button.id = "details-button";
+            button.dataset.birdid = birdid;
+            button.id = `single-view-button`;
             button.setAttribute("appearance", "outline");
             button.setAttribute("width", "full");
             button.innerText = "Investigate the track";
-            const birdid = event.graphic.attributes.birdid;
             button.addEventListener("click", async () => {
               await createSingleVisView(arcgisScene, groupedData, birdid);
               arcgisScene.popup.close();

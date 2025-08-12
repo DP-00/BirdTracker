@@ -54,15 +54,9 @@ export function getHeading(a, b) {
   return (atan2 * 180) / Math.PI;
 }
 // ALL ARG NUMBERS
-export const lerp = (a, b, t, modulo) => {
+export const lerp = (a, b, t) => {
   let d = b - a;
-  if (modulo) {
-    if (d > modulo / 2) {
-      d = -d + modulo;
-    } else if (d < -modulo / 2) {
-      d = d + modulo;
-    }
-  }
+
   return a + d * t;
 };
 

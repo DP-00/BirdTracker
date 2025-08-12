@@ -1,25 +1,42 @@
+import * as geodeticLengthOperator from "@arcgis/core/geometry/operators/geodeticLengthOperator";
+
 import Polyline from "@arcgis/core/geometry/Polyline";
 import Graphic from "@arcgis/core/Graphic";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 
 import Papa from "papaparse";
-import { setCharts } from "./charts";
 import {
-  create24hGraphics,
   createCylinderLayer,
   createGeneralizedLineLayer,
-  createGraphics,
   createGroupLineLayer,
   createIconLayer,
   createLineLayer,
   createTimeMarkersLayer,
 } from "./layers";
 import { setSingleVis, summarizeData } from "./singleVisualization";
-import { setTimeSlider } from "./timeSlider";
+import { setTimeSlider, setTimeSliderExtent } from "./timeSlider";
 
 import TimeExtent from "@arcgis/core/time/TimeExtent";
-import { findLayersByTitles, formatDate, removeLayersByTitles } from "./utils";
+import { setCharts } from "./charts";
+import {
+  findLayersByTitles,
+  formatDate,
+  getClosestFeatureIndexInTime,
+  getClosestPointInTime,
+  getCoordinatesFromFeatures,
+  removeLayersByTitles,
+} from "./utils";
 import { setWeather } from "./weather";
+
+const specialKeys = new Set([
+  "ObjectID",
+  "birdid",
+  "altitude",
+  "speed",
+  "timestamp",
+  "longitude",
+  "latitude",
+]);
 
 export async function loadData(arcgisScene: HTMLArcgisSceneElement) {
   const csvInput = document.getElementById("csv-input")! as HTMLInputElement;
@@ -66,8 +83,6 @@ export async function loadData(arcgisScene: HTMLArcgisSceneElement) {
   let headers;
   let dataProcessed;
   let statJSON = {};
-  let primaryLayer;
-  let generalizedLayer;
 
   csvInput?.addEventListener("change", async (event) => {
     try {
@@ -188,7 +203,7 @@ async function createGroupVisView(
     end: new Date(Math.max(...features.map((f) => f.attributes.endDate))),
   });
 
-  await setTimeSlider(arcgisScene, timeExtent, dataProcessed, []);
+  await setTimeSlider(arcgisScene, timeExtent, dataProcessed);
 
   arcgisScene.view.goTo({
     target: generalizedLayer.fullExtent,
@@ -204,7 +219,6 @@ async function createGroupVisView(
   });
 
   document.body.classList.toggle("bird-mode", true);
-  const startDatePickerSection = document.getElementById("date-picker-start")!;
   const homeBtn = document.getElementById("show-group-vis")!;
   homeBtn.addEventListener("click", async () => {
     homeBtn.loading = true;
@@ -218,13 +232,16 @@ async function createGroupVisView(
       "Time and distance visualization",
       "Extremum visualization",
     ]);
-    await setTimeSlider(arcgisScene, timeExtent, dataProcessed, []);
+    setTimeSliderExtent(
+      document.querySelector("arcgis-time-slider"),
+      timeExtent,
+    );
     document.getElementById("time-zoom")!.style.display = "none";
     document.getElementById("time-duration")!.style.display = "none";
     document.getElementById("time-distance")!.style.display = "none";
     document.body.classList.toggle("bird-mode", true);
 
-    startDatePickerSection.style.display = "none";
+    document.getElementById("date-picker-start")!.style.display = "none";
 
     groupLineLayer.visible = true;
     await arcgisScene.view.goTo({
@@ -234,7 +251,6 @@ async function createGroupVisView(
     });
     homeBtn.loading = false;
     document.getElementById("dashboard-single-vis").loading = false;
-
     document.getElementById("dashboard-group-vis")!.style.display = "block";
   });
 }
@@ -244,7 +260,7 @@ export async function createSingleVisView(
   dataProcessed: any,
   birdid: string,
 ) {
-  document.getElementById("details-button")!.loading = true;
+  document.getElementById("single-view-button")!.loading = true;
   document.getElementById("dashboard")!.loading = true;
   document.getElementById("dashboard-group-vis")!.style.display = "none";
   document.getElementById("dashboard-single-vis")!.style.display = "block";
@@ -298,19 +314,29 @@ export async function createSingleVisView(
     primaryLayer,
     secondaryLayer,
     arrowLayer,
-    // dayLayer,
+    dayLayer,
     birdSummary,
     primaryValue,
     secondaryValue,
     birdPath,
     polyline,
   );
-  await setTimeSlider(
-    arcgisScene,
+
+  setTimeSliderExtent(
+    document.querySelector("arcgis-time-slider"),
     primaryLayer.timeInfo?.fullTimeExtent,
-    dataProcessed,
-    birdGraphics,
   );
+
+  document
+    .getElementById("camera-zoom")!
+    .addEventListener("click", async () => {
+      await arcgisScene.view.goTo({
+        target: primaryLayer.fullExtent,
+        heading: 0,
+        tilt: 0,
+      });
+    });
+
   await setWeather(arcgisScene, secondaryLayer, birdid);
   await setCharts(polyline, secondaryLayer, arcgisScene, birdSummary);
   document.getElementById("gauges-container")!.style.display = "none";
@@ -324,7 +350,7 @@ export async function createSingleVisView(
   document.body.classList.toggle("bird-mode", false);
   document.getElementById("camera-control")!.value = "line";
   document.getElementById("dashboard")!.loading = false;
-  document.getElementById("details-button")!.loading = false;
+  document.getElementById("single-view-button")!.loading = false;
 }
 
 async function createPolyline(birdData) {
@@ -340,6 +366,109 @@ async function createPolyline(birdData) {
   });
   const lineGraphic = new Graphic({ geometry: polyline });
   return lineGraphic;
+}
+
+function createGraphics(csvData: any) {
+  let idCounter = 1;
+  const allKeys = Object.keys(Object.values(csvData)[0]);
+  let birdid = Object.values(csvData)[0].birdid;
+
+  const graphics = csvData.map((point: any, index: number) => {
+    const attributes: any = {
+      ObjectID: idCounter++,
+      birdid,
+      altitude: point.altitude,
+      speed: point.speed,
+      timestamp: new Date(point.timestamp).getTime(),
+      longitude: point.longitude,
+      latitude: point.latitude,
+    };
+
+    for (const key of allKeys) {
+      if (!specialKeys.has(key)) {
+        attributes[key] = point[key];
+      }
+    }
+
+    return new Graphic({
+      geometry: {
+        type: "point",
+        longitude: point.longitude,
+        latitude: point.latitude,
+        z: point.altitude,
+      },
+      attributes,
+    });
+  });
+  return graphics;
+}
+
+async function create24hGraphics(graphics: any) {
+  if (!geodeticLengthOperator.isLoaded()) {
+    await geodeticLengthOperator.load();
+  }
+
+  const graphicsArray = [];
+  const coordinates = getCoordinatesFromFeatures(graphics);
+  const startTimestamp = graphics[0].attributes.timestamp;
+  const endTimestamp = graphics[graphics.length - 1].attributes.timestamp;
+
+  const startDate = new Date(
+    Date.UTC(
+      new Date(startTimestamp).getUTCFullYear(),
+      new Date(startTimestamp).getUTCMonth(),
+      new Date(startTimestamp).getUTCDate(),
+      23,
+      59,
+      59,
+      59,
+    ),
+  );
+
+  const endDate = new Date(
+    Date.UTC(
+      new Date(endTimestamp).getUTCFullYear(),
+      new Date(endTimestamp).getUTCMonth(),
+      new Date(endTimestamp).getUTCDate(),
+      23,
+      59,
+      59,
+      0,
+    ),
+  );
+
+  let prevIndex = 0;
+  let i = 0;
+  for (let d = startDate; d < endDate; d.setDate(d.getDate() + 1)) {
+    let currentIndex = getClosestFeatureIndexInTime(graphics, d);
+    let point = getClosestPointInTime(graphics, d, currentIndex);
+    const line = new Polyline({
+      spatialReference: { wkid: 4326 },
+      paths: [
+        coordinates
+          .slice(prevIndex, currentIndex + 1)
+          .concat([[point.x, point.y, point.z ?? 0]]),
+      ],
+    });
+
+    const distance = Math.round(geodeticLengthOperator.execute(line) / 1000);
+
+    graphicsArray.push(
+      new Graphic({
+        attributes: {
+          OBJECTID: i + 1,
+          distance,
+          date: d.getTime() + 1,
+        },
+        geometry: graphics[currentIndex].geometry,
+      }),
+    );
+
+    prevIndex = currentIndex;
+    i++;
+  }
+
+  return graphicsArray;
 }
 
 async function createBirdList(birdIds: string[], featureLayer, arcgisScene) {
