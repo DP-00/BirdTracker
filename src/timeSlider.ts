@@ -13,6 +13,7 @@ import MeshSymbol3D from "@arcgis/core/symbols/MeshSymbol3D";
 import TimeExtent from "@arcgis/core/time/TimeExtent";
 
 import {
+  debounce,
   findLayersByTitles,
   formatDate,
   getClosestFeatureIndexInTime,
@@ -66,11 +67,15 @@ export async function setTimeSlider(
   // set timeslider
   timeSlider.view = view;
 
+  const handleResize = debounce(() => {
+    updateTimeDeps();
+  }, 300);
   setTimeSliderExtent(timeSlider, fullTimeExtent);
   setDatePicker();
-  timeSlider.addEventListener("arcgisPropertyChange", (event) => {
-    updateTimeDeps();
-  });
+  timeSlider.addEventListener("arcgisPropertyChange", handleResize);
+
+
+
 
   document.getElementById("time-zoom")!.addEventListener("click", async () => {
     const primaryLayer = findLayersByTitles(view, "Line visualization");

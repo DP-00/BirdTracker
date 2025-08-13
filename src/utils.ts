@@ -115,3 +115,13 @@ export function getClosestPointInTime(features, time, i?: number) {
 
   return p;
 }
+
+
+export function debounce<T extends (...args: any[]) => void>(fn: T, delay = 500) {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  return (...args: Parameters<T>) => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+}
+
