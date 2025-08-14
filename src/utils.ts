@@ -7,6 +7,17 @@ export function timeout(timeoutInMilliseconds: number) {
   });
 }
 
+export function debounce<T extends (...args: any[]) => void>(
+  fn: T,
+  delay = 500,
+) {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  return (...args: Parameters<T>) => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+}
+
 export function toDateInput(date: Date) {
   return date.toISOString().split("T")[0];
 }

@@ -870,6 +870,14 @@ calcite-notice {
   --calcite-notice-background-color: #233935;
 }
 
+calcite-stepper-item {
+  --calcite-stepper-item-selected-header-text-color: #aed8cc;
+  --calcite-stepper-item-selected-icon-color: #aed8cc;
+  --calcite-stepper-bar-selected-fill-color: #aed8cc;
+  --calcite-stepper-item-icon-color: var(--calcite-color-border-1);
+  --calcite-stepper-item-header-text-color: var(--calcite-color-border-1);
+}
+
 calcite-stepper-item h3 {
   font-size: 1rem;
   text-align: center;
@@ -880,6 +888,7 @@ calcite-stepper-item h3 {
 
 calcite-stepper-item ol {
   margin-top: 0.5rem;
+  font-size: 0.9rem;
 }
 calcite-stepper-item ul {
   font-size: 0.9rem;
@@ -890,6 +899,11 @@ calcite-stepper-item strong {
   margin-right: 0.3rem;
 }
 
+calcite-carousel,
+calcite-carousel-item {
+  padding: 0;
+  margin: 0;
+}
 .tutorial-guidelines {
   list-style: none;
   font-size: 0.9rem;

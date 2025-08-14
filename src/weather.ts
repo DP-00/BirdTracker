@@ -297,8 +297,8 @@ const windRenderer = {
       field: "windSpeed10",
       stops: [
         { value: 0, color: colors[0] },
-        { value: 1, color: colors[1] },
-        { value: 3, color: colors[2] },
+        { value: 3, color: colors[1] },
+        { value: 5, color: colors[2] },
         { value: 8, color: colors[3] },
         { value: 10, color: colors[4] },
       ],
@@ -869,7 +869,8 @@ export async function setWeather(arcgisScene, secondaryLayer, birdid) {
     switch (value) {
       case "Blank": {
         weatherRenderer = blankRenderer;
-        popupText = "Grid layout";
+        popupText =
+          "Grid layout - click on the Get Weather button for the data!";
         break;
       }
       case "Temperature": {

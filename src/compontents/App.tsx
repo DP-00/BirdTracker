@@ -1085,7 +1085,7 @@ const Slides = () => {
 
 const Tutorial = () => {
   return (
-    <calcite-stepper id="tutorial" numbered>
+    <calcite-stepper id="tutorial" scale="s" numbered>
       <calcite-stepper-item heading="Data Loading" selected>
         <ul class="tutorial-guidelines">
           <li>Data must include at least 6 attributes:</li>
@@ -1105,6 +1105,10 @@ const Tutorial = () => {
             </li>
           </ul>
           <li>Remove outliers before uploading</li>
+          <li>
+            Gaps in data larger than 100 m are not interpolated and are shown as
+            a thin white line
+          </li>
           <li>If issues occur, reload the page or try a smaller dataset</li>
         </ul>
         <calcite-notice icon="exclamation-point-f" open width="full">

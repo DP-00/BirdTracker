@@ -228,7 +228,7 @@ export async function createIconLayer(groupedData) {
         symbolLayers: [
           {
             type: "icon",
-            size: "12",
+            size: "13",
             resource: {
               href: "./birdIcon3.svg",
             },

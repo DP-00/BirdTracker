@@ -104,6 +104,17 @@ export async function setSingleVis(
     },
   ];
 
+  let secondaryLegend = new Legend({
+    view: arcgisScene.view,
+    container: secondaryLegendContainer,
+  });
+
+  secondaryLegend.layerInfos = [
+    {
+      layer: secondaryLayer,
+    },
+  ];
+
   console.log("bef", primaryColorScale);
 
   primaryColorScale.innerHTML = "";
@@ -461,16 +472,6 @@ export async function setSingleVis(
 
       return Color.blendColors(minStop.color, maxStop.color, weightedPosition);
     }
-  }
-
-  function resetSliderContainer(containerId: string): HTMLDivElement {
-    const oldContainer = document.getElementById(containerId);
-    if (!oldContainer || !oldContainer.parentNode) return null;
-
-    const newContainer = document.createElement("div");
-    newContainer.id = containerId;
-    oldContainer.parentNode.replaceChild(newContainer, oldContainer);
-    return newContainer;
   }
 }
 
