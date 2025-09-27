@@ -33,7 +33,7 @@ export async function setTimeSlider(
   const view = arcgisScene.view;
   const timeSlider = document.querySelector("arcgis-time-slider")!;
   const startDatePickerSection = document.getElementById("date-picker-start")!;
-  const playAnimation = document.getElementById("play-group-animation")!;
+  const playAnimation = document.getElementById("play-animation")!;
   const animationPlayRate = document.getElementById("animation-playrate")!;
   const modeControl = document.getElementById("camera-control")!;
   const gaugeContainer = document.getElementById("gauges-container")!;
@@ -90,10 +90,37 @@ export async function setTimeSlider(
 
   let birdMesh, initialTransform;
 
-  birdMesh = await createtBirdModel(arcgisScene);
+  birdMesh = await createtBirdModel(
+    arcgisScene,
+    groupedFeatures,
+    coordinatesData,
+    timeSlider,
+  );
   // const birdMesh = getBirdFromLayer(view);
   // console.log(birdMesh);
   initialTransform = birdMesh.transform?.clone();
+
+  // set animations
+
+  animationPlayRate.value = 50000;
+  playAnimation.addEventListener("click", () => {
+    console.log(playAnimation.getAttribute("data-playing"));
+    if (playAnimation.getAttribute("data-playing") === "false") {
+      playAnimation.setAttribute("data-playing", "true");
+      playAnimation.iconStart = "pause-f";
+      updateVisualization();
+    } else {
+      playAnimation.setAttribute("data-playing", "false");
+      playAnimation.iconStart = "play-f";
+    }
+
+    // if (playAnimation.getAttribute("data-playing")) {
+    //   playAnimation.iconStart = "pause-f";
+    //   updateVisualization();
+    // } else {
+    //   playAnimation.iconStart = "play-f";
+    // }
+  });
 
   startDatePickerSection.style.display = "none";
   gaugeContainer.style.display = "none";
@@ -102,6 +129,21 @@ export async function setTimeSlider(
   modeControl?.addEventListener("calciteSegmentedControlChange", async () => {
     if (modeControl.value == "bird") {
       try {
+        const birdid = document.getElementById("dashboard-birdid")!.innerText;
+        const birdData = groupedFeatures[birdid];
+        const coordinates = coordinatesData[birdid];
+        console.log(birdData);
+        const endTime = timeSlider.timeExtent.end;
+        let i = getClosestFeatureIndexInTime(birdData, endTime);
+
+        const point = new Point({
+          x: coordinates[i][0],
+          y: coordinates[i][1],
+          z: coordinates[i][2],
+          spatialReference: { wkid: 4326 },
+        });
+        birdMesh.centerAt(point);
+
         await view.goTo(birdMesh);
       } catch (err) {}
       document.body.classList.toggle("bird-mode", true);
@@ -109,6 +151,8 @@ export async function setTimeSlider(
       document.getElementById("time-duration")!.style.display = "none";
       document.getElementById("time-distance")!.style.display = "none";
       document.getElementById("time-zoom")!.style.display = "none";
+      // document.getElementById("show-group-vis")!.style.display = "none";
+      playAnimation?.setAttribute("data-playing", "false");
       document.getElementById("progress-loader")!.style.display = "none";
       gaugeContainer!.style.display = "block";
       animationPlayRate!.style.display = "block";
@@ -116,7 +160,8 @@ export async function setTimeSlider(
       animationPlayRate.value = 10;
     } else {
       document.body.classList.toggle("bird-mode", false);
-      isPlaying = false;
+      playAnimation?.setAttribute("data-playing", "false");
+      playAnimation.iconStart = "play-f";
       startDatePickerSection.style.display = "block";
 
       gaugeContainer!.style.display = "none";
@@ -125,25 +170,13 @@ export async function setTimeSlider(
       document.getElementById("time-duration")!.style.display = "block";
       document.getElementById("time-distance")!.style.display = "block";
       document.getElementById("time-zoom")!.style.display = "block";
+      // document.getElementById("show-group-vis")!.style.display = "block";
       document.getElementById("progress-loader")!.style.display = "block";
     }
   });
 
-  // set animations
-  let isPlaying = false;
-  animationPlayRate.value = 50000;
-  playAnimation.addEventListener("click", () => {
-    isPlaying = !isPlaying;
-    if (isPlaying) {
-      playAnimation.iconStart = "pause-f";
-      updateVisualization();
-    } else {
-      playAnimation.iconStart = "play-f";
-    }
-  });
-
   const updateVisualization = () => {
-    if (isPlaying) {
+    if (playAnimation.getAttribute("data-playing") === "true") {
       requestAnimationFrame(() => {
         let currentTime = updateTimeSlider(40);
         document.getElementById("time-dashboard")!.innerText =
@@ -321,12 +354,17 @@ export async function setTimeSlider(
     // apply chosen date
     datePickerApplyBtn.addEventListener("click", () => {
       const end = new Date(`${endDatePicker.value}T${endTimePicker.value}Z`);
+      console.log(end);
       timeSlider.timeExtent.end = end;
+      console.log(timeSlider.timeExtent.end);
+      console.log(startDatePickerSection.style.display === "block");
+
       if (startDatePickerSection.style.display === "block") {
         const start = new Date(
           `${startDatePicker.value}T${startTimePicker.value}Z`,
         );
-        timeSlider.timeExtent.start = start;
+
+        timeSlider.timeExtent.start = new Date(start.getTime() + 60000); // add one second, for milisend coverage
       } else {
         timeSlider.timeExtent.start = Math.max(
           end - oneDay,
@@ -383,9 +421,28 @@ export function setTimeSliderExtent(timeSlider, fullTimeExtent) {
   timeSlider.stops = { interval: { value: 10, unit: "minutes" } };
 }
 
-export async function createtBirdModel(arcgisScene) {
+export async function createtBirdModel(
+  arcgisScene,
+  groupedFeatures,
+  coordinatesData,
+  timeSlider,
+) {
   const modelUrl = "./flying_crow_color_north.glb";
-  const dummyPoint = new Point({
+  // const birdid = document.getElementById("dashboard-birdid")!.innerText;
+  // const birdData = groupedFeatures[birdid];
+  // const coordinates = coordinatesData[birdid];
+  // console.log(birdData);
+  // const endTime = timeSlider.timeExtent.end;
+  // let i = getClosestFeatureIndexInTime(birdData, endTime);
+
+  // const point = new Point({
+  //   x: coordinates[i][0],
+  //   y: coordinates[i][1],
+  //   z: coordinates[i][2],
+  //   spatialReference: { wkid: 4326 },
+  // });
+
+  const point = new Point({
     longitude: 8,
     latitude: 48,
     z: 100,
@@ -393,7 +450,7 @@ export async function createtBirdModel(arcgisScene) {
   });
 
   let birdMesh = (
-    await Mesh.createFromGLTF(dummyPoint, modelUrl, {
+    await Mesh.createFromGLTF(point, modelUrl, {
       vertexSpace: "local",
     })
   ).scale(30);

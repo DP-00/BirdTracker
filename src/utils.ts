@@ -117,6 +117,11 @@ export function getClosestPointInTime(features, time, i?: number) {
   if (i === undefined) {
     i = getClosestFeatureIndexInTime(features, time);
   }
+
+  // last feature, no next point to interpolate
+  if (i >= features.length - 1) {
+    return features[features.length - 1].geometry;
+  }
   const t =
     (time - features[i].attributes.timestamp) /
     (features[i + 1].attributes.timestamp - features[i].attributes.timestamp);

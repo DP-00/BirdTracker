@@ -255,7 +255,7 @@ class App extends Widget<AppProperties> {
                 </calcite-tab>
               </calcite-tabs>
             </div>
-            <div id="dashboard-single-vis">
+            <div id="dashboard-single-vis" data-first-time="true">
               <div id="dashboard-modes">
                 <calcite-segmented-control
                   id="camera-control"
@@ -387,7 +387,7 @@ class App extends Widget<AppProperties> {
                         checked
                       ></calcite-checkbox>
                       <span class="legend-text">
-                        Extremums of line visualization
+                        Extrema of line visualization
                       </span>
                       <span class="legend-icon-group">
                         <span class="legend-icon triangle green"></span>
@@ -782,11 +782,12 @@ const TimeControls = () => {
   return (
     <div id="time-slider">
       <calcite-button
-        id="play-group-animation"
+        id="play-animation"
         icon-start="play-f"
         scale="m"
         appearance="transparent"
         kind="info"
+        data-playing="false"
       ></calcite-button>
       {/* <calcite-input-time-zone
         mode="name"

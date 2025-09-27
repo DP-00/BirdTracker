@@ -2,6 +2,7 @@ import "@arcgis/charts-components/components/arcgis-chart";
 import { defineCustomElements } from "@arcgis/charts-components/dist/loader";
 import { createModel } from "@arcgis/charts-components/model";
 import Legend from "@arcgis/core/widgets/Legend";
+import { findLayersByTitles } from "./utils";
 defineCustomElements(window, {
   resourcesUrl: "https://jsdev.arcgis.com/4.33/charts-components/",
 });
@@ -14,12 +15,12 @@ declare global {
   const createModel: any;
 }
 
-export async function setCharts(
-  path,
-  secondaryLayer,
-  arcgisScene,
-  birdSummary,
-) {
+export async function setCharts(path, arcgisScene, birdSummary) {
+  const secondaryLayer = findLayersByTitles(
+    arcgisScene.view,
+    "Cylinder visualization",
+  );
+
   const primaryVisSelect = document.getElementById(
     "primary-vis-select",
   ) as HTMLCalciteSelectElement;
@@ -123,11 +124,8 @@ export async function setCharts(
     });
 
     lineChartElement.style.height = "20rem";
-
     lineChartElement.model = lineChartModel;
-
     lineChartElement.view = arcgisScene.view;
-    // lineChartElement.refresh();
     lineChartElement.actionMode = "zoom";
     lineChartElement.layerFilterChangePolicy = "refresh";
     lineChartElement.viewTimeExtentChangePolicy = "refresh";
@@ -177,23 +175,23 @@ export async function setCharts(
       }
     });
     // highlight chart based on map
-    arcgisScene.addEventListener("arcgisViewClick", (event) => {
-      const { hit } = event.target;
-      console.log("hit", hit);
-      let screenPoints = event.detail.screenPoint;
-      event.target.hitTest(screenPoints).then(getFeatures);
-    });
+    // arcgisScene.addEventListener("arcgisViewClick", (event) => {
+    //   const { hit } = event.target;
+    //   console.log("hit", hit);
+    //   let screenPoints = event.detail.screenPoint;
+    //   event.target.hitTest(screenPoints).then(getFeatures);
+    // });
 
-    function getFeatures(response) {
-      console.log("response", response);
-      if (response.results.length) {
-        const selectedFeatureOID =
-          response.results[0].graphic.attributes["ObjectID"];
-        lineChartElement.selectionData = {
-          selectionOIDs: [selectedFeatureOID],
-        };
-      }
-    }
+    // function getFeatures(response) {
+    //   console.log("response", response);
+    //   if (response.results.length) {
+    //     const selectedFeatureOID =
+    //       response.results[0].graphic.attributes["ObjectID"];
+    //     lineChartElement.selectionData = {
+    //       selectionOIDs: [selectedFeatureOID],
+    //     };
+    //   }
+    // }
   }
 }
 

@@ -14,7 +14,190 @@ import * as colorRendererCreator from "@arcgis/core/smartMapping/renderers/color
 import IconSymbol3DLayer from "@arcgis/core/symbols/IconSymbol3DLayer";
 import PointSymbol3D from "@arcgis/core/symbols/PointSymbol3D";
 import Legend from "@arcgis/core/widgets/Legend";
-import { formatDate } from "./utils";
+import { findLayersByTitles, formatDate } from "./utils";
+
+export async function createSingleVisListeners(
+  arcgisScene: HTMLArcgisSceneElement,
+  dataProcessed,
+) {
+  const primaryVisSelect = document.getElementById(
+    "primary-vis-select",
+  ) as HTMLCalciteSelectElement;
+
+  const secondaryVisSelect = document.getElementById(
+    "secondary-vis-select",
+  ) as HTMLCalciteSelectElement;
+  const primaryLegendContainer = document.getElementById("legend-primary");
+  const secondaryLegendContainer = document.getElementById("legend-secondary");
+  const primaryColorScale = document.getElementById("color-slider-primary");
+  const secondaryColorScale = document.getElementById("color-slider-secondary");
+
+  setLayerVisibility();
+
+  primaryVisSelect?.addEventListener("calciteSelectChange", async () => {
+    const birdPath =
+      dataProcessed[document.getElementById("dashboard-birdid")!.innerText];
+    const birdSummary = summarizeData(birdPath);
+    console.log(birdSummary);
+    let primaryLayer = findLayersByTitles(
+      arcgisScene.view,
+      "Line visualization",
+    );
+    arcgisScene.view.whenLayerView(primaryLayer).then((layerView) => {
+      layerView.filter = null;
+    });
+
+    document.getElementById("line-variable")!.innerText =
+      primaryVisSelect.value.charAt(0).toUpperCase() +
+      primaryVisSelect.value.slice(1);
+
+    updateLayerColorVariables(
+      primaryVisSelect.value,
+      primaryLayer,
+      birdSummary,
+    );
+    await createColorSlider(
+      primaryVisSelect.value,
+      primaryLayer,
+      "primary",
+      birdSummary,
+      primaryColorScale,
+      primaryLegendContainer,
+      secondaryColorScale,
+      secondaryLegendContainer,
+      arcgisScene,
+    );
+
+    createFilters(
+      arcgisScene,
+      primaryLayer,
+      birdSummary,
+      document.getElementById("prim-filter-container"),
+      primaryVisSelect.value,
+    );
+    updateArrowLayer(arcgisScene, primaryVisSelect.value, birdSummary);
+    createDynamicPopupTemplate(
+      primaryLayer,
+      primaryVisSelect.value,
+      birdSummary,
+    );
+
+    const summary = birdSummary[primaryVisSelect.value];
+    if (summary.type == "number") {
+      document.getElementById("chart-all-container")!.style.display = "block";
+      document.getElementById("chart-notice")!.style.display = "none";
+      const lineChartElement = document.getElementById("line-chart")!;
+      await lineChartElement.model.setNumericFields([primaryVisSelect.value]);
+      lineChartElement.model.setTemporalBinningUnit("seconds");
+      lineChartElement.model.setYAxisTitleText(
+        primaryVisSelect.value.charAt(0).toUpperCase() +
+          primaryVisSelect.value.slice(1),
+      );
+      // lineChartElement.style.height = "20rem";
+      lineChartElement.refresh();
+    } else {
+      document.getElementById("chart-all-container")!.style.display = "none";
+      document.getElementById("chart-notice")!.style.display = "block";
+    }
+  });
+
+  secondaryVisSelect?.addEventListener("calciteSelectChange", async () => {
+    const birdPath =
+      dataProcessed[document.getElementById("dashboard-birdid")!.innerText];
+    const birdSummary = summarizeData(birdPath);
+    let secondaryLayer = findLayersByTitles(
+      arcgisScene.view,
+      "Cylinder visualization",
+    );
+    arcgisScene.view.whenLayerView(secondaryLayer).then((layerView) => {
+      layerView.filter = null;
+    });
+
+    document.getElementById("cylinder-variable")!.innerText =
+      secondaryVisSelect.value.charAt(0).toUpperCase() +
+      secondaryVisSelect.value.slice(1);
+    updateLayerColorVariables(
+      secondaryVisSelect.value,
+      secondaryLayer,
+      birdSummary,
+    );
+    await createColorSlider(
+      secondaryVisSelect.value,
+      secondaryLayer,
+      "secondary",
+      birdSummary,
+      primaryColorScale,
+      primaryLegendContainer,
+      secondaryColorScale,
+      secondaryLegendContainer,
+      arcgisScene,
+    );
+
+    createFilters(
+      arcgisScene,
+      secondaryLayer,
+      birdSummary,
+      document.getElementById("sec-filter-container"),
+      secondaryVisSelect.value,
+    );
+
+    createDynamicPopupTemplate(
+      secondaryLayer,
+      secondaryVisSelect.value,
+      birdSummary,
+    );
+  });
+
+  function setLayerVisibility() {
+    const lineVisibility = document.getElementById("visibility-line");
+    const cylinderVisibility = document.getElementById("visibility-cylinders");
+    const generalizedVisibility = document.getElementById(
+      "visibility-generalized",
+    );
+    const extremumsVisibility = document.getElementById("visibility-extremums");
+    const timeMarksVisibility = document.getElementById("visibility-timemarks");
+    lineVisibility?.addEventListener("calciteCheckboxChange", async () => {
+      const primaryLayer = findLayersByTitles(
+        arcgisScene.view,
+        "Line visualization",
+      );
+      primaryLayer.visible = !primaryLayer.visible;
+    });
+    cylinderVisibility?.addEventListener("calciteCheckboxChange", async () => {
+      const secondaryLayer = findLayersByTitles(
+        arcgisScene.view,
+        "Cylinder visualization",
+      );
+      secondaryLayer.visible = !secondaryLayer.visible;
+    });
+    generalizedVisibility?.addEventListener(
+      "calciteCheckboxChange",
+      async () => {
+        const generalizedLayer = findLayersByTitles(
+          arcgisScene.view,
+          "Generlized visualization",
+        );
+
+        generalizedLayer.visible = !generalizedLayer.visible;
+      },
+    );
+    extremumsVisibility?.addEventListener("calciteCheckboxChange", async () => {
+      const arrowLayer = findLayersByTitles(
+        arcgisScene.view,
+        "Extremum visualization",
+      );
+      arrowLayer.visible = !arrowLayer.visible;
+    });
+    timeMarksVisibility?.addEventListener("calciteCheckboxChange", async () => {
+      const dayLayer = findLayersByTitles(
+        arcgisScene.view,
+        "Time and distance visualization",
+      );
+      dayLayer.visible = !dayLayer.visible;
+    });
+  }
+}
+
 export async function setSingleVis(
   arcgisScene: HTMLArcgisSceneElement,
   primaryLayer: __esri.FeatureLayer,
@@ -27,6 +210,9 @@ export async function setSingleVis(
   birdData,
   polyline,
 ) {
+  document
+    .getElementById("dashboard-single-vis")
+    .setAttribute("data-first-time", "false");
   const primaryVisSelect = document.getElementById(
     "primary-vis-select",
   ) as HTMLCalciteSelectElement;
@@ -38,6 +224,11 @@ export async function setSingleVis(
   const secondaryLegendContainer = document.getElementById("legend-secondary");
   const primaryColorScale = document.getElementById("color-slider-primary");
   const secondaryColorScale = document.getElementById("color-slider-secondary");
+  document.getElementById("visibility-line").checked = true;
+  document.getElementById("visibility-cylinders").checked = true;
+  document.getElementById("visibility-generalized").checked = true;
+  document.getElementById("visibility-extremums").checked = true;
+  document.getElementById("visibility-timemarks").checked = true;
 
   if (!geodeticLengthOperator.isLoaded()) {
     await geodeticLengthOperator.load();
@@ -55,8 +246,6 @@ export async function setSingleVis(
   document.getElementById("dashboard-birdid")!.innerText = birdData[0].birdid;
   document.getElementById("dashboard-duration")!.innerHTML =
     `${days} d ${hours} h  |  ${formatDate(startTime)} - ${formatDate(endTime)}  | ${(length / 1000).toFixed(0)} km <br>`;
-
-  setLayerVisibility();
 
   createDynamicPopupTemplate(primaryLayer, primaryValue, birdSummary);
   createDynamicPopupTemplate(secondaryLayer, secondaryValue, birdSummary);
@@ -88,7 +277,7 @@ export async function setSingleVis(
     secondaryVisSelect.value.charAt(0).toUpperCase() +
     secondaryVisSelect.value.slice(1);
 
-  updateArrowLayer(arrowLayer, primaryValue, birdSummary);
+  updateArrowLayer(arcgisScene, primaryValue, birdSummary);
   updateLayerColorVariables(primaryValue, primaryLayer, birdSummary);
 
   updateLayerColorVariables(secondaryValue, secondaryLayer, birdSummary);
@@ -115,133 +304,33 @@ export async function setSingleVis(
     },
   ];
 
-  console.log("bef", primaryColorScale);
-
   primaryColorScale.innerHTML = "";
   primaryColorScale.className = "";
   secondaryColorScale.innerHTML = "";
   secondaryColorScale.className = "";
 
-  console.log("aft", primaryColorScale);
-
-  await createColorSlider(primaryVisSelect.value, primaryLayer, "primary");
+  await createColorSlider(
+    primaryVisSelect.value,
+    primaryLayer,
+    "primary",
+    birdSummary,
+    primaryColorScale,
+    primaryLegendContainer,
+    secondaryColorScale,
+    secondaryLegendContainer,
+    arcgisScene,
+  );
   await createColorSlider(
     secondaryVisSelect.value,
     secondaryLayer,
     "secondary",
+    birdSummary,
+    primaryColorScale,
+    primaryLegendContainer,
+    secondaryColorScale,
+    secondaryLegendContainer,
+    arcgisScene,
   );
-  primaryVisSelect?.addEventListener("calciteSelectChange", async () => {
-    arcgisScene.view.whenLayerView(primaryLayer).then((layerView) => {
-      layerView.filter = null;
-    });
-
-    document.getElementById("line-variable")!.innerText =
-      primaryVisSelect.value.charAt(0).toUpperCase() +
-      primaryVisSelect.value.slice(1);
-
-    updateLayerColorVariables(
-      primaryVisSelect.value,
-      primaryLayer,
-      birdSummary,
-    );
-    await createColorSlider(primaryVisSelect.value, primaryLayer, "primary");
-    createFilters(
-      arcgisScene,
-      primaryLayer,
-      birdSummary,
-      document.getElementById("prim-filter-container"),
-      primaryVisSelect.value,
-    );
-    updateArrowLayer(arrowLayer, primaryVisSelect.value, birdSummary);
-    createDynamicPopupTemplate(
-      primaryLayer,
-      primaryVisSelect.value,
-      birdSummary,
-    );
-
-    const summary = birdSummary[primaryVisSelect.value];
-    if (summary.type == "number") {
-      document.getElementById("chart-all-container")!.style.display = "block";
-      document.getElementById("chart-notice")!.style.display = "none";
-      const lineChartElement = document.getElementById("line-chart")!;
-      await lineChartElement.model.setNumericFields([primaryVisSelect.value]);
-      lineChartElement.model.setTemporalBinningUnit("seconds");
-      lineChartElement.model.setYAxisTitleText(
-        primaryVisSelect.value.charAt(0).toUpperCase() +
-          primaryVisSelect.value.slice(1),
-      );
-      // lineChartElement.style.height = "20rem";
-      lineChartElement.refresh();
-    } else {
-      document.getElementById("chart-all-container")!.style.display = "none";
-      document.getElementById("chart-notice")!.style.display = "block";
-    }
-  });
-
-  secondaryVisSelect?.addEventListener("calciteSelectChange", async () => {
-    arcgisScene.view.whenLayerView(secondaryLayer).then((layerView) => {
-      layerView.filter = null;
-    });
-
-    document.getElementById("cylinder-variable")!.innerText =
-      secondaryVisSelect.value.charAt(0).toUpperCase() +
-      secondaryVisSelect.value.slice(1);
-    updateLayerColorVariables(
-      secondaryVisSelect.value,
-      secondaryLayer,
-      birdSummary,
-    );
-    await createColorSlider(
-      secondaryVisSelect.value,
-      secondaryLayer,
-      "secondary",
-    );
-
-    createFilters(
-      arcgisScene,
-      secondaryLayer,
-      birdSummary,
-      document.getElementById("sec-filter-container"),
-      secondaryVisSelect.value,
-    );
-
-    createDynamicPopupTemplate(
-      secondaryLayer,
-      secondaryVisSelect.value,
-      birdSummary,
-    );
-  });
-
-  function setLayerVisibility() {
-    const lineVisibility = document.getElementById("visibility-line");
-    const cylinderVisibility = document.getElementById("visibility-cylinders");
-    const generalizedVisibility = document.getElementById(
-      "visibility-generalized",
-    );
-    const extremumsVisibility = document.getElementById("visibility-extremums");
-    const timeMarksVisibility = document.getElementById("visibility-timemarks");
-    lineVisibility?.addEventListener("calciteCheckboxChange", async () => {
-      primaryLayer.visible = !primaryLayer.visible;
-    });
-    cylinderVisibility?.addEventListener("calciteCheckboxChange", async () => {
-      secondaryLayer.visible = !secondaryLayer.visible;
-    });
-    generalizedVisibility?.addEventListener(
-      "calciteCheckboxChange",
-      async () => {
-        const generalizedLayer = arcgisScene.view.map.allLayers.find(
-          (layer) => layer.title === "Generlized visualization",
-        );
-        generalizedLayer.visible = !generalizedLayer.visible;
-      },
-    );
-    extremumsVisibility?.addEventListener("calciteCheckboxChange", async () => {
-      arrowLayer.visible = !arrowLayer.visible;
-    });
-    timeMarksVisibility?.addEventListener("calciteCheckboxChange", async () => {
-      dayLayer.visible = !dayLayer.visible;
-    });
-  }
 
   function createAttributeSelects(
     birdSummary: Record<string, any>,
@@ -262,216 +351,222 @@ export async function setSingleVis(
 
     select.value = defaultValue;
   }
+}
 
-  async function createColorSlider(
-    variable,
-    layer: __esri.FeatureLayer,
-    layerType,
-  ) {
-    const summary = birdSummary[variable];
-    const currentRenderer = layer.renderer.clone();
-    let container;
-    let colorScaleContainer;
-    let legendContainer;
+async function createColorSlider(
+  variable,
+  layer: __esri.FeatureLayer,
+  layerType,
+  birdSummary,
+  primaryColorScale,
+  primaryLegendContainer,
+  secondaryColorScale,
+  secondaryLegendContainer,
+  arcgisScene,
+) {
+  const summary = birdSummary[variable];
+  const currentRenderer = layer.renderer.clone();
+  let container;
+  let colorScaleContainer;
+  let legendContainer;
 
-    if (layerType == "primary") {
-      container = "color-slider-primary";
-      // resetSliderContainer(container);
-      colorScaleContainer = primaryColorScale;
-      legendContainer = primaryLegendContainer;
-    } else {
-      container = "color-slider-secondary";
-      // resetSliderContainer(container);
-      colorScaleContainer = secondaryColorScale;
-      legendContainer = secondaryLegendContainer;
-    }
-    colorScaleContainer.innerHTML = null;
+  if (layerType == "primary") {
+    container = "color-slider-primary";
+    // resetSliderContainer(container);
+    colorScaleContainer = primaryColorScale;
+    legendContainer = primaryLegendContainer;
+  } else {
+    container = "color-slider-secondary";
+    // resetSliderContainer(container);
+    colorScaleContainer = secondaryColorScale;
+    legendContainer = secondaryLegendContainer;
+  }
+  colorScaleContainer.innerHTML = null;
 
-    if (!summary) {
-      legendContainer!.style.display = "block";
-      colorScaleContainer!.style.display = "none";
-      return;
-    } else if (summary.type === "number") {
-      colorScaleContainer.innerHTML = "";
-      legendContainer!.style.display = "none";
-      colorScaleContainer!.style.display = "block";
-    } else {
-      legendContainer!.style.display = "block";
-      colorScaleContainer!.style.display = "none";
-      return;
-    }
+  if (!summary) {
+    legendContainer!.style.display = "block";
+    colorScaleContainer!.style.display = "none";
+    return;
+  } else if (summary.type === "number") {
+    colorScaleContainer.innerHTML = "";
+    legendContainer!.style.display = "none";
+    colorScaleContainer!.style.display = "block";
+  } else {
+    legendContainer!.style.display = "block";
+    colorScaleContainer!.style.display = "none";
+    return;
+  }
 
-    const redAndGreenScheme = colorSymbology.getSchemeByName({
-      basemap: arcgisScene.map.basemap,
-      geometryType: "polygon",
-      theme: "above-and-below",
-      name: "Red and Green 4",
+  const redAndGreenScheme = colorSymbology.getSchemeByName({
+    basemap: arcgisScene.map.basemap,
+    geometryType: "polygon",
+    theme: "above-and-below",
+    name: "Red and Green 4",
+  });
+
+  // flip the red and green scheme so green is on top
+  // const myScheme = colorSymbology.flipColors(redAndGreenScheme);
+
+  const colorParams = {
+    layer: layer,
+    view: arcgisScene.view,
+    field: variable,
+    theme: "high-to-low",
+    colorScheme: redAndGreenScheme,
+    // edgesType: "solid",
+  };
+
+  const bars = [];
+  let rendererResultOrg = null;
+  let rendererResult = null;
+
+  let vv = null;
+
+  colorRendererCreator
+    .createContinuousRenderer(colorParams)
+    .then((response) => {
+      rendererResult = response;
+      let customSymbol = null;
+      let type = currentRenderer.symbol.type;
+      if (type === "point-3d") {
+        customSymbol = {
+          type: "point-3d",
+          symbolLayers: [
+            {
+              type: "object",
+              resource: {
+                primitive: "cylinder",
+              },
+              material: { color: [255, 0, 0] },
+              width: 10,
+              height: 3000,
+              tilt: 180,
+            },
+          ],
+        };
+      } else if (type === "line-3d") {
+        customSymbol = {
+          type: "line-3d",
+          symbolLayers: [
+            {
+              type: "line",
+              size: 6,
+              cap: "round",
+              material: { color: [255, 0, 0] },
+            },
+          ],
+        };
+      }
+
+      vv = rendererResult.visualVariable;
+      rendererResult.renderer.classBreakInfos?.forEach((info) => {
+        info.symbol = customSymbol;
+      });
+      layer.renderer = response.renderer;
+
+      return histogram({
+        layer: colorParams.layer,
+        field: colorParams.field,
+        numBins: 60,
+      });
+    })
+    .then((histogramResult) => {
+      const slider = ColorSlider.fromRendererResult(
+        rendererResult,
+        histogramResult,
+      );
+
+      slider.set({
+        primaryHandleEnabled: true,
+        container: container,
+        handlesSyncedToPrimary: false,
+        syncedSegmentsEnabled: true,
+        labelFormatFunction: (value) => {
+          return value.toFixed(0);
+        },
+      });
+      // update the slider bars to match renderer values
+      slider.histogramConfig.barCreatedFunction = (index, element) => {
+        const bin = histogramResult.bins[index];
+        const midValue = (bin.maxValue - bin.minValue) / 2 + bin.minValue;
+        const color = getColorFromValue(vv.stops, midValue);
+        element.setAttribute("fill", color.toHex());
+        bars.push(element);
+      };
+
+      slider.on(
+        [
+          "thumb-change",
+          "thumb-drag",
+          "min-change",
+          "max-change",
+          "segment-drag",
+        ],
+        () => {
+          const renderer = layer.renderer.clone();
+          const colorVariable = renderer.visualVariables[0].clone();
+          colorVariable.stops = slider.stops;
+          renderer.visualVariables = [colorVariable];
+          layer.renderer = renderer;
+
+          // not redrawing otheriwse
+          layer.visible = false;
+          requestAnimationFrame(() => {
+            layer.visible = true;
+          });
+          // update the color of each histogram bar based on the
+          // values of the slider thumbs
+          bars.forEach((bar, index) => {
+            const bin = slider.histogramConfig.bins[index];
+            const midValue = (bin.maxValue - bin.minValue) / 2 + bin.minValue;
+            const color = getColorFromValue(slider.stops, midValue);
+            bar.setAttribute("fill", color.toHex());
+          });
+        },
+      );
+    })
+    .catch((error) => {
+      console.log("Color slider error: ", error);
     });
 
-    // flip the red and green scheme so green is on top
-    // const myScheme = colorSymbology.flipColors(redAndGreenScheme);
+  // infers the color for a given value
+  // based on the stops from a ColorVariable
+  function getColorFromValue(stops, value) {
+    let minStop = stops[0];
+    let maxStop = stops[stops.length - 1];
 
-    const colorParams = {
-      layer: layer,
-      view: arcgisScene.view,
-      field: variable,
-      theme: "high-to-low",
-      colorScheme: redAndGreenScheme,
-      // edgesType: "solid",
-    };
+    const minStopValue = minStop.value;
+    const maxStopValue = maxStop.value;
 
-    const bars = [];
-    let rendererResultOrg = null;
-    let rendererResult = null;
-
-    let vv = null;
-
-    colorRendererCreator
-      .createContinuousRenderer(colorParams)
-      .then((response) => {
-        rendererResult = response;
-        let customSymbol = null;
-        let type = currentRenderer.symbol.type;
-        if (type === "point-3d") {
-          customSymbol = {
-            type: "point-3d",
-            symbolLayers: [
-              {
-                type: "object",
-                resource: {
-                  primitive: "cylinder",
-                },
-                material: { color: [255, 0, 0] },
-                width: 10,
-                height: 3000,
-                tilt: 180,
-              },
-            ],
-          };
-        } else if (type === "line-3d") {
-          customSymbol = {
-            type: "line-3d",
-            symbolLayers: [
-              {
-                type: "line",
-                size: 6,
-                cap: "round",
-                material: { color: [255, 0, 0] },
-              },
-            ],
-          };
-        }
-
-        vv = rendererResult.visualVariable;
-        rendererResult.renderer.classBreakInfos?.forEach((info) => {
-          info.symbol = customSymbol;
-        });
-        layer.renderer = response.renderer;
-
-        return histogram({
-          layer: colorParams.layer,
-          field: colorParams.field,
-          numBins: 60,
-        });
-      })
-      .then((histogramResult) => {
-        const slider = ColorSlider.fromRendererResult(
-          rendererResult,
-          histogramResult,
-        );
-
-        slider.set({
-          primaryHandleEnabled: true,
-          container: container,
-          handlesSyncedToPrimary: false,
-          syncedSegmentsEnabled: true,
-          labelFormatFunction: (value) => {
-            return value.toFixed(0);
-          },
-        });
-        // update the slider bars to match renderer values
-        slider.histogramConfig.barCreatedFunction = (index, element) => {
-          const bin = histogramResult.bins[index];
-          const midValue = (bin.maxValue - bin.minValue) / 2 + bin.minValue;
-          const color = getColorFromValue(vv.stops, midValue);
-          element.setAttribute("fill", color.toHex());
-          bars.push(element);
-        };
-
-        slider.on(
-          [
-            "thumb-change",
-            "thumb-drag",
-            "min-change",
-            "max-change",
-            "segment-drag",
-          ],
-          () => {
-            const renderer = layer.renderer.clone();
-            const colorVariable = renderer.visualVariables[0].clone();
-            colorVariable.stops = slider.stops;
-            renderer.visualVariables = [colorVariable];
-            layer.renderer = renderer;
-
-            // not redrawing otheriwse
-            layer.visible = false;
-            requestAnimationFrame(() => {
-              layer.visible = true;
-            });
-            // update the color of each histogram bar based on the
-            // values of the slider thumbs
-            bars.forEach((bar, index) => {
-              const bin = slider.histogramConfig.bins[index];
-              const midValue = (bin.maxValue - bin.minValue) / 2 + bin.minValue;
-              const color = getColorFromValue(slider.stops, midValue);
-              bar.setAttribute("fill", color.toHex());
-            });
-          },
-        );
-      })
-      .catch((error) => {
-        console.log("Color slider error: ", error);
-      });
-
-    // infers the color for a given value
-    // based on the stops from a ColorVariable
-    function getColorFromValue(stops, value) {
-      let minStop = stops[0];
-      let maxStop = stops[stops.length - 1];
-
-      const minStopValue = minStop.value;
-      const maxStopValue = maxStop.value;
-
-      if (value < minStopValue) {
-        return minStop.color;
-      }
-
-      if (value > maxStopValue) {
-        return maxStop.color;
-      }
-
-      const exactMatches = stops.filter((stop) => {
-        return stop.value === value;
-      });
-
-      if (exactMatches.length > 0) {
-        return exactMatches[0].color;
-      }
-
-      minStop = null;
-      maxStop = null;
-      stops.forEach((stop, i) => {
-        if (!minStop && !maxStop && stop.value >= value) {
-          minStop = stops[i - 1];
-          maxStop = stop;
-        }
-      });
-
-      const weightedPosition =
-        (value - minStop.value) / (maxStop.value - minStop.value);
-
-      return Color.blendColors(minStop.color, maxStop.color, weightedPosition);
+    if (value < minStopValue) {
+      return minStop.color;
     }
+
+    if (value > maxStopValue) {
+      return maxStop.color;
+    }
+
+    const exactMatches = stops.filter((stop) => {
+      return stop.value === value;
+    });
+
+    if (exactMatches.length > 0) {
+      return exactMatches[0].color;
+    }
+
+    minStop = null;
+    maxStop = null;
+    stops.forEach((stop, i) => {
+      if (!minStop && !maxStop && stop.value >= value) {
+        minStop = stops[i - 1];
+        maxStop = stop;
+      }
+    });
+
+    const weightedPosition =
+      (value - minStop.value) / (maxStop.value - minStop.value);
+
+    return Color.blendColors(minStop.color, maxStop.color, weightedPosition);
   }
 }
 
@@ -664,10 +759,14 @@ export function createFilters(
 }
 
 export function updateArrowLayer(
-  arrowLayer: __esri.GraphicsLayer,
+  arcgisScene,
   variable: string,
   birdSummary: any,
 ) {
+  let arrowLayer = findLayersByTitles(
+    arcgisScene.view,
+    "Extremum visualization",
+  );
   arrowLayer.removeAll();
   const summary = birdSummary[variable];
   if (!summary || summary.type !== "number") return null;

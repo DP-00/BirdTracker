@@ -348,7 +348,7 @@ const windRenderer = {
   ],
 };
 
-export async function setWeather(arcgisScene, secondaryLayer, birdid) {
+export async function setWeather(arcgisScene, birdid) {
   const weatherSelect = document.getElementById(
     "weather-select",
   ) as HTMLCalciteSelectElement;
@@ -410,6 +410,11 @@ export async function setWeather(arcgisScene, secondaryLayer, birdid) {
     "Generlized visualization",
   );
 
+  const secondaryLayer = findLayersByTitles(
+    arcgisScene.view,
+    "Cylinder visualization",
+  );
+
   console.log("l", polylineLayer);
 
   const polylineFeatureSet = await polylineLayer.queryFeatures({
@@ -443,6 +448,17 @@ export async function setWeather(arcgisScene, secondaryLayer, birdid) {
   });
 
   buttonNewTiles?.addEventListener("click", async () => {
+    const existing = await weatherLayer.queryFeatures();
+    const deleteFeatures = Array.isArray(existing.features)
+      ? existing.features
+      : [];
+    await weatherLayer.applyEdits({
+      deleteFeatures,
+    });
+
+    updateWeatherRenderer("Blank");
+    buttonWeather.innerText = `Get weather`;
+    buttonWeather.disabled = true;
     weatherSymbologyContainer.style.display = "none";
     weatherTilesContainer.style.display = "block";
   });
@@ -555,19 +571,25 @@ export async function setWeather(arcgisScene, secondaryLayer, birdid) {
         spatialReference: { wkid: 3857 },
       });
 
-      const tiles = await generateTiles(polygon, firstTimestamp, lastTimestamp);
+      const tiles = await generateTiles(
+        polygon,
+        firstTimestamp,
+        lastTimestamp,
+        weatherSize.value * 1000,
+      );
 
-      await weatherLayer.applyEdits({
-        addFeatures: tiles,
-      });
-      updateWeatherRenderer("Blank");
-      buttonWeather.innerText = `Get weather for ${tiles.length} tiles`;
-      buttonTiles.loading = false;
       if (tiles.length > 600) {
         document.getElementById("weather-alert-600")!.open = true;
         buttonWeather.disabled = true;
+        buttonTiles.loading = false;
         return;
       } else {
+        await weatherLayer.applyEdits({
+          addFeatures: tiles,
+        });
+        updateWeatherRenderer("Blank");
+        buttonWeather.innerText = `Get weather for ${tiles.length} tiles`;
+        buttonTiles.loading = false;
         buttonWeather.disabled = false;
         if (tiles) {
           await arcgisScene.view.goTo(tiles);
@@ -582,8 +604,8 @@ export async function setWeather(arcgisScene, secondaryLayer, birdid) {
     }
   }
 
-  async function generateTiles(polygon, firstTimestamp, lastTimestamp) {
-    const step = weatherSize.value * 1000;
+  async function generateTiles(polygon, firstTimestamp, lastTimestamp, step) {
+    // const step = weatherSize.value * 1000;
     const extent = polygon.extent;
 
     const xmin = extent.xmin;
@@ -595,7 +617,8 @@ export async function setWeather(arcgisScene, secondaryLayer, birdid) {
     console.log("setWM", polylineWM);
 
     const tiles = [];
-    for (let x = xmin; x < xmax; x += step) {
+    let stop = false;
+    for (let x = xmin; x < xmax && !stop; x += step) {
       for (let y = ymin; y < ymax; y += step) {
         const tileCenter = new Point({
           x: x + step / 2,
@@ -643,6 +666,13 @@ export async function setWeather(arcgisScene, secondaryLayer, birdid) {
           console.log("gr", tile);
 
           tiles.push(tile);
+
+          if (tiles.length > 601) {
+            console.warn("Tile limit exceeded");
+            // tiles = [];
+            stop = true;
+            break;
+          }
         }
       }
     }

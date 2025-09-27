@@ -456,19 +456,13 @@ export async function createTimeMarkersLayer(graphics) {
           "return `${Upper(Text($feature.date, 'MMM D'))}\n${$feature.distance} km`",
       },
       labelPlacement: "center-right",
+      deconflictionStrategy: "none",
       symbol: new LabelSymbol3D({
         symbolLayers: [
           new TextSymbol3DLayer({
-            material: {
-              color: "#aed8cc",
-            },
-            background: {
-              color: "#192a276e",
-            },
-            halo: {
-              color: "#192a276e",
-              size: 0,
-            },
+            material: { color: "#aed8cc" },
+            background: { color: "#192a276e" },
+            halo: { color: "#192a276e", size: 0 },
             font: {
               size: 8,
               weight: "normal",
@@ -484,8 +478,8 @@ export async function createTimeMarkersLayer(graphics) {
     const canvas = document.createElement("canvas");
     const width = 25;
     const height = 25;
-    canvas.setAttribute("width", width.toString() + "px");
-    canvas.setAttribute("height", height.toString() + "px");
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext("2d")!;
     ctx.fillStyle = "#4c1010bb";
     ctx.fillRect(0, 0, width, height);
@@ -497,22 +491,30 @@ export async function createTimeMarkersLayer(graphics) {
     return canvas.toDataURL("image/png");
   };
 
+  const uniqueDays = Array.from(
+    new Set(
+      graphics.map((g) => new Date(g.attributes.date).setHours(0, 0, 0, 0)),
+    ),
+  ).sort((a, b) => a - b);
+
+  // Assign consistent dayIndex to each graphic
+  graphics.forEach((g) => {
+    const dayKey = new Date(g.attributes.date).setHours(0, 0, 0, 0);
+    g.attributes.dayIndex = uniqueDays.indexOf(dayKey) + 1; // sequential day #
+  });
+
+  // Build unique value infos from assigned dayIndex
   const getUniqueValues = () => {
-    const days = Array.from({ length: graphics.length }, (_, i) => i + 1);
-    return days.map((day) => {
+    return uniqueDays.map((_, idx) => {
+      const dayNumber = idx + 1;
       return {
-        value: day,
+        value: dayNumber,
         symbol: new PointSymbol3D({
           symbolLayers: [
             new IconSymbol3DLayer({
-              resource: {
-                href: getCanvasSymbol(day),
-              },
+              resource: { href: getCanvasSymbol(dayNumber) },
               anchor: "relative",
-              anchorPosition: {
-                x: 0.5,
-                y: -0.5,
-              },
+              anchorPosition: { x: 0.5, y: -0.5 },
               size: 15,
             }),
           ],
@@ -521,11 +523,7 @@ export async function createTimeMarkersLayer(graphics) {
             maxWorldLength: 500000,
             minWorldLength: 0,
           },
-          callout: {
-            type: "line",
-            size: 1,
-            color: "#192a27ff",
-          },
+          callout: { type: "line", size: 1, color: "#192a27ff" },
         }),
       };
     });
@@ -538,23 +536,16 @@ export async function createTimeMarkersLayer(graphics) {
     spatialReference: SpatialReference.WGS84,
     popupEnabled: false,
     fields: [
-      new Field({
-        name: "OBJECTID",
-        type: "oid",
-      }),
-      new Field({
-        name: "date",
-        type: "date",
-      }),
-      new Field({
-        name: "distance",
-        type: "double",
-      }),
+      new Field({ name: "OBJECTID", type: "oid" }),
+      new Field({ name: "date", type: "date" }),
+      new Field({ name: "distance", type: "double" }),
+      // Added so dayIndex is recognized
+      new Field({ name: "dayIndex", type: "integer" }),
     ],
     labelingInfo,
     screenSizePerspectiveEnabled: false,
     renderer: new UniqueValueRenderer({
-      field: "OBJECTID",
+      field: "dayIndex", // Renderer keys off new dayIndex
       defaultSymbol: new PointSymbol3D({
         symbolLayers: [new IconSymbol3DLayer({})],
       }),
@@ -564,3 +555,120 @@ export async function createTimeMarkersLayer(graphics) {
 
   return layer;
 }
+
+// export async function createTimeMarkersLayer(graphics) {
+//   const labelingInfo = [
+//     new LabelClass({
+//       labelExpressionInfo: {
+//         expression:
+//           "return `${Upper(Text($feature.date, 'MMM D'))}\n${$feature.distance} km`",
+//       },
+//       labelPlacement: "center-right",
+//       symbol: new LabelSymbol3D({
+//         symbolLayers: [
+//           new TextSymbol3DLayer({
+//             material: {
+//               color: "#aed8cc",
+//             },
+//             background: {
+//               color: "#192a276e",
+//             },
+//             halo: {
+//               color: "#192a276e",
+//               size: 0,
+//             },
+//             font: {
+//               size: 8,
+//               weight: "normal",
+//               family: '"Avenir Next", "Avenir", "Helvetica Neue", sans-serif',
+//             },
+//           }),
+//         ],
+//       }),
+//     }),
+//   ];
+
+//   const getCanvasSymbol = (day: number) => {
+//     const canvas = document.createElement("canvas");
+//     const width = 25;
+//     const height = 25;
+//     canvas.setAttribute("width", width.toString() + "px");
+//     canvas.setAttribute("height", height.toString() + "px");
+//     const ctx = canvas.getContext("2d")!;
+//     ctx.fillStyle = "#4c1010bb";
+//     ctx.fillRect(0, 0, width, height);
+//     ctx.fillStyle = "#aed8cc";
+//     ctx.font = "bold 18px Arial";
+//     ctx.textAlign = "center";
+//     ctx.textBaseline = "middle";
+//     ctx.fillText(day.toString(), width / 2, height / 2);
+//     return canvas.toDataURL("image/png");
+//   };
+
+//   const getUniqueValues = () => {
+//     const days = Array.from({ length: graphics.length }, (_, i) => i + 1);
+//     return days.map((day) => {
+//       return {
+//         value: day,
+//         symbol: new PointSymbol3D({
+//           symbolLayers: [
+//             new IconSymbol3DLayer({
+//               resource: {
+//                 href: getCanvasSymbol(day),
+//               },
+//               anchor: "relative",
+//               anchorPosition: {
+//                 x: 0.5,
+//                 y: -0.5,
+//               },
+//               size: 15,
+//             }),
+//           ],
+//           verticalOffset: {
+//             screenLength: 40,
+//             maxWorldLength: 500000,
+//             minWorldLength: 0,
+//           },
+//           callout: {
+//             type: "line",
+//             size: 1,
+//             color: "#192a27ff",
+//           },
+//         }),
+//       };
+//     });
+//   };
+
+//   const layer = new FeatureLayer({
+//     source: graphics,
+//     title: "Time and distance visualization",
+//     geometryType: "point",
+//     spatialReference: SpatialReference.WGS84,
+//     popupEnabled: false,
+//     fields: [
+//       new Field({
+//         name: "OBJECTID",
+//         type: "oid",
+//       }),
+//       new Field({
+//         name: "date",
+//         type: "date",
+//       }),
+//       new Field({
+//         name: "distance",
+//         type: "double",
+//       }),
+//     ],
+//     labelingInfo,
+//     screenSizePerspectiveEnabled: false,
+//     renderer: new UniqueValueRenderer({
+//       field: "OBJECTID",
+//       defaultSymbol: new PointSymbol3D({
+//         symbolLayers: [new IconSymbol3DLayer({})],
+//       }),
+//       uniqueValueInfos: getUniqueValues(),
+//     }),
+//   });
+
+//   return layer;
+// }

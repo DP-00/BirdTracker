@@ -13,7 +13,11 @@ import {
   createLineLayer,
   createTimeMarkersLayer,
 } from "./layers";
-import { setSingleVis, summarizeData } from "./singleVisualization";
+import {
+  createSingleVisListeners,
+  setSingleVis,
+  summarizeData,
+} from "./singleVisualization";
 import { setTimeSlider, setTimeSliderExtent } from "./timeSlider";
 
 import TimeExtent from "@arcgis/core/time/TimeExtent";
@@ -222,6 +226,9 @@ async function createGroupVisView(
   const homeBtn = document.getElementById("show-group-vis")!;
   homeBtn.addEventListener("click", async () => {
     homeBtn.loading = true;
+    document
+      .getElementById("play-animation")
+      ?.setAttribute("data-playing", false);
     document.getElementById("dashboard-single-vis").loading = true;
     document.getElementById("dashboard-single-vis")!.style.display = "none";
     document.getElementById("progress-loader")!.style.display = "none";
@@ -260,6 +267,9 @@ export async function createSingleVisView(
   dataProcessed: any,
   birdid: string,
 ) {
+  document
+    .getElementById("play-animation")
+    ?.setAttribute("data-playing", "false");
   document.getElementById("single-view-button")!.loading = true;
   document.getElementById("dashboard")!.loading = true;
   document.getElementById("dashboard-group-vis")!.style.display = "none";
@@ -301,7 +311,6 @@ export async function createSingleVisView(
     dayLayer,
   ]);
   await primaryLayer.when();
-  // await arcgisScene.view.goTo(primaryLayer.fullExtent);
   await arcgisScene.view.goTo({
     target: primaryLayer.fullExtent,
     heading: 0,
@@ -309,6 +318,13 @@ export async function createSingleVisView(
   });
   await secondaryLayer.when();
 
+  if (
+    document
+      .getElementById("dashboard-single-vis")
+      .getAttribute("data-first-time") === "true"
+  ) {
+    createSingleVisListeners(arcgisScene, dataProcessed);
+  }
   await setSingleVis(
     arcgisScene,
     primaryLayer,
@@ -321,6 +337,9 @@ export async function createSingleVisView(
     birdPath,
     polyline,
   );
+
+  await setWeather(arcgisScene, birdid);
+  await setCharts(polyline, arcgisScene, birdSummary);
 
   setTimeSliderExtent(
     document.querySelector("arcgis-time-slider"),
@@ -337,11 +356,9 @@ export async function createSingleVisView(
       });
     });
 
-  await setWeather(arcgisScene, secondaryLayer, birdid);
-  await setCharts(polyline, secondaryLayer, arcgisScene, birdSummary);
   document.getElementById("gauges-container")!.style.display = "none";
   document.getElementById("animation-playrate")!.style.display = "none";
-  document.getElementById("play-group-animation")!.style.display = "none";
+  document.getElementById("play-animation")!.style.display = "none";
   document.getElementById("date-picker-start")!.style.display = "block";
   document.getElementById("time-zoom")!.style.display = "block";
   document.getElementById("time-duration")!.style.display = "block";
@@ -407,6 +424,7 @@ async function create24hGraphics(graphics: any) {
   if (!geodeticLengthOperator.isLoaded()) {
     await geodeticLengthOperator.load();
   }
+  console.log(graphics);
 
   const graphicsArray = [];
   const coordinates = getCoordinatesFromFeatures(graphics);
@@ -596,6 +614,7 @@ function processCSV(
           "speed",
           "timestamp",
         ].map(getCol);
+
         const groupedByBird: Record<string, any[]> = {};
         const statJSON: Record<string, any> = {};
 
@@ -607,9 +626,17 @@ function processCSV(
           const latitude = parseFloat(
             parseFloat(row[getCol("latitude")]).toFixed(6),
           );
+          const altitude = parseFloat(
+            parseFloat(row[getCol("altitude")]).toFixed(3),
+          );
+
+          const speed = parseFloat(parseFloat(row[getCol("speed")]).toFixed(3));
+          const timestamp = new Date(row[getCol("timestamp")] + "Z"); // show that UTC
           if (
             isNaN(longitude) ||
             isNaN(latitude) ||
+            isNaN(altitude) ||
+            isNaN(speed) ||
             (longitude === 0 && latitude === 0)
           )
             continue;
@@ -618,11 +645,9 @@ function processCSV(
             birdid,
             longitude,
             latitude,
-            altitude: parseFloat(
-              parseFloat(row[getCol("altitude")]).toFixed(3),
-            ),
-            speed: parseFloat(parseFloat(row[getCol("speed")]).toFixed(3)),
-            timestamp: new Date(row[getCol("timestamp")] + "Z"), // show that UTC
+            altitude,
+            speed,
+            timestamp,
             ...Object.fromEntries(
               headers
                 .filter((h: any) => !excludeKeys.includes(h))
