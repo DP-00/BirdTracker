@@ -106,20 +106,6 @@ const fields = [
   },
 ];
 
-// Esri color ramps - Purple 4
-// const colors = [
-//   "rgba(247, 252, 253, 1)",
-//   "rgba(224, 236, 244, 1)",
-//   "rgba(191, 211, 230, 1)",
-//   "rgba(158, 188, 218, 1)",
-//   "rgba(140, 150, 198, 1)",
-//   "rgba(140, 107, 177, 1)",
-//   "rgba(136, 65, 157, 1)",
-//   "rgba(129, 15, 124, 1)",
-//   "rgba(104, 0, 102, 1)",
-//   "rgba(63, 1, 63, 1)",
-// ];
-
 // Esri color ramps - Esri Purple and Gray 1
 const colors = [
   "rgba(244, 239, 250, 0.7)",
@@ -176,37 +162,6 @@ const temperatureRenderer = {
     },
   ],
 };
-
-// const temperatureRenderer = {
-//   type: "simple",
-//   symbol: {
-//     type: "polygon-3d",
-//     symbolLayers: [
-//       {
-//         type: "fill",
-//         material: { color: [0, 0, 0, 0.5] },
-//       },
-//     ],
-//   },
-//   visualVariables: [
-//     {
-//       type: "color",
-//       field: "temperature",
-//       stops: [
-//         { value: -30, color: "rgba(5, 48, 97, 0.7)" },
-//         { value: -20, color: "rgba(33, 102, 172, 0.7)" },
-//         { value: -15, color: "rgba(67, 147, 195, 0.7)" },
-//         { value: -10, color: "rgba(146, 197, 222, 0.7)" },
-//         { value: -5, color: "rgba(209, 229, 240, 0.7)" },
-//         { value: 0, color: "rgba(253, 219, 199, 0.7)" },
-//         { value: 5, color: "rgba(244, 165, 130, 0.7)" },
-//         { value: 10, color: "rgba(214, 96, 77, 0.7)" },
-//         { value: 20, color: "rgba(178, 24, 43, 0.7)" },
-//         { value: 30, color: "rgba(103, 0, 31, 0.7)" },
-//       ],
-//     },
-//   ],
-// };
 
 // https://www.baranidesign.com/faq-articles/2020/1/19/rain-rate-intensity-classification
 const precipitationRenderer = {
@@ -279,16 +234,6 @@ const windRenderer = {
         anchor: "relative",
         anchorPosition: { x: 0, y: 0, z: -10 },
       },
-      // {
-      //   type: "icon",
-      //   material: {
-      //     color: [255, 0, 0],
-      //   },
-      //   resource: {
-      //     primitive: "triangle",
-      //   },
-      //   size: 12,
-      // },
     ],
   },
   visualVariables: [
@@ -415,24 +360,19 @@ export async function setWeather(arcgisScene, birdid) {
     "Cylinder visualization",
   );
 
-  console.log("l", polylineLayer);
-
   const polylineFeatureSet = await polylineLayer.queryFeatures({
     returnGeometry: true,
     where: `birdid = '${birdid}'`,
   });
-  console.log("set", polylineFeatureSet);
 
   const polyline = polylineFeatureSet.features[0].geometry;
 
+  // setting button listeners
   buttonTiles?.addEventListener("click", async () => {
     tiles = await generateWeatherExtent(arcgisScene, secondaryLayer);
   });
   buttonWeather?.addEventListener("click", async () => {
     await updateWeatherLayer();
-
-    // weatherSelect.disabled = false;
-    // weatherTimeSwitch.disabled = false;
     weatherTilesContainer.style.display = "none";
     weatherSymbologyContainer.style.display = "block";
   });
@@ -520,9 +460,6 @@ export async function setWeather(arcgisScene, birdid) {
       });
 
       if (weatherDistance.value == 0 || weatherSize.value == 0) {
-        // buttonWeather.disabled = true;
-        // weatherSelect.disabled = true;
-        // weatherTimeSwitch.disabled = true;
         weatherSymbologyContainer.style.display = "none";
         weatherTilesContainer.style.display = "block";
 
@@ -533,8 +470,6 @@ export async function setWeather(arcgisScene, birdid) {
 
       const firstTimestamp = new Date(timeSlider.timeExtent.start);
       const lastTimestamp = new Date(timeSlider.timeExtent.end);
-
-      console.log(firstTimestamp, lastTimestamp);
 
       if (lastTimestamp - firstTimestamp > 14 * 24 * 60 * 60 * 1000) {
         document.getElementById("weather-alert-14")!.open = true;
@@ -605,16 +540,13 @@ export async function setWeather(arcgisScene, birdid) {
   }
 
   async function generateTiles(polygon, firstTimestamp, lastTimestamp, step) {
-    // const step = weatherSize.value * 1000;
     const extent = polygon.extent;
-
     const xmin = extent.xmin;
     const xmax = extent.xmax;
     const ymin = extent.ymin;
     const ymax = extent.ymax;
 
     let polylineWM = webMercatorUtils.geographicToWebMercator(polyline);
-    console.log("setWM", polylineWM);
 
     const tiles = [];
     let stop = false;
@@ -663,13 +595,10 @@ export async function setWeather(arcgisScene, birdid) {
             },
           });
 
-          console.log("gr", tile);
-
           tiles.push(tile);
 
           if (tiles.length > 601) {
             console.warn("Tile limit exceeded");
-            // tiles = [];
             stop = true;
             break;
           }
@@ -746,7 +675,6 @@ export async function setWeather(arcgisScene, birdid) {
         messageSlot.textContent = errorMessage;
       }
       weatherAlert.open = true;
-      // console.warn(errorMessage);
       return null;
     }
   }
@@ -855,7 +783,6 @@ export async function setWeather(arcgisScene, birdid) {
         query.outFields = ["*"];
         const result = await secondaryLayer.queryFeatures(query);
         const feature = result.features[0];
-        console.log("feature", feature);
 
         let currentTimestamp = new Date(feature.attributes.timestamp);
 
@@ -883,10 +810,6 @@ export async function setWeather(arcgisScene, birdid) {
         tile.attributes.windDirection100 =
           tile.attributes.windDirection100All[timeIndex];
       }
-      // else {
-      //   // Remove tile if no timestamp data (backward for loop to allow it)
-      //   tiles.splice(i, 1);
-      // }
     }
     await weatherLayer.applyEdits({
       updateFeatures: tiles,
@@ -959,7 +882,6 @@ export async function setWeather(arcgisScene, birdid) {
   }
 
   // src: chatGPT based on the given requirements
-
   function createWeatherChartPopup(variableName) {
     return (target) => {
       const graphic = target.graphic;

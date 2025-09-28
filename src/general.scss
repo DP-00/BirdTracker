@@ -36,7 +36,6 @@
   --calcite-border-width-sm: 2px;
   --calcite-font-weight-light: 400;
   --calcite-font-weight-normal: 500;
-  // --calcite-font-weight-medium: 400;
   --calcite-font-weight-bold: 700;
 }
 
@@ -44,10 +43,6 @@
   --calcite-color-brand-hover: #aed8cc;
   font-weight: 500;
 }
-
-// p {
-//   font-weight: 500;
-// }
 
 calcite-block {
   margin: 0px;
@@ -61,7 +56,7 @@ body {
   width: 100%;
   background-color: #192a27;
   color: #aed8cc;
-  letter-spacing: 0.05em; /* Adjust spacing as needed */
+  letter-spacing: 0.05em;
 }
 
 b {
@@ -142,7 +137,6 @@ a {
   background-color: #192a27;
   border: none;
   border-radius: 0;
-  /* width: 6px; */
   height: 12px;
   top: -6px;
   left: -12px;
@@ -181,39 +175,6 @@ arcgis-chart {
 .layer-label span {
   font-weight: 800;
 }
-
-// .legend-label-container {
-//   display: flex;
-//   flex-direction: column;
-//   align-items: center;
-//   gap: 0.25rem;
-//   text-align: center;
-// }
-
-// .legend-icon {
-//   display: inline-block;
-//   margin: 0 0 0.4rem 0;
-//   vertical-align: middle;
-// }
-
-// .legend-icon.square {
-//   width: 15px;
-//   height: 15px;
-//   background-color: #3d1513;
-// }
-
-// .legend-icon.triangle {
-//   width: 0;
-//   height: 0;
-//   border-left: 9px solid transparent;
-//   border-right: 9px solid transparent;
-//   border-bottom: 15px solid #3d1513;
-// }
-
-// .legend-icon.upside-down {
-//   border-bottom: none;
-//   border-top: 15px solid rgb(3, 17, 9);
-// }
 
 input {
   margin: 1rem 0;
@@ -256,11 +217,6 @@ input[type="file"]::file-selector-button {
   background-color: #090e0d;
   color: #aed8cc;
 }
-
-// input[type="file"]::file-selector-button:hover {
-//   background-color: #81ecec;
-//   border: 2px solid #00cec9;
-// }
 
 calcite-segmented-control-item[checked] {
   --calcite-segmented-control-background-color: #aed8cc;
@@ -336,7 +292,6 @@ calcite-segmented-control-item[checked] {
   z-index: 1;
   font-size: 50px;
   font-weight: 800;
-  // top: 1rem;
   left: 50%;
   transform: translateX(-50%);
   --calcite-segmented-control-border-color: #f0ffff00;
@@ -363,7 +318,6 @@ calcite-segmented-control-item[checked] {
 }
 
 #dashboard {
-  // flex: 1;
   padding: 0.5rem 1rem;
   font-weight: 36;
   text-align: center;
@@ -372,11 +326,6 @@ calcite-segmented-control-item[checked] {
   --calcite-panel-background-color: #192a27;
   text-align: center;
   width: 5rem;
-  // max-width: 50vh;
-  // display: flex;
-  // flex-direction: column;
-  // align-items: center;
-  // transition: width 0.3s ease;
 }
 
 #dashboard::before {
@@ -401,11 +350,9 @@ calcite-segmented-control-item[checked] {
   width: 38rem;
   margin: 0 auto;
   overflow-x: hidden;
-  // width: fit-content;
 }
 
 #dashboard-group-vis {
-  // width: fit-content;
   margin: 0 auto;
   width: 38rem;
 }
@@ -521,22 +468,10 @@ calcite-tab {
   gap: 10px;
   padding: 0.2rem;
   align-items: center;
-  // justify-items: center;
 }
-
-// #weather-tiles-container {
-//   display: grid;
-//   grid-template-columns: auto auto;
-//   gap: 10px;
-// }
 
 #weather-symbology-container {
   display: none;
-  // display: grid;
-  // grid-template-columns: auto auto;
-  // gap: 10px;
-  // padding: 1rem;
-  // background-color: #090e0d;
 }
 
 #column-assignment {
@@ -551,19 +486,11 @@ calcite-tab {
   max-height: 50vh;
 }
 
-// #time-controls {
-//   display: flex;
-//   gap: 1rem;
-//   top: 0;
-//   // margin-top: 1rem;
-// }
-
 #animation-playrate {
   position: absolute;
   z-index: 1;
   top: 0.15rem;
   right: 0.15rem;
-  // width: 10rem;
   --calcite-select-border-color: rgba(0, 0, 0, 0);
   --calcite-segmented-control-background-color: rgba(0, 0, 0, 0);
   --calcite-combobox-input-border-color: rgba(0, 0, 0, 0);
@@ -609,8 +536,6 @@ calcite-accordion-item {
   box-sizing: border-box;
   z-index: 1;
   touch-action: none;
-  // background-color: #17bd27;
-  // border: 2px solid #551f1f;
   border-radius: 16px;
   width: 16px;
   height: 16px;
@@ -635,7 +560,6 @@ calcite-tab-title {
 #zoom-group {
   width: 85%;
   margin: 1rem 1rem 3rem 2rem;
-  // margin: auto 0;
 }
 
 #bird-list {
@@ -645,14 +569,10 @@ calcite-tab-title {
 }
 
 #bird-list calcite-list-item {
-  // --calcite-list-background-color: #090e0d;
   --calcite-list-background-color-hover: #090e0d;
-  // --calcite-list-border-color: #192a27;
 }
 
 #bird-list calcite-action {
-  // --calcite-list-background-color: #090e0d;
-  // --calcite-list-border-color: #192a27;
   --calcite-action-background-color: #192a27;
   --calcite-action-background-color-hover: #090e0d;
 }
@@ -675,10 +595,6 @@ calcite-tab-title {
   top: 0.15rem;
 }
 
-// .explore-mode {
-//   display: none;
-// }
-
 #time-zoom {
   right: 50%;
   transform: translateX(5.5rem);
@@ -690,7 +606,6 @@ calcite-tab-title {
 }
 
 #time-duration {
-  // width: 20%;
   padding-right: 0.5rem;
   position: absolute;
   z-index: 1;
@@ -700,7 +615,6 @@ calcite-tab-title {
 }
 
 #time-distance {
-  // width: 20%;
   padding-left: 0.5rem;
   position: absolute;
   z-index: 1;
@@ -741,8 +655,7 @@ calcite-tab-title {
   transform: translate(-50%, -50%) scaleY(-1);
   width: 38px;
   height: 38px;
-
-  background-image: url("/public/birdIcon3.svg"); /* adjust path as needed */
+  background-image: url("/public/birdIcon3.svg");
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -750,31 +663,6 @@ calcite-tab-title {
   background-color: transparent !important;
   border-color: transparent !important;
 }
-
-// .bird-mode arcgis-time-slider [id$="-handle-1"] .esri-slider__thumb::after {
-//   // content: "🦅";
-
-//   // content: url("public/birdIcon3.svg");
-//   content: "";
-
-//   background-image: url("/public/birdIcon3.svg");
-//   font-family: "Segoe UI Symbol", sans-serif;
-//   font-size: 25px;
-//   font-weight: 1000;
-//   color: #aed8cc;
-//   position: absolute;
-//   top: 0%;
-//   left: 50%;
-//   transform: translate(-50%, -50%) scaleX(-1);
-//   text-shadow: 1px 1px 0 #233935;
-//   background-color: #00000000 !important;
-//   border-color: #00000000 !important;
-// }
-
-// [id$="-handle-1"] .esri-slider__thumb {
-//   background-color: #aed8cc !important;
-//   border-color: #00000000 !important;
-// }
 
 ::-webkit-scrollbar {
   width: 13px;
@@ -797,7 +685,7 @@ calcite-tab-title {
 .legend-label-container {
   display: flex;
   flex-direction: column;
-  align-items: center; /* center the whole box horizontally */
+  align-items: center;
   gap: 0.5rem;
 }
 
@@ -807,7 +695,6 @@ calcite-tab-title {
 
 .legend-row {
   display: flex;
-  // align-items: center;
   justify-content: right;
   width: 20rem;
 }
@@ -817,11 +704,6 @@ calcite-tab-title {
   flex: 1;
   text-align: left;
 }
-
-// .legend-icon-group {
-//   // display: inline-flex;
-//   // gap: 2px;
-// }
 
 .legend-icon {
   display: inline-block;
@@ -954,16 +836,11 @@ calcite-carousel-item {
   font-size: 0.95rem;
 }
 
-// #chart-secondary-legend .esri-legend__layer > div:not(:nth-of-type(2)) {
-//   display: none;
-// }
-
 #progress-loader {
   display: none;
   position: absolute;
   z-index: 100;
   top: -2.5rem;
-  // left: 0;
   right: 1rem;
   height: 0;
 }

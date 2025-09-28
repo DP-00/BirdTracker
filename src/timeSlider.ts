@@ -65,13 +65,13 @@ export async function setTimeSlider(
 
   // set timeslider
   timeSlider.view = view;
-
   setTimeSliderExtent(timeSlider, fullTimeExtent);
   setDatePicker();
   timeSlider.addEventListener("arcgisPropertyChange", (event) => {
     updateTimeDeps();
   });
 
+  // set zoom to visible path button
   document.getElementById("time-zoom")!.addEventListener("click", async () => {
     const primaryLayer = findLayersByTitles(view, "Line visualization");
 
@@ -86,7 +86,8 @@ export async function setTimeSlider(
       });
     }
   });
-  // set mode change
+
+  // set bird model
 
   let birdMesh, initialTransform;
 
@@ -96,15 +97,11 @@ export async function setTimeSlider(
     coordinatesData,
     timeSlider,
   );
-  // const birdMesh = getBirdFromLayer(view);
-  // console.log(birdMesh);
   initialTransform = birdMesh.transform?.clone();
 
-  // set animations
-
+  // set animation button
   animationPlayRate.value = 50000;
   playAnimation.addEventListener("click", () => {
-    console.log(playAnimation.getAttribute("data-playing"));
     if (playAnimation.getAttribute("data-playing") === "false") {
       playAnimation.setAttribute("data-playing", "true");
       playAnimation.iconStart = "pause-f";
@@ -113,15 +110,9 @@ export async function setTimeSlider(
       playAnimation.setAttribute("data-playing", "false");
       playAnimation.iconStart = "play-f";
     }
-
-    // if (playAnimation.getAttribute("data-playing")) {
-    //   playAnimation.iconStart = "pause-f";
-    //   updateVisualization();
-    // } else {
-    //   playAnimation.iconStart = "play-f";
-    // }
   });
 
+  // set mode changes
   startDatePickerSection.style.display = "none";
   gaugeContainer.style.display = "none";
   animationPlayRate.style.display = "block";
@@ -132,7 +123,6 @@ export async function setTimeSlider(
         const birdid = document.getElementById("dashboard-birdid")!.innerText;
         const birdData = groupedFeatures[birdid];
         const coordinates = coordinatesData[birdid];
-        console.log(birdData);
         const endTime = timeSlider.timeExtent.end;
         let i = getClosestFeatureIndexInTime(birdData, endTime);
 
@@ -151,7 +141,6 @@ export async function setTimeSlider(
       document.getElementById("time-duration")!.style.display = "none";
       document.getElementById("time-distance")!.style.display = "none";
       document.getElementById("time-zoom")!.style.display = "none";
-      // document.getElementById("show-group-vis")!.style.display = "none";
       playAnimation?.setAttribute("data-playing", "false");
       document.getElementById("progress-loader")!.style.display = "none";
       gaugeContainer!.style.display = "block";
@@ -170,11 +159,11 @@ export async function setTimeSlider(
       document.getElementById("time-duration")!.style.display = "block";
       document.getElementById("time-distance")!.style.display = "block";
       document.getElementById("time-zoom")!.style.display = "block";
-      // document.getElementById("show-group-vis")!.style.display = "block";
       document.getElementById("progress-loader")!.style.display = "block";
     }
   });
 
+  // set animations
   const updateVisualization = () => {
     if (playAnimation.getAttribute("data-playing") === "true") {
       requestAnimationFrame(() => {
@@ -354,10 +343,7 @@ export async function setTimeSlider(
     // apply chosen date
     datePickerApplyBtn.addEventListener("click", () => {
       const end = new Date(`${endDatePicker.value}T${endTimePicker.value}Z`);
-      console.log(end);
       timeSlider.timeExtent.end = end;
-      console.log(timeSlider.timeExtent.end);
-      console.log(startDatePickerSection.style.display === "block");
 
       if (startDatePickerSection.style.display === "block") {
         const start = new Date(
@@ -428,20 +414,6 @@ export async function createtBirdModel(
   timeSlider,
 ) {
   const modelUrl = "./flying_crow_color_north.glb";
-  // const birdid = document.getElementById("dashboard-birdid")!.innerText;
-  // const birdData = groupedFeatures[birdid];
-  // const coordinates = coordinatesData[birdid];
-  // console.log(birdData);
-  // const endTime = timeSlider.timeExtent.end;
-  // let i = getClosestFeatureIndexInTime(birdData, endTime);
-
-  // const point = new Point({
-  //   x: coordinates[i][0],
-  //   y: coordinates[i][1],
-  //   z: coordinates[i][2],
-  //   spatialReference: { wkid: 4326 },
-  // });
-
   const point = new Point({
     longitude: 8,
     latitude: 48,

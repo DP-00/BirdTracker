@@ -64,10 +64,9 @@ export function getHeading(a, b) {
   const atan2 = Math.PI / 2 - Math.atan2(b.y - a.y, b.x - a.x);
   return (atan2 * 180) / Math.PI;
 }
-// ALL ARG NUMBERS
+
 export const lerp = (a, b, t) => {
   let d = b - a;
-
   return a + d * t;
 };
 
@@ -118,9 +117,8 @@ export function getClosestPointInTime(features, time, i?: number) {
     i = getClosestFeatureIndexInTime(features, time);
   }
 
-  // last feature, no next point to interpolate
   if (i >= features.length - 1) {
-    return features[features.length - 1].geometry;
+    return features[features.length - 1].geometry; // last feature, no next point to interpolate
   }
   const t =
     (time - features[i].attributes.timestamp) /

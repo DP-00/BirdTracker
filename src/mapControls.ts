@@ -91,7 +91,6 @@ async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
     visible: false,
   });
 
-  // Raster Function for Slope
   const slope = rasterFunctionUtils.slope({ slopeType: "degree", zFactor: 1 });
 
   const remapSlope = rasterFunctionUtils.remap({
@@ -183,6 +182,7 @@ async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
     landCoverLayer,
   ]);
 
+  // filter path visualizations from the thematic layer list
   document.querySelector("arcgis-layer-list")!.filterPredicate = (item) =>
     !item.title.toLowerCase().includes("visualization");
 
@@ -201,6 +201,7 @@ async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
       content: "legend",
     };
 
+    // adding visibility toggle to the list
     item.watch("visible", (newVal) => {
       if (newVal) {
         item.panel.open = true;
@@ -212,8 +213,6 @@ async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
 async function setSlides(arcgisScene: HTMLArcgisSceneElement) {
   const view = arcgisScene.view;
 
-  // const slides = arcgisScene.map.presentation.slides;
-  // slides.forEach(createSlideUI);
   document
     .getElementById("createSlideButton")
     ?.addEventListener("click", () => {
@@ -222,8 +221,6 @@ async function setSlides(arcgisScene: HTMLArcgisSceneElement) {
         slide.title.text = document.getElementById(
           "createSlideTitleInput",
         )!.value;
-        // arcgisScene.map.presentation.slides.add(slide);
-        // Create a UI for the slide with the new slide at the top of the list
         createSlideUI(slide, arcgisScene);
       });
     });

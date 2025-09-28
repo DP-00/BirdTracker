@@ -209,13 +209,6 @@ class App extends Widget<AppProperties> {
                 <h1 class="outlined">
                   BirdTracker
                   <img src="./birdIcon3.svg" width="25px" height="25px"></img>
-                  {/* <calcite-button
-                    appearance="transparent"
-                    icon-start="information"
-                    kind="neutral"
-                    round
-                    scale="l"
-                  ></calcite-button> */}
                 </h1>
               </p>
 
@@ -299,7 +292,6 @@ class App extends Widget<AppProperties> {
                   Bird <span id="dashboard-birdid"></span>
                 </h2>
                 <p id="dashboard-duration"></p>
-                {/* <p id="dashboard-duration-selected"></p> */}
               </p>
 
               <div id="dashboard-info">
@@ -312,14 +304,6 @@ class App extends Widget<AppProperties> {
                   <calcite-select id="secondary-vis-select"></calcite-select>
                 </calcite-label>
               </div>
-              {/* 
-                            <div id="dashboard-info">
-                <p>Line visualization:</p>
-                <p> Cylinder visualization:</p>
-                <calcite-select id="primary-vis-select"></calcite-select>
-                <calcite-select id="secondary-vis-select"></calcite-select>
-              </div> */}
-
               <calcite-tabs layout="center">
                 <calcite-tab-nav slot="title-group" id="dashboard-tabs-nav">
                   <calcite-tab-title icon-start="palette" selected>
@@ -789,12 +773,6 @@ const TimeControls = () => {
         kind="info"
         data-playing="false"
       ></calcite-button>
-      {/* <calcite-input-time-zone
-        mode="name"
-        id="timezone-picker"
-        scale="s"
-        value="Etc/UTC"
-      ></calcite-input-time-zone> */}
       <calcite-combobox
         id="animation-playrate"
         placeholder="Animation speed"
@@ -881,7 +859,6 @@ const TimeControls = () => {
         icon-start="pencil"
         appearance="transparent"
       ></calcite-button>
-      {/* <span id="time-utc">UTC Zone</span> */}
       <calcite-button
         icon-start="layer-zoom-to"
         id="time-zoom"

@@ -88,6 +88,7 @@ export async function loadData(arcgisScene: HTMLArcgisSceneElement) {
   let dataProcessed;
   let statJSON = {};
 
+  // creating the UI for mapping columns after uploading file
   csvInput?.addEventListener("change", async (event) => {
     try {
       file = (event.target as HTMLInputElement).files?.[0];
@@ -116,6 +117,7 @@ export async function loadData(arcgisScene: HTMLArcgisSceneElement) {
     }
   });
 
+  // processing the sample file
   buttonSample?.addEventListener("click", async () => {
     try {
       dialog.loading = true;
@@ -147,6 +149,7 @@ export async function loadData(arcgisScene: HTMLArcgisSceneElement) {
     }
   });
 
+  // processing uploaded file
   buttonSave?.addEventListener("click", async () => {
     try {
       let startTime = performance.now(); // for loading time
@@ -224,11 +227,14 @@ async function createGroupVisView(
 
   document.body.classList.toggle("bird-mode", true);
   const homeBtn = document.getElementById("show-group-vis")!;
+
+  // reseting the single view and going to the group view
   homeBtn.addEventListener("click", async () => {
     homeBtn.loading = true;
     document
       .getElementById("play-animation")
       ?.setAttribute("data-playing", false);
+    document.getElementById("play-animation").iconStart = "play-f";
     document.getElementById("dashboard-single-vis").loading = true;
     document.getElementById("dashboard-single-vis")!.style.display = "none";
     document.getElementById("progress-loader")!.style.display = "none";
@@ -270,6 +276,7 @@ export async function createSingleVisView(
   document
     .getElementById("play-animation")
     ?.setAttribute("data-playing", "false");
+  document.getElementById("play-animation").iconStart = "play-f";
   document.getElementById("single-view-button")!.loading = true;
   document.getElementById("dashboard")!.loading = true;
   document.getElementById("dashboard-group-vis")!.style.display = "none";
@@ -370,6 +377,7 @@ export async function createSingleVisView(
   document.getElementById("single-view-button")!.loading = false;
 }
 
+// creating different form of data needed for different functionality
 async function createPolyline(birdData) {
   const polyline = new Polyline({
     spatialReference: { wkid: 4326 },
@@ -424,8 +432,6 @@ async function create24hGraphics(graphics: any) {
   if (!geodeticLengthOperator.isLoaded()) {
     await geodeticLengthOperator.load();
   }
-  console.log(graphics);
-
   const graphicsArray = [];
   const coordinates = getCoordinatesFromFeatures(graphics);
   const startTimestamp = graphics[0].attributes.timestamp;
@@ -662,11 +668,6 @@ function processCSV(
                   return [h, processedValue];
                 }),
             ),
-            // ...Object.fromEntries(
-            //   headers
-            //     .filter((h: any) => !excludeKeys.includes(h))
-            //     .map((h: string | number) => [h, row[h]]),
-            // ),
           };
 
           (groupedByBird[birdid] ||= []).push(dataPoint);

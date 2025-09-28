@@ -16,6 +16,7 @@ import PointSymbol3D from "@arcgis/core/symbols/PointSymbol3D";
 import Legend from "@arcgis/core/widgets/Legend";
 import { findLayersByTitles, formatDate } from "./utils";
 
+// creating listeners separatly not to recreate them each time the single view is called
 export async function createSingleVisListeners(
   arcgisScene: HTMLArcgisSceneElement,
   dataProcessed,
@@ -198,6 +199,7 @@ export async function createSingleVisListeners(
   }
 }
 
+// called each time a new Single view is created
 export async function setSingleVis(
   arcgisScene: HTMLArcgisSceneElement,
   primaryLayer: __esri.FeatureLayer,
@@ -372,12 +374,10 @@ async function createColorSlider(
 
   if (layerType == "primary") {
     container = "color-slider-primary";
-    // resetSliderContainer(container);
     colorScaleContainer = primaryColorScale;
     legendContainer = primaryLegendContainer;
   } else {
     container = "color-slider-secondary";
-    // resetSliderContainer(container);
     colorScaleContainer = secondaryColorScale;
     legendContainer = secondaryLegendContainer;
   }
@@ -404,20 +404,15 @@ async function createColorSlider(
     name: "Red and Green 4",
   });
 
-  // flip the red and green scheme so green is on top
-  // const myScheme = colorSymbology.flipColors(redAndGreenScheme);
-
   const colorParams = {
     layer: layer,
     view: arcgisScene.view,
     field: variable,
     theme: "high-to-low",
     colorScheme: redAndGreenScheme,
-    // edgesType: "solid",
   };
 
   const bars = [];
-  let rendererResultOrg = null;
   let rendererResult = null;
 
   let vv = null;
@@ -711,7 +706,6 @@ export function createFilters(
       slider.max = summary.max;
       slider.minLabel = summary.min;
       slider.maxLabel = summary.max;
-      // slider.style = "width:250px";
       slider.setAttribute("label-handles", "");
       slider.addEventListener("calciteSliderChange", async () => {
         const minValue = slider.minValue;
@@ -727,7 +721,6 @@ export function createFilters(
     } else {
       const combobox = document.createElement("calcite-combobox");
       combobox.setAttribute("selection-display", "fit");
-      // combobox.setAttribute("overlay-positioning", "fix");
 
       let categories = summary.values;
       categories.forEach((category) => {
@@ -878,10 +871,6 @@ export function updateLayerColorVariables(variable, layer, birdSummary) {
   const summary = birdSummary[variable];
   const currentRenderer = layer.renderer.clone();
   if (!summary) {
-    // currentRenderer.visualVariables = [];
-    // currentRenderer.uniqueValueInfos = [];
-    // currentRenderer.type = "simple";
-    // layer.renderer = currentRenderer;
     layer.renderer = createSimpleRenderer(variable, summary, currentRenderer);
     return;
   }
@@ -911,8 +900,6 @@ function createUniqueValueRenderer(variable, uniqueValues, currentRenderer) {
   } else {
     type = currentRenderer.symbol.type;
   }
-  // currentRenderer.symbol;
-
   const uniqueValueInfos = uniqueValues.map((val, i) => {
     if (type === "point-3d") {
       symbol = {
@@ -1030,7 +1017,6 @@ function createSimpleRenderer(variable, summary, currentRenderer) {
   } else {
     type = currentRenderer.symbol.type;
   }
-  // currentRenderer.symbol;
 
   if (type === "point-3d") {
     symbol = {

@@ -4,6 +4,18 @@
 
 Developed as part of a Master's thesis at **Institute of Cartography and Geoinformation (IKG) at ETH Zurich**, this application addresses a gap in existing tools for movement ecologists by **integrating interactivity, 3D perspectives, and environmental data**.
 
+## Code structure
+
+- components/App.tsx: main structure of the application containing HTML, map settings, and calling data loading function
+- utils.ts: helpers function that are erused across whole application
+- mapControls.ts: setting map controls - basemaps, thematic layers and slides
+- dataLoading.ts: data parsing, creating layers and modes and setting UI and functionality for the Group View
+- singleVisualization.ts: setting UI and functionality for the Single View
+- layers.ts: setting all path related layers
+- timeslider.ts: managing the time control, animation and Follow mode
+- charts.ts: setting up and controling the line chart and elevation profile
+- weather.ts: setting weather functionality
+
 ## Licensing
 
 Licensed under the Apache License, Version 2.0 (the "License");
