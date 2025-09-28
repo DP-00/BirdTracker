@@ -68,6 +68,10 @@ b {
   font-weight: 900;
 }
 
+a {
+  color: #aed8cc;
+}
+
 .esri-widget {
   background-color: #192a27;
   color: #aed8cc;
@@ -566,7 +570,7 @@ calcite-tab {
   --calcite-combobox-input-background-color: rgba(0, 0, 0, 0);
 }
 
-#play-group-animation {
+#play-animation {
   position: absolute;
   z-index: 1;
   bottom: 0.15rem;
@@ -907,6 +911,10 @@ calcite-carousel-item {
 .tutorial-guidelines {
   list-style: none;
   font-size: 0.9rem;
+}
+
+.tutorial-guidelines strong {
+  font-weight: 600;
 }
 
 .tutorial-guidelines > li {

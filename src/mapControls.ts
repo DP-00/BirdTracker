@@ -172,7 +172,7 @@ async function setThematicLayers(arcgisScene: HTMLArcgisSceneElement) {
 
   await arcgisScene.addLayers([
     // windspeedLayer,
-    // footprintLayer,
+    footprintLayer,
     biointactnessLayer,
     conopyLayer,
     ecosystemLayer,

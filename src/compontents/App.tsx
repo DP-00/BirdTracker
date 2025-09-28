@@ -1092,24 +1092,34 @@ const Tutorial = () => {
           <li>Data must include at least 6 attributes:</li>
           <ul>
             <li>
-              <strong>ID:</strong> differentiates individual birds
+              <strong>BirdID:</strong> differentiates individual birds
             </li>
             <li>
               <strong>Longitude, Latitude, Altitude:</strong> 3D position of the
               bird
             </li>
             <li>
-              <strong>Time:</strong> UTC timestamp for each location
+              <strong>Timestamp:</strong> UTC timestamp for each location
             </li>
             <li>
               <strong>Speed:</strong> horizontal speed
             </li>
           </ul>
+          <li>
+            Do not use the reserved attribute names (listed above) as column
+            headers unless they are used for that attribute
+          </li>
+          <li>No NAs in mandatory columns (rows with NAs will be skipped)</li>
           <li>Remove outliers before uploading</li>
           <li>
             Gaps in data larger than 100 m are not interpolated and are shown as
             a thin white line
           </li>
+          <li>
+            If a bird flies very close to the ground, it may fall below the
+            surface due to accuracy limits and not be visible
+          </li>
+
           <li>If issues occur, reload the page or try a smaller dataset</li>
         </ul>
         <calcite-notice icon="exclamation-point-f" open width="full">
@@ -1336,14 +1346,19 @@ const Tutorial = () => {
                   Choose only the relevant part of the path with the timeline
                 </li>
                 <li>
-                  Generate the tiles and if the placement is correct get the
-                  weather data
+                  First generate the tiles and if the placement is correct get
+                  the weather data
+                </li>
+                <li>
+                  When generating the grid, your browser may show a 'Page
+                  Unresponsive' warning. If this happens, click Wait to continue
                 </li>
                 <li>
                   In case of too many requested grid cells minimize the selected
                   path with the timeline or set bigger sized tiles with smaller
                   distance from the path
                 </li>
+
                 <li>
                   Click on the grid elements to get exact values and see
                   corresponding variables
@@ -1378,19 +1393,241 @@ const About = () => {
   return (
     <calcite-stepper id="about" numbered>
       <calcite-stepper-item heading="Teaser" selected>
-        <p>TO BE ADDED</p>
+        <video width="100%" controls>
+          <source src="./BirdTracker_teaser.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
       </calcite-stepper-item>
-      <calcite-stepper-item heading="Inspiration"></calcite-stepper-item>
-      <calcite-stepper-item heading="Authors"></calcite-stepper-item>
+      <calcite-stepper-item heading="Purpose">
+        <p>
+          <ul class="tutorial-guidelines">
+            <li>
+              Developed as part of a Master's thesis at the{" "}
+              <strong>
+                Institute of Cartography and Geoinformation (IKG) at ETH Zurich
+              </strong>
+              , this application addresses a gap in existing tools for movement
+              ecologists by{" "}
+              <strong>
+                integrating interactivity, 3D perspectives, and environmental
+                data.
+              </strong>
+              This is especially important for birds, whose movements are highly
+              multidimensional, allowing more intuitive exploration of datasets.
+            </li>
+            <li>
+              The application provides an overview of{" "}
+              <strong>user-uploaded bird data,</strong> allowing exploration of
+              individual flight paths alongside terrain and environmental
+              layers. The tool is designed for visual exploration, pattern
+              recognition, and hypothesis generation —
+              <strong>not to replace statistical software like R,</strong> which
+              should be used to verify any results before publication.
+            </li>
+            <li>
+              The application is <strong>freely accessible,</strong> but please{" "}
+              <strong>cite it if used in your research.</strong> It can be used
+              to record or showcase your findings, serving as a platform to
+              communicate results. <strong>Ongoing improvements</strong> focus
+              on performance, accessibility, and incorporating feedback from
+              researchers. You are encouraged to{" "}
+              <strong>send feedback or report issues</strong>
+              to the author, who will try to respond and and address them.
+            </li>
+          </ul>
+        </p>
+      </calcite-stepper-item>
+      <calcite-stepper-item heading="Authors">
+        {" "}
+        <h3>Author</h3>
+        <p>
+          <ul class="tutorial-guidelines">
+            <li>
+              Dagmara Pasiak <i>(dpasiak@ethz.ch)</i>
+            </li>
+          </ul>
+        </p>
+        <h3>Supervisors</h3>
+        <p>
+          <ul class="tutorial-guidelines">
+            <li>
+              Katharina Henggeler{" "}
+              <i>(Institute of Cartography and Geoinformation, ETH Zurich)</i>
+            </li>
+            <li>
+              Ph.D. Elham Nourani <i>(University of Konstanz)</i>
+            </li>
+            <li>
+              Raluca Nicola <i>(Esri R&D Zurich)</i>
+            </li>
+          </ul>
+        </p>
+      </calcite-stepper-item>
+
       <calcite-stepper-item heading="Attributions">
-        <calcite-notice width="full" open>
-          <div slot="title">Step 4 content</div>
-        </calcite-notice>
-      </calcite-stepper-item>
-      <calcite-stepper-item heading="Disclaimers">
-        <calcite-notice width="full" open>
-          <div slot="title">Step 4 content</div>
-        </calcite-notice>
+        <h3>Data</h3>
+        <ul class="tutorial-guidelines">
+          <li>
+            <strong>Sample dataset:</strong>{" "}
+            <a
+              href="https://www.movebank.org/cms/webapp?gwt_fragment=page=studies,path=study2201086728"
+              target="_blank"
+            >
+              part of European Honey Buzzard_Finland (Movebank)
+            </a>
+          </li>
+          <li>
+            <strong>Weather data:</strong>
+            <a
+              href="https://open-meteo.com/en/docs/historical-weather-api"
+              target="_blank"
+            >
+              integration of different dataset with OpenMeteo API
+            </a>
+          </li>
+          <li>
+            <strong>Thematic layers:</strong> datasets from
+            <a href="https://livingatlas.arcgis.com/en/home/" target="_blank">
+              ArcGIS Living Atlas
+            </a>
+          </li>
+          <ul>
+            <li>
+              <a
+                href="https://www.arcgis.com/home/item.html?id=cfe002c152204bd8b6e392f3f39f2878"
+                target="_blank"
+              >
+                Human Footprint
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://www.arcgis.com/home/item.html?id=2a3dfb00c2c6425f85bd70da420d58eb"
+                target="_blank"
+              >
+                Global Canopy Height
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://www.arcgis.com/home/item.html?id=25543641e4ce461baa2b7863dc0f80b7"
+                target="_blank"
+              >
+                Biodiversity Intactness
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://ic.imagery1.arcgis.com/arcgis/rest/services/Sentinel2_10m_LandCover/ImageServer"
+                target="_blank"
+              >
+                Sentinel-2 10m Land Cover
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://www.arcgis.com/home/item.html?id=f6bb66f1c11e467f9a9a859343e27cf8"
+                target="_blank"
+              >
+                NDVI (Normalized Difference Vegetation Index)
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer"
+                target="_blank"
+              >
+                Elevation (Terrain3D)
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer"
+                target="_blank"
+              >
+                Slope (derived from Terrain3D)
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://www.arcgis.com/home/item.html?id=57fb0dbb278248be8fe17e3391a0d93f"
+                target="_blank"
+              >
+                World Database of Protected Areas (WDPA)
+              </a>
+            </li>
+          </ul>
+          <li>
+            <strong>Bird model:</strong> adapted from{" "}
+            <a
+              href="https://sketchfab.com/3d-models/flying-crow-blacksmiths-workshop-assets-3ecfc0834b5b4883b840d0426c267efe"
+              target="_blank"
+            >
+              Flying Crow (Sketchfab)
+            </a>
+          </li>
+        </ul>
+        <h3>Technologies</h3>
+        <ul class="tutorial-guidelines">
+          <li>
+            <strong>
+              <a
+                href="https://developers.arcgis.com/javascript/latest/"
+                target="_blank"
+              >
+                ArcGIS JS API:
+              </a>
+            </strong>
+            application developement and map integration
+          </li>
+          <li>
+            <strong>
+              <a
+                href="https://developers.arcgis.com/calcite-design-system/components/"
+                target="_blank"
+              >
+                Calcite components
+              </a>
+            </strong>
+            application UI
+          </li>
+          <li>
+            <strong>
+              <a href="https://www.canvas-gauges.com" target="_blank">
+                Canvas gauges:
+              </a>
+            </strong>
+            gauges in the Follow Mode
+          </li>
+          <li>
+            <strong>
+              <a href="https://www.chartjs.org" target="_blank">
+                Chart.js:
+              </a>
+            </strong>
+            charts in the pop-ups
+          </li>
+          <li>
+            <strong>
+              <a href="https://www.papaparse.com" target="_blank">
+                Papa parse:
+              </a>
+            </strong>
+            data loading
+          </li>
+        </ul>
+        <h3>Code</h3>
+        <ul class="tutorial-guidelines">
+          <li>
+            <strong>Application template:</strong>
+            <a
+              href="https://github.com/arnofiva/arcgis-core-template"
+              target="_blank"
+            >
+              ArcGIS API for JavaScript template using Vite and TypeScript
+            </a>
+          </li>
+        </ul>
       </calcite-stepper-item>
     </calcite-stepper>
   );
